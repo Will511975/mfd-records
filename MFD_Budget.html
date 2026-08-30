@@ -782,6 +782,15 @@ function fyLabel(y){ return `FY ${y}–${String(y+1).slice(2)}`; }
 function save(){
   try{ localStorage.setItem('mfd_budget_'+db.fiscalYear, JSON.stringify(db)); }catch(e){}
 }
+
+// ──── Access control ────
+// Logging a new expense is everyday work, open to any signed-in account.
+// Deleting an expense/vendor or resetting the fiscal-year budget allocations
+// is destructive/structural, so it requires an Admin account.
+function requireUnlock(action){
+  if(window.MFD_AUTH && window.MFD_AUTH.role === 'admin'){ action(); return; }
+  alert('Only Admin accounts can make this change. Ask your department Admin to make this change, or to upgrade your account.');
+}
 function loadFY(fy){
   const raw = localStorage.getItem('mfd_budget_'+fy);
   if(raw){ try{ db = JSON.parse(raw); db.fiscalYear=fy; }catch(e){ initDB(fy); } }
@@ -1218,9 +1227,11 @@ function saveExpense(){
 }
 function editExpense(id){ openExpenseModal(id); }
 function deleteExpense(id){
-  if(!confirm('Delete this expense? This cannot be undone.')) return;
-  db.expenses = db.expenses.filter(e=>e.id!==id);
-  save(); toast('Expense deleted','info'); refreshAll();
+  requireUnlock(()=>{
+    if(!confirm('Delete this expense? This cannot be undone.')) return;
+    db.expenses = db.expenses.filter(e=>e.id!==id);
+    save(); toast('Expense deleted','info'); refreshAll();
+  });
 }
 
 // ══════════════════════════════════════════
@@ -1258,19 +1269,23 @@ function dRow(label, val){
 //  BUDGET ALLOCATION MODAL
 // ══════════════════════════════════════════
 function openBudgetModal(){
-  const fields = document.getElementById('budget-alloc-fields');
-  fields.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      ${CATEGORIES.map(cat=>`
-        <div class="form-group">
-          <label class="label">${CAT_ICONS[cat]} ${cat}</label>
-          <input type="number" class="input" id="ba-${cat}" value="${db.budgets[cat]||0}" min="0" step="100" placeholder="0.00"/>
-        </div>`).join('')}
-    </div>
-    <div style="margin-top:14px;padding:10px 12px;background:var(--navy-800);border-radius:8px;font-size:11px;color:var(--navy-500);">
-      These allocations apply to <strong style="color:var(--slate-400);">${fyLabel(db.fiscalYear)}</strong>.
-    </div>`;
-  document.getElementById('budget-modal').classList.add('open');
+  // Setting the fiscal-year allocations is a budget-planning action, not
+  // day-to-day expense logging, so it stays Admin-only.
+  requireUnlock(()=>{
+    const fields = document.getElementById('budget-alloc-fields');
+    fields.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        ${CATEGORIES.map(cat=>`
+          <div class="form-group">
+            <label class="label">${CAT_ICONS[cat]} ${cat}</label>
+            <input type="number" class="input" id="ba-${cat}" value="${db.budgets[cat]||0}" min="0" step="100" placeholder="0.00"/>
+          </div>`).join('')}
+      </div>
+      <div style="margin-top:14px;padding:10px 12px;background:var(--navy-800);border-radius:8px;font-size:11px;color:var(--navy-500);">
+        These allocations apply to <strong style="color:var(--slate-400);">${fyLabel(db.fiscalYear)}</strong>.
+      </div>`;
+    document.getElementById('budget-modal').classList.add('open');
+  });
 }
 function saveBudgetAllocations(){
   CATEGORIES.forEach(cat=>{
@@ -1328,9 +1343,11 @@ function saveVendor(){
 }
 function editVendor(id){ openVendorModal(id); }
 function deleteVendor(id){
-  if(!confirm('Delete this vendor?')) return;
-  db.vendors = db.vendors.filter(v=>v.id!==id);
-  save(); toast('Vendor deleted','info'); renderVendors();
+  requireUnlock(()=>{
+    if(!confirm('Delete this vendor?')) return;
+    db.vendors = db.vendors.filter(v=>v.id!==id);
+    save(); toast('Vendor deleted','info'); renderVendors();
+  });
 }
 function updateVendorDatalist(){
   const dl = document.getElementById('vendor-list-dl');
