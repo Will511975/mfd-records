@@ -1701,11 +1701,12 @@ function renderPanel(){
   });
   list.querySelectorAll('.del').forEach(btn=>{
     btn.addEventListener('click', e=>{
+      // Removing an individual item is open to any signed-in account
+      // (Admin or Personnel) — only structural changes (compartments,
+      // containers, resets) stay behind requireUnlock.
       const idx = +e.target.getAttribute('data-idx');
-      requireUnlock(()=>{
-        comp.items.splice(idx,1);
-        saveData(); renderSvg(); renderPanel(); refreshStats();
-      });
+      comp.items.splice(idx,1);
+      saveData(); renderSvg(); renderPanel(); refreshStats();
     });
   });
 
@@ -1779,11 +1780,10 @@ function renderContainers(comp){
   });
   wrap.querySelectorAll('.ci-del').forEach(btn=>{
     btn.addEventListener('click', e=>{
+      // Removing an item from inside a bag/kit/set — open to Personnel too.
       const cid = e.target.getAttribute('data-cid'), idx = +e.target.getAttribute('data-idx');
-      requireUnlock(()=>{
-        findContainer(comp, cid).items.splice(idx,1);
-        saveData(); renderSvg(); renderPanel(); refreshStats();
-      });
+      findContainer(comp, cid).items.splice(idx,1);
+      saveData(); renderSvg(); renderPanel(); refreshStats();
     });
   });
   wrap.querySelectorAll('.ci-add').forEach(btn=>{
@@ -1826,13 +1826,12 @@ function findContainer(comp, cid){
 }
 
 function addContainerItem(comp, cid){
+  // Adding an item into an existing bag/kit/set — open to Personnel too.
   const input = document.querySelector(`.ci-new[data-cid="${cid}"]`);
   const name = input.value.trim();
   if(!name) return;
-  requireUnlock(()=>{
-    findContainer(comp, cid).items.push({ name, present:true, qty:1 });
-    saveData(); renderSvg(); renderPanel(); refreshStats();
-  });
+  findContainer(comp, cid).items.push({ name, present:true, qty:1 });
+  saveData(); renderSvg(); renderPanel(); refreshStats();
 }
 
 let containerRenameCommit = null;
@@ -1902,15 +1901,14 @@ function addContainer(){
 document.getElementById('btnAddItem').addEventListener('click', addItem);
 document.getElementById('newItemName').addEventListener('keydown', e=>{ if(e.key==='Enter') addItem(); });
 function addItem(){
+  // Adding an item directly to a compartment — open to Personnel too.
   if(!activeId) return;
   const input = document.getElementById('newItemName');
   const name = input.value.trim();
   if(!name) return;
-  requireUnlock(()=>{
-    getComp(activeId).items.push({name, present:true, qty:1});
-    input.value='';
-    saveData(); renderSvg(); renderPanel(); refreshStats();
-  });
+  getComp(activeId).items.push({name, present:true, qty:1});
+  input.value='';
+  saveData(); renderSvg(); renderPanel(); refreshStats();
 }
 
 /* ---------- Notes ---------- */
