@@ -495,9 +495,16 @@
     font-family:var(--font-mono);font-size:11.5px;color:var(--gold-400);
     background:var(--navy-950);border:1px solid var(--navy-600);border-radius:4px;padding:3px 7px;flex-shrink:0;
   }
+  .resupply-item-row{flex-wrap:wrap;}
   .resupply-item-row .ri-cabinet-note{font-size:11px;color:var(--ink-500);flex-shrink:0;}
   .resupply-item-row .ri-cabinet-note.match{color:var(--ok-500);}
   .resupply-item-row .ri-cabinet-note.short{color:var(--gold-400);}
+  .ri-add-cabinet{
+    font-family:var(--font-body);font-size:10.5px;font-weight:700;letter-spacing:.02em;
+    background:var(--navy-900);color:var(--gold-400);border:1px solid var(--gold-500);
+    padding:4px 9px;border-radius:5px;cursor:pointer;transition:.15s;flex-shrink:0;
+  }
+  .ri-add-cabinet:hover{background:var(--gold-500);color:#04170c;}
 
   .resupply-section-head{margin-bottom:10px;}
   .resupply-section-head-spaced{margin-top:34px;padding-top:20px;border-top:1px solid var(--navy-700);}
@@ -520,6 +527,19 @@
     padding:8px 10px;border-radius:5px;font-size:13px;
   }
   .add-cabinet-form input:focus{outline:none;border-color:var(--gold-500);}
+  .cabinet-search-input{
+    background:var(--navy-800);border:1px solid var(--navy-600);color:var(--ink-100);
+    padding:7px 10px;border-radius:5px;font-size:12.5px;min-width:200px;
+  }
+  .cabinet-search-input:focus{outline:none;border-color:var(--gold-500);}
+  .cabinet-category-head{
+    display:flex;align-items:baseline;gap:8px;margin:18px 0 8px;
+    font-family:var(--font-mono);font-size:11.5px;color:var(--gold-400);
+    letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--navy-700);padding-bottom:5px;
+  }
+  .cabinet-category-head:first-of-type{margin-top:4px;}
+  .cabinet-category-head .cat-count{color:var(--ink-500);font-weight:400;text-transform:none;letter-spacing:0;font-family:var(--font-body);}
+  .cabinet-empty-filtered{color:var(--ink-500);font-size:13px;padding:14px 0;}
   .cabinet-item-row{
     display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:6px;
     background:var(--navy-800);border:1px solid var(--navy-700);margin-bottom:7px;flex-wrap:wrap;
@@ -527,6 +547,12 @@
   .cabinet-item-row.low{border-color:var(--red-600);background:rgba(184,17,39,.08);}
   .cabinet-item-row.on-order{border-color:var(--gold-500);background:rgba(242,182,50,.06);}
   .cabinet-item-row .ci-name{flex:1 1 160px;font-size:14px;min-width:140px;}
+  .cabinet-item-row .ci-category{
+    background:var(--navy-950);border:1px solid var(--navy-600);color:var(--ink-500);
+    font-family:var(--font-mono);font-size:11px;border-radius:4px;padding:5px 8px;
+    flex:0 1 130px;min-width:90px;
+  }
+  .cabinet-item-row .ci-category:focus{outline:none;border-color:var(--gold-500);color:var(--ink-100);}
   .cabinet-item-row .ci-field-label{
     font-family:var(--font-mono);font-size:9px;color:var(--ink-500);letter-spacing:.06em;
     text-transform:uppercase;display:block;margin-bottom:2px;
@@ -579,10 +605,14 @@
     body.print-resupply .resupply-item-row{background:#fff;border:1px solid #000;color:#000;}
     body.print-resupply .resupply-item-row .ri-loc{color:#333;}
     body.print-resupply .resupply-item-row .ri-qty{background:#fff;border:1px solid #000;color:#000;}
+    body.print-resupply .ri-add-cabinet{display:none !important;}
     body.print-resupply .resupply-section-head h2{color:#000;}
     body.print-resupply .resupply-section-head p{color:#333;}
     body.print-resupply .cabinet-toolbar,body.print-resupply .add-cabinet-form{display:none !important;}
+    body.print-resupply .cabinet-category-head{color:#000;border-bottom-color:#000;}
+    body.print-resupply .cabinet-category-head .cat-count{color:#333;}
     body.print-resupply .cabinet-item-row{background:#fff;border:1px solid #000;color:#000;}
+    body.print-resupply .cabinet-item-row .ci-category{background:#fff;border:1px solid #000;color:#333;}
     body.print-resupply .cabinet-item-row .ci-status.low{color:#b81127;}
     body.print-resupply .cabinet-item-row .ci-status.on-order{color:#8a5a00;}
     body.print-resupply .cabinet-item-row .ci-action,body.print-resupply .cabinet-item-row .ci-del{display:none !important;}
@@ -773,9 +803,13 @@
     </div>
     <div class="toolbar cabinet-toolbar">
       <button class="util accent" id="btnShowAddCabinetItem">+ Add Cabinet Item</button>
+      <div class="fill"></div>
+      <input type="text" id="cabinetSearch" class="cabinet-search-input" placeholder="🔍 Search cabinet stock…">
     </div>
     <div class="add-cabinet-form" id="addCabinetForm">
       <input type="text" id="newCabinetName" placeholder="Item name…">
+      <input type="text" id="newCabinetCategory" list="cabinetCategoryList" placeholder="Category (e.g. Medical, PPE)…" style="width:180px;">
+      <datalist id="cabinetCategoryList"></datalist>
       <input type="number" id="newCabinetQty" min="0" placeholder="Qty on hand" style="width:120px;">
       <input type="number" id="newCabinetPar" min="0" placeholder="Reorder point" style="width:130px;">
       <button class="util accent" id="btnConfirmAddCabinetItem">Add</button>
@@ -2909,7 +2943,7 @@ function renderResupplyVehicles(){
             const needed = f.qty ?? 1;
             let noteHtml;
             if(!cabItem){
-              noteHtml = `<span class="ri-cabinet-note">no cabinet match</span>`;
+              noteHtml = `<span class="ri-cabinet-note">no cabinet match</span><button class="ri-add-cabinet" data-add-name="${escapeHtml(f.item)}">+ Add to Cabinet</button>`;
             } else if(cabItem.qtyOnHand >= needed){
               noteHtml = `<span class="ri-cabinet-note match">cabinet: ${cabItem.qtyOnHand} on hand</span>`;
             } else {
@@ -2943,6 +2977,12 @@ function renderResupplyVehicles(){
       renderResupply();
     });
   });
+  wrap.querySelectorAll('.ri-add-cabinet').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      quickAddToCabinet(btn.getAttribute('data-add-name'));
+    });
+  });
 }
 
 /* ---------- Cabinet CRUD ---------- */
@@ -2955,23 +2995,39 @@ document.getElementById('btnShowAddCabinetItem').addEventListener('click', ()=>{
 document.getElementById('btnCancelAddCabinetItem').addEventListener('click', ()=>{
   document.getElementById('addCabinetForm').classList.remove('show');
   document.getElementById('newCabinetName').value='';
+  document.getElementById('newCabinetCategory').value='';
   document.getElementById('newCabinetQty').value='';
   document.getElementById('newCabinetPar').value='';
 });
 document.getElementById('btnConfirmAddCabinetItem').addEventListener('click', addCabinetItem);
-document.getElementById('newCabinetName').addEventListener('keydown', e=>{ if(e.key==='Enter') addCabinetItem(); });
+['newCabinetName','newCabinetCategory','newCabinetQty','newCabinetPar'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addCabinetItem(); } });
+});
 function addCabinetItem(){
   const nameInput = document.getElementById('newCabinetName');
   const name = nameInput.value.trim();
   if(!name){ nameInput.focus(); return; }
   requireUnlock(()=>{
+    const category = document.getElementById('newCabinetCategory').value.trim();
     const qtyOnHand = Math.max(0, parseInt(document.getElementById('newCabinetQty').value)||0);
     const parLevel = Math.max(0, parseInt(document.getElementById('newCabinetPar').value)||0);
     const id = uniqueCabinetId(slugify(name));
-    cabinetData.items.push({ id, name, qtyOnHand, parLevel, pendingOrder:null });
-    nameInput.value=''; document.getElementById('newCabinetQty').value=''; document.getElementById('newCabinetPar').value='';
+    cabinetData.items.push({ id, name, category, qtyOnHand, parLevel, pendingOrder:null });
+    nameInput.value=''; document.getElementById('newCabinetCategory').value=''; document.getElementById('newCabinetQty').value=''; document.getElementById('newCabinetPar').value='';
     document.getElementById('addCabinetForm').classList.remove('show');
     saveCabinetData(); renderCabinet(); renderResupplyVehicles();
+  });
+}
+// Jump here from a "no cabinet match" row on the Vehicles Needing Resupply
+// list: opens the add-item form pre-filled with that item's name so all
+// that's left is picking a category and quantities.
+function quickAddToCabinet(name){
+  requireUnlock(()=>{
+    const form = document.getElementById('addCabinetForm');
+    form.classList.add('show');
+    document.getElementById('newCabinetName').value = name;
+    form.scrollIntoView({behavior:'smooth', block:'center'});
+    document.getElementById('newCabinetCategory').focus();
   });
 }
 function deleteCabinetItem(id){
@@ -3011,39 +3067,77 @@ function renderCabinet(){
   document.getElementById('cabinetStatLow').textContent = lowCount;
   document.getElementById('cabinetStatOrdered').textContent = onOrderCount;
 
+  // Keep the category autocomplete current for the add-item form and the
+  // per-row category field, based on whatever categories are already in use.
+  const categoryListEl = document.getElementById('cabinetCategoryList');
+  const knownCategories = Array.from(new Set(items.map(ci=>(ci.category||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
+  categoryListEl.innerHTML = knownCategories.map(c=>`<option value="${escapeHtml(c)}">`).join('');
+
   if(!items.length){
     wrap.innerHTML = `<div class="resupply-empty" style="margin-top:20px;"><span class="big">🗄</span>Cabinet is empty — add what the station keeps on hand to restock the trucks.</div>`;
     return;
   }
 
-  // Low-stock and on-order items float to the top so they're the first thing seen.
-  const sorted = items.slice().sort((a,b)=>{
-    const rank = ci => ci.pendingOrder ? 1 : (cabinetItemIsLow(ci) ? 0 : 2);
-    return rank(a)-rank(b) || a.name.localeCompare(b.name);
-  });
+  const searchTerm = (document.getElementById('cabinetSearch').value || '').trim().toLowerCase();
+  const filtered = searchTerm
+    ? items.filter(ci => ci.name.toLowerCase().includes(searchTerm) || (ci.category||'').toLowerCase().includes(searchTerm))
+    : items;
 
-  wrap.innerHTML = sorted.map(ci=>{
-    const low = cabinetItemIsLow(ci);
-    const rowClass = ci.pendingOrder ? 'on-order' : (low ? 'low' : '');
-    let statusHtml;
-    if(ci.pendingOrder){
-      const d = new Date(ci.pendingOrder.orderedDate);
-      statusHtml = `<span class="ci-status on-order">📦 On order: ${ci.pendingOrder.qty} (ordered ${d.toLocaleDateString()})</span>
-        <button class="ci-action receive" data-receive="${ci.id}">Mark Received</button>`;
-    } else if(low){
-      statusHtml = `<span class="ci-status low">⚠ Below reorder point</span>
-        <button class="ci-action order" data-order="${ci.id}">Mark Ordered</button>`;
-    } else {
-      statusHtml = `<span class="ci-status ok">OK</span>`;
-    }
+  if(!filtered.length){
+    wrap.innerHTML = `<div class="cabinet-empty-filtered">No cabinet items match "${escapeHtml(document.getElementById('cabinetSearch').value.trim())}".</div>`;
+    return;
+  }
+
+  // Group by category (blank -> "Uncategorized"), categories sorted
+  // alphabetically with Uncategorized always last; within a category,
+  // low-stock and on-order items float to the top so they're seen first.
+  const groups = {};
+  filtered.forEach(ci=>{
+    const cat = (ci.category||'').trim() || 'Uncategorized';
+    if(!groups[cat]) groups[cat] = [];
+    groups[cat].push(ci);
+  });
+  const catNames = Object.keys(groups).sort((a,b)=>{
+    if(a==='Uncategorized') return 1;
+    if(b==='Uncategorized') return -1;
+    return a.localeCompare(b);
+  });
+  const rank = ci => ci.pendingOrder ? 1 : (cabinetItemIsLow(ci) ? 0 : 2);
+  catNames.forEach(cat=> groups[cat].sort((a,b)=> rank(a)-rank(b) || a.name.localeCompare(b.name)));
+
+  wrap.innerHTML = catNames.map(cat=>{
+    const catItems = groups[cat];
+    const catLow = catItems.filter(ci=>cabinetItemIsLow(ci) && !ci.pendingOrder).length;
     return `
-      <div class="cabinet-item-row ${rowClass}" data-cabinet-id="${ci.id}">
-        <div class="ci-name">${escapeHtml(ci.name)}</div>
-        <div class="ci-field"><span class="ci-field-label">On Hand</span><input type="number" min="0" class="ci-qty" data-qty="${ci.id}" value="${ci.qtyOnHand}"></div>
-        <div class="ci-field"><span class="ci-field-label">Reorder At</span><input type="number" min="0" class="ci-par" data-par="${ci.id}" value="${ci.parLevel}"></div>
-        ${statusHtml}
-        <button class="ci-del" data-del="${ci.id}" title="Remove item">✕</button>
+      <div class="cabinet-category-head">
+        <span>${escapeHtml(cat)}</span>
+        <span class="cat-count">${catItems.length} item${catItems.length===1?'':'s'}${catLow ? ` · ${catLow} low` : ''}</span>
       </div>
+      ${catItems.map(ci=>{
+        const low = cabinetItemIsLow(ci);
+        const rowClass = ci.pendingOrder ? 'on-order' : (low ? 'low' : '');
+        let statusHtml;
+        if(ci.pendingOrder){
+          const d = new Date(ci.pendingOrder.orderedDate);
+          statusHtml = `<span class="ci-status on-order">📦 On order: ${ci.pendingOrder.qty} (ordered ${d.toLocaleDateString()})</span>
+            <button class="ci-action receive" data-receive="${ci.id}">Mark Received</button>`;
+        } else if(low){
+          statusHtml = `<span class="ci-status low">⚠ Below reorder point</span>
+            <button class="ci-action order" data-order="${ci.id}">Mark Ordered</button>`;
+        } else {
+          statusHtml = `<span class="ci-status ok">OK</span>`;
+        }
+        return `
+          <div class="cabinet-item-row ${rowClass}" data-cabinet-id="${ci.id}">
+            <div class="ci-name">${escapeHtml(ci.name)}</div>
+            <input type="text" class="ci-category" data-cat="${ci.id}" value="${escapeHtml(ci.category||'')}" placeholder="Category" list="cabinetCategoryList">
+            <div class="ci-field"><span class="ci-field-label">On Hand</span><input type="number" min="0" class="ci-qty" data-qty="${ci.id}" value="${ci.qtyOnHand}"></div>
+            <div class="ci-field"><span class="ci-field-label">Reorder At</span><input type="number" min="0" class="ci-par" data-par="${ci.id}" value="${ci.parLevel}"></div>
+            ${statusHtml}
+            <button class="ci-del" data-del="${ci.id}" title="Remove item">✕</button>
+          </div>
+        `;
+      }).join('')}
     `;
   }).join('');
 
@@ -3063,6 +3157,14 @@ function renderCabinet(){
       saveCabinetData(); renderCabinet();
     });
   });
+  wrap.querySelectorAll('.ci-category').forEach(inp=>{
+    inp.addEventListener('change', e=>{
+      const ci = cabinetData.items.find(x=>x.id===e.target.getAttribute('data-cat'));
+      if(!ci) return;
+      ci.category = e.target.value.trim();
+      saveCabinetData(); renderCabinet();
+    });
+  });
   wrap.querySelectorAll('[data-order]').forEach(btn=>{
     btn.addEventListener('click', e=> markCabinetOrdered(e.target.getAttribute('data-order')));
   });
@@ -3074,6 +3176,7 @@ function renderCabinet(){
   });
 }
 
+document.getElementById('cabinetSearch').addEventListener('input', renderCabinet);
 document.getElementById('btnResupplyRefresh').addEventListener('click', renderResupply);
 document.getElementById('btnResupplyPrint').addEventListener('click', ()=>{
   renderResupply();
