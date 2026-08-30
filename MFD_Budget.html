@@ -278,13 +278,6 @@ select.input option{background:var(--navy-800);}
     <div class="nav-item" onclick="openExpenseModal()">
       <span class="icon">➕</span> Log Expense
     </div>
-    <div class="nav-item" onclick="exportJSON()">
-      <span class="icon">💾</span> Export JSON
-    </div>
-    <div class="nav-item" onclick="document.getElementById('import-file').click()">
-      <span class="icon">📂</span> Import JSON
-    </div>
-    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
   </div>
   <div class="mfd-toolbar-group">
     <span class="mfd-toolbar-label">Fiscal Year</span>
@@ -303,7 +296,6 @@ select.input option{background:var(--navy-800);}
       <div class="topbar-sub" id="page-sub">Overview for current fiscal year</div>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn-ghost btn-sm" onclick="exportJSON()">💾 Export</button>
       <button class="btn btn-primary btn-sm" onclick="openExpenseModal()">➕ Log Expense</button>
     </div>
   </div>
@@ -801,33 +793,6 @@ function loadFY(fy){
 }
 function initDB(fy){
   db = { expenses:[], vendors:[], budgets:{}, fiscalYear:fy };
-}
-
-// ──── Export / Import ────
-function exportJSON(){
-  const blob = new Blob([JSON.stringify(db, null, 2)],{type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `MFD_Budget_${db.fiscalYear}.json`;
-  a.click();
-  toast('JSON exported successfully','success');
-}
-function importJSON(e){
-  const file = e.target.files[0]; if(!file) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    try{
-      const imp = JSON.parse(ev.target.result);
-      if(!imp.expenses) throw new Error('Invalid file');
-      db = imp;
-      if(!db.vendors) db.vendors=[];
-      if(!db.budgets) db.budgets={};
-      save(); refreshAll();
-      toast('Data imported successfully','success');
-    }catch(err){ toast('Import failed: '+err.message,'error'); }
-  };
-  r.readAsText(file);
-  e.target.value='';
 }
 
 // ══════════════════════════════════════════

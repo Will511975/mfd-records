@@ -89,7 +89,6 @@
   button.util:hover{border-color:var(--gold-500);color:var(--gold-400);}
   button.util.danger:hover{border-color:var(--red-500);color:var(--red-500);}
   button.util.accent{border-color:var(--gold-500);color:var(--gold-400);}
-  #importFile{display:none;}
 
   .add-compt-form{
     display:none;gap:8px;align-items:center;padding:10px 28px;background:var(--navy-800);
@@ -105,14 +104,6 @@
     padding:8px 10px;border-radius:5px;font-size:13px;
   }
   .add-compt-form input:focus,.add-compt-form select:focus{outline:none;border-color:var(--gold-500);}
-
-  .backup-badge{
-    display:none;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;
-    letter-spacing:.05em;color:var(--gold-400);background:rgba(242,182,50,.1);
-    border:1px solid var(--gold-500);padding:6px 12px;border-radius:5px;
-  }
-  .backup-badge.show{display:inline-flex;}
-  .backup-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--gold-500);flex-shrink:0;}
 
   /* ===== Main layout ===== */
   .wrap{display:flex;gap:0;min-height:calc(100vh - 150px);}
@@ -625,10 +616,6 @@
   <button class="tab-btn" id="tabBtnVehicle" data-tab="vehicle">🚒 Vehicle Inspection</button>
   <button class="tab-btn" id="tabBtnResupply" data-tab="resupply">🔄 Resupply <span id="resupplyTabCount" class="resupply-tab-badge" style="display:none;">0</span></button>
   <div class="fill"></div>
-  <button class="util" id="btnExport">⬇ Export JSON</button>
-  <button class="util" id="btnImport">⬆ Import JSON</button>
-  <input type="file" id="importFile" accept="application/json">
-  <span class="backup-badge" id="backupBadge"><span class="dot"></span>Changes not yet exported</span>
 </div>
 
 <div id="view-inventory" class="tab-view">
@@ -1368,7 +1355,6 @@ function defaultData(){
 /* ---------- State ---------- */
 let data = loadData();
 let activeId = null;
-let dirtySinceExport = false;
 
 function loadData(){
   try{
@@ -1384,23 +1370,7 @@ function saveData(){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     flashSaved();
   }catch(e){ console.warn('Could not save', e); }
-  dirtySinceExport = true;
-  updateBackupBadge();
 }
-function updateBackupBadge(){
-  document.getElementById('backupBadge').classList.toggle('show', dirtySinceExport);
-}
-function markExported(){
-  dirtySinceExport = false;
-  updateBackupBadge();
-}
-window.addEventListener('beforeunload', function(e){
-  if(dirtySinceExport){
-    e.preventDefault();
-    e.returnValue = 'Recent changes to ' + VEHICLES[currentVehicleId].label + ' have not been exported to a JSON backup. Leave anyway?';
-    return e.returnValue;
-  }
-});
 function flashSaved(){
   const el = document.getElementById('savedFlag');
   el.classList.add('show');
@@ -1982,102 +1952,9 @@ function refreshStats(){
   if(typeof updateResupplyBadge === 'function') updateResupplyBadge();
 }
 
-/* ---------- Export / Import / Reset ---------- */
-function importInventoryPayload(parsed){
-  if(!Array.isArray(parsed.compartments)) throw new Error('compartments is missing or not a list');
-  parsed.compartments.forEach((c, i)=>{
-    if(typeof c.id !== 'string' || !c.id) throw new Error(`Compartment #${i+1} is missing an id`);
-    if(typeof c.label !== 'string' || !c.label) throw new Error(`Compartment "${c.id}" is missing a label`);
-    if(!Array.isArray(c.items)) c.items = [];
-    if(!Array.isArray(c.containers)) c.containers = [];
-    c.items.forEach(it=>{
-      if(typeof it.present !== 'boolean') it.present = !!it.present;
-      if(typeof it.qty !== 'number') it.qty = parseInt(it.qty)||1;
-    });
-    c.containers.forEach(ct=>{
-      if(!Array.isArray(ct.items)) ct.items = [];
-      ct.items.forEach(it=>{
-        if(typeof it.present !== 'boolean') it.present = !!it.present;
-        if(typeof it.qty !== 'number') it.qty = parseInt(it.qty)||1;
-      });
-    });
-  });
-  if(!Array.isArray(parsed.inspections)) parsed.inspections = [];
-  if(!parsed.notes) parsed.notes = {};
-  data = parsed;
-  activeId = null;
-  positioningId = null;
-  saveData(); renderSvg(); renderPanel(); refreshStats(); renderLastInspection();
-}
-
-function importVehiclePayload(parsed){
-  if(!Array.isArray(parsed.sections) || !parsed.sections.length) parsed.sections = viFreshSections();
-  if(!parsed.draft) parsed.draft = viFreshDraft(parsed.sections);
-  parsed.draft.items = viMergeDraftItems(parsed.draft.items, parsed.sections);
-  if(typeof parsed.draft.inspector !== 'string') parsed.draft.inspector = '';
-  if(typeof parsed.draft.date !== 'string') parsed.draft.date = '';
-  if(!Array.isArray(parsed.history)) parsed.history = [];
-  viData = parsed;
-  saveViData();
-  renderViAll();
-}
-
-document.getElementById('btnExport').addEventListener('click', ()=>{
-  const combined = { inventory: data, vehicleInspection: viData };
-  const blob = new Blob([JSON.stringify(combined, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'MFD_' + currentVehicleId.charAt(0).toUpperCase() + currentVehicleId.slice(1) + '-full-record.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  markExported();
-});
-document.getElementById('btnImport').addEventListener('click', ()=> requireUnlock(()=> document.getElementById('importFile').click()));
-document.getElementById('importFile').addEventListener('change', e=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = evt=>{
-    try{
-      const parsed = JSON.parse(evt.target.result);
-      let importedInventory = false, importedVehicle = false;
-
-      if(parsed.inventory && Array.isArray(parsed.inventory.compartments)){
-        importInventoryPayload(parsed.inventory);
-        importedInventory = true;
-      } else if(Array.isArray(parsed.compartments)){
-        // backward compatible with an older inventory-only export file
-        importInventoryPayload(parsed);
-        importedInventory = true;
-      }
-
-      if(parsed.vehicleInspection && (parsed.vehicleInspection.draft || Array.isArray(parsed.vehicleInspection.history))){
-        importVehiclePayload(parsed.vehicleInspection);
-        importedVehicle = true;
-      } else if(parsed.draft || Array.isArray(parsed.history)){
-        // backward compatible with an older vehicle-inspection-only export file
-        importVehiclePayload(parsed);
-        importedVehicle = true;
-      }
-
-      if(!importedInventory && !importedVehicle){
-        throw new Error('This file doesn\'t look like a compartment inventory or vehicle inspection export.');
-      }
-      markExported();
-      alert('Imported: ' + [importedInventory ? 'compartment inventory' : null, importedVehicle ? 'vehicle inspection' : null].filter(Boolean).join(' + '));
-    }catch(err){
-      alert('Could not import file: '+err.message);
-    }
-  };
-  reader.readAsText(file);
-  e.target.value='';
-});
+/* ---------- Reset ---------- */
 document.getElementById('btnReset').addEventListener('click', ()=>{
   requireUnlock(()=>{
-    if(dirtySinceExport){
-      const proceed = confirm('You have changes that have not been exported to a JSON backup yet. Resetting now will lose them permanently.\n\nClick Cancel to go back and export first, or OK to continue anyway.');
-      if(!proceed) return;
-    }
     if(!confirm('Reset ' + VEHICLES[currentVehicleId].label + ' to default compartments and equipment? This clears all current checks and custom items. Inspection history is kept. Vehicle inspection data is not affected.')) return;
     const preservedInspections = data.inspections || [];
     data = defaultData();
@@ -2085,7 +1962,6 @@ document.getElementById('btnReset').addEventListener('click', ()=>{
     activeId = null;
     positioningId = null;
     saveData(); renderSvg(); renderPanel(); refreshStats(); renderLastInspection();
-    markExported();
   });
 });
 
@@ -2436,8 +2312,6 @@ function saveViData(){
     localStorage.setItem(STORAGE_KEY_VI, JSON.stringify(viData));
     flashSaved();
   }catch(e){ console.warn('Could not save vehicle inspection data', e); }
-  dirtySinceExport = true;
-  updateBackupBadge();
 }
 
 /* ---------- Render form ---------- */
@@ -3286,7 +3160,6 @@ function switchVehicle(vid){
   if(!data.notes) data.notes = {};
   if(!Array.isArray(data.inspections)) data.inspections = [];
   viData = loadViData();
-  dirtySinceExport = false;
 
   // update header / title
   applyVehicleUI();
