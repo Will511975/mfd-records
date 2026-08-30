@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>01 MFD Data Base</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy-950:  #080e1e;
+      --navy-900:  #0f172a;
+      --navy-800:  #1e293b;
+      --navy-700:  #334155;
+      --navy-600:  #475569;
+      --red:       #dc2626;
+      --red-dark:  #b91c1c;
+      --red-light: rgba(220,38,38,0.12);
+      --gold:      #f59e0b;
+      --ink-100:   #f1f5f9;
+      --ink-300:   #cbd5e1;
+      --ink-500:   #94a3b8;
+      --border:    var(--navy-700);
+      --radius:    10px;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--navy-950);
+      color: var(--ink-100);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-950) 100%);
+      color: var(--ink-100);
+      padding: 0;
+      border-bottom: 3px solid var(--red);
+    }
+
+    .header-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 28px 32px 22px;
+      display: flex;
+      align-items: center;
+      gap: 22px;
+    }
+
+    .shield {
+      flex-shrink: 0;
+      width: 64px;
+      height: 74px;
+    }
+
+    .header-text h1 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      line-height: 1.15;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .header-text p {
+      font-size: 12px;
+      color: var(--ink-500);
+      margin-top: 4px;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+
+    /* ── Main ── */
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 32px 60px;
+      width: 100%;
+      flex: 1;
+    }
+
+    .section-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-500);
+      margin-bottom: 18px;
+    }
+
+    /* ── Cards ── */
+    .card-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--navy-800);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      border-left: 5px solid var(--red);
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 22px 24px;
+      transition: box-shadow 0.18s, border-left-color 0.18s, transform 0.12s;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+      border-left-color: var(--gold);
+      transform: translateY(-1px);
+    }
+
+    .card:active {
+      transform: translateY(0);
+    }
+
+    .card-icon {
+      flex-shrink: 0;
+      width: 46px;
+      height: 46px;
+      background: var(--red-light);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--red);
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .card-body {
+      flex: 1;
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink-100);
+      line-height: 1.2;
+    }
+
+    .card-subtitle {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--ink-500);
+      margin-top: 3px;
+    }
+
+    .card-arrow {
+      flex-shrink: 0;
+      color: var(--navy-700);
+      font-size: 22px;
+      transition: color 0.18s, transform 0.18s;
+    }
+
+    .card:hover .card-arrow {
+      color: var(--gold);
+      transform: translateX(3px);
+    }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--navy-950);
+      color: var(--ink-500);
+      text-align: center;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      padding: 16px;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Backup bar ── */
+    .backup-bar {
+      background: var(--navy-800);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      border-left: 5px solid var(--gold);
+      padding: 18px 24px;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .backup-bar-text .backup-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink-100);
+    }
+    .backup-bar-text .backup-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--ink-500);
+      margin-top: 3px;
+    }
+    .backup-btn {
+      flex-shrink: 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: var(--red);
+      color: var(--ink-100);
+      border: none;
+      border-radius: 8px;
+      padding: 12px 20px;
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+    .backup-btn:hover { background: #ef4444; }
+    .backup-status {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--ink-300);
+      margin-top: 10px;
+      width: 100%;
+      white-space: pre-line;
+    }
+
+    /* ── Restore bar ── */
+    .restore-bar {
+      background: var(--navy-800);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      border-left: 5px solid var(--red);
+      padding: 18px 24px;
+      margin-bottom: 32px;
+    }
+    .restore-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink-100);
+    }
+    .restore-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--ink-500);
+      margin-top: 3px;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 26px 20px;
+      text-align: center;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      color: var(--ink-500);
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s, color 0.18s;
+    }
+    .dropzone.dragover {
+      border-color: var(--gold);
+      background: rgba(245,158,11,0.08);
+      color: var(--ink-100);
+    }
+    .dropzone strong { color: var(--red); }
+    #restoreFileInput { display: none; }
+    .restore-status {
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      color: var(--ink-300);
+      margin-top: 12px;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+<div id="mfdAuthGate"></div>
+<div id="mfdAppContent" style="display:none;">
+
+<header>
+  <div class="header-inner">
+    <!-- Fire shield SVG -->
+    <svg class="shield" viewBox="0 0 64 74" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 2 L60 14 L60 36 C60 54 32 72 32 72 C32 72 4 54 4 36 L4 14 Z"
+            fill="rgba(220,38,38,0.15)" stroke="rgba(220,38,38,0.5)" stroke-width="1.5"/>
+      <!-- flame -->
+      <path d="M32 56 C24 52 20 44 24 36 C26 40 30 38 29 32 C33 36 35 30 32 24 C38 28 42 36 40 44 C44 40 44 34 42 30 C48 36 50 46 44 54 C42 58 36 60 32 56Z"
+            fill="rgba(248,113,113,0.85)"/>
+    </svg>
+
+    <div class="header-text">
+      <h1>Mantua Fire Department</h1>
+      <p>01 MFD Data Base &nbsp;·&nbsp; Records Management System</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="backup-bar">
+    <div class="backup-bar-text">
+      <div class="backup-title">Backup All Modules</div>
+      <div class="backup-sub">Downloads a separate .json file for every module that has data saved in this browser</div>
+    </div>
+    <button class="backup-btn" id="btnBackupAll">⬇ Backup All (.json)</button>
+    <div class="backup-status" id="backupStatus"></div>
+  </div>
+
+  <div class="restore-bar">
+    <div class="restore-title">Restore From Backup</div>
+    <div class="restore-sub">Drag one or more .json backup files here to load them back into this browser. The combined apparatus file and the combined Roster &amp; Time Card file are matched by their contents; every other module is matched by filename — use files straight from Backup All or a module's own Export button.</div>
+    <div class="dropzone" id="dropzone">
+      <div>⬆ <strong>Drag .json files here</strong>, or click to choose</div>
+    </div>
+    <input type="file" id="restoreFileInput" accept="application/json,.json" multiple>
+    <div class="restore-status" id="restoreStatus"></div>
+  </div>
+
+  <p class="section-label">Select a module to open</p>
+
+  <div class="card-grid">
+
+    <!-- Roster & Time Card (combined) -->
+    <a class="card" href="MFD_RosterTimecards.html">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <div class="card-body">
+        <div class="card-title">Roster &amp; Time Card</div>
+        <div class="card-subtitle">MFD_RosterTimecards.html — Member Directory, Certifications &amp; Payroll</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+
+    <!-- Budget -->
+    <a class="card" href="MFD_Budget.html">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24">
+          <rect x="2" y="3" width="20" height="14" rx="2"/>
+          <line x1="8" y1="21" x2="16" y2="21"/>
+          <line x1="12" y1="17" x2="12" y2="21"/>
+          <polyline points="7 10 10 13 13 9 17 12"/>
+        </svg>
+      </div>
+      <div class="card-body">
+        <div class="card-title">Budget Tracker</div>
+        <div class="card-subtitle">MFD_Budget.html</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+
+    <!-- Apparatus Inventory (all vehicles, one file) -->
+    <a class="card" href="MFD_AllApparatus.html">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24">
+          <rect x="1" y="3" width="15" height="13"/>
+          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+          <circle cx="5.5" cy="18.5" r="2.5"/>
+          <circle cx="18.5" cy="18.5" r="2.5"/>
+        </svg>
+      </div>
+      <div class="card-body">
+        <div class="card-title">Apparatus Inventory</div>
+        <div class="card-subtitle">MFD_AllApparatus.html — Engine 110, Rescue 110, Ambulance 115, Brush 113 &amp; 114</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+
+  </div>
+
+</main>
+
+<footer>Mantua Fire Department &nbsp;·&nbsp; Records Management System</footer>
+
+<script>
+/* ---------- Backup All Modules ----------
+   localStorage is shared per browser origin, not per page — so as long as
+   every module has been opened at least once in this browser (even if not
+   right now), its saved data already lives alongside this hub page's own
+   storage and can be read directly, with no need to open each tool. */
+function dateStamp(fourDigitYear){
+  const d = new Date();
+  const yyyy = String(d.getFullYear());
+  const yy = yyyy.slice(-2);
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return (fourDigitYear ? yyyy : yy) + mm + dd;
+}
+document.getElementById('btnBackupAll').addEventListener('click', ()=>{
+  const downloads = [];
+  const stamp = dateStamp(false);       // YYMMDD — apparatus + roster + timecards
+  const stamp4 = dateStamp(true);       // YYYYMMDD — budget
+
+  // Apparatus tools: all 5 vehicles now live in one combined file
+  // (MFD_AllApparatus.html), keyed by vehicle label — mirrors the
+  // structure of MFD_AllApparatus_combined.json.
+  const apparatus = [
+    { id:'engine110',    label:'Engine 110' },
+    { id:'rescue110',    label:'Rescue 110' },
+    { id:'ambulance115', label:'Ambulance 115' },
+    { id:'brush113',     label:'Brush Truck 113' },
+    { id:'brush114',     label:'Brush Truck 114' },
+  ];
+  const vehicles = {};
+  let anyApparatusData = false;
+  apparatus.forEach(({id, label})=>{
+    const inv = localStorage.getItem('mantuaFD_'+id+'_inventory');
+    const vi  = localStorage.getItem('mantuaFD_'+id+'_vehicleInspection');
+    if(inv || vi){
+      anyApparatusData = true;
+      vehicles[label] = {
+        inventory: inv ? JSON.parse(inv) : null,
+        vehicleInspection: vi ? JSON.parse(vi) : null,
+      };
+    }
+  });
+  // Resupply Cabinet: fleet-wide station stock (not tied to any one vehicle),
+  // saved under its own key by MFD_AllApparatus.html. Bundled into the same
+  // apparatus backup file so it isn't silently left out of "Backup All".
+  const cabinetRaw = localStorage.getItem('mantuaFD_resupplyCabinet');
+  const anyCabinetData = !!cabinetRaw;
+  if(anyApparatusData || anyCabinetData){
+    const apparatusData = { generatedAt: new Date().toISOString().slice(0,10), vehicles };
+    if(anyCabinetData) apparatusData.resupplyCabinet = JSON.parse(cabinetRaw);
+    downloads.push({
+      filename: 'MFD_AllApparatus-'+stamp+'.json',
+      data: apparatusData
+    });
+  }
+
+  // Roster & Time Card: now one combined module (MFD_RosterTimecards.html),
+  // so back them up as a single file — mirrors the apparatus combined-file
+  // pattern above. Includes whichever of the two the browser has saved data for.
+  const roster = localStorage.getItem('mfd_members_v5');
+  const timecards = localStorage.getItem('mantua_fd_timecards_v1');
+  if(roster || timecards){
+    const rosterTimecards = { generatedAt: new Date().toISOString().slice(0,10) };
+    if(roster) rosterTimecards.roster = JSON.parse(roster);
+    if(timecards) rosterTimecards.timecards = JSON.parse(timecards);
+    downloads.push({ filename: 'MFD_RosterTimecards-'+stamp+'.json', data: rosterTimecards });
+  }
+
+  // Budget — one saved key per fiscal year, so grab every year found.
+  // The fiscal year is included in the filename (as well as living inside
+  // the file's own fiscalYear field) so backing up more than one fiscal
+  // year at once produces distinct files instead of the browser silently
+  // renaming the second one to "(1)".
+  Object.keys(localStorage).filter(k=>k.startsWith('mfd_budget_')).forEach(key=>{
+    const raw = localStorage.getItem(key);
+    const fy = key.replace('mfd_budget_', '');
+    if(raw) downloads.push({ filename:'MFD_Budget-'+fy+'-'+stamp4+'.json', data: JSON.parse(raw) });
+  });
+
+  const statusEl = document.getElementById('backupStatus');
+  if(downloads.length === 0){
+    statusEl.textContent = 'No saved data found in this browser yet — open a module and make a change first, then come back and back it up.';
+    return;
+  }
+
+  // Stagger the downloads slightly; firing many at once in the same tick
+  // is what makes browsers show a "this site is trying to download
+  // multiple files" block prompt.
+  downloads.forEach((d, i)=>{
+    setTimeout(()=>{
+      const blob = new Blob([JSON.stringify(d.data, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = d.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, i * 300);
+  });
+
+  statusEl.textContent = `Downloading ${downloads.length} file${downloads.length===1?'':'s'}: ` +
+    downloads.map(d=>d.filename).join(', ');
+});
+
+/* ---------- Restore From Backup (drag & drop or click-to-choose) ----------
+   Routes each dropped file back to the right localStorage key purely by
+   filename, matching the exact names Backup All (and each module's own
+   Export button) produces. Doesn't touch any file whose name it doesn't
+   recognize, and always confirms before overwriting anything. */
+window.addEventListener('dragover', e=> e.preventDefault());
+window.addEventListener('drop', e=> e.preventDefault());
+
+const dropzone = document.getElementById('dropzone');
+const restoreFileInput = document.getElementById('restoreFileInput');
+const restoreStatus = document.getElementById('restoreStatus');
+const KNOWN_APPARATUS = ['engine110', 'brush113', 'brush114', 'rescue110', 'ambulance115'];
+const APPARATUS_LABEL_TO_ID = {
+  'engine 110': 'engine110',
+  'rescue 110': 'rescue110',
+  'ambulance 115': 'ambulance115',
+  'brush truck 113': 'brush113',
+  'brush truck 114': 'brush114',
+  'brush 113': 'brush113',
+  'brush 114': 'brush114',
+};
+
+dropzone.addEventListener('click', ()=> restoreFileInput.click());
+dropzone.addEventListener('dragover', e=>{ e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', ()=> dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e=>{
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  handleRestoreFiles(e.dataTransfer.files);
+});
+restoreFileInput.addEventListener('change', e=>{
+  handleRestoreFiles(e.target.files);
+  e.target.value = '';
+});
+
+function handleRestoreFiles(fileList){
+  const files = Array.from(fileList).filter(f=> f.name.toLowerCase().endsWith('.json'));
+  if(!files.length){
+    restoreStatus.textContent = 'No .json files found in what was dropped or selected.';
+    return;
+  }
+
+  const reads = files.map(file=> new Promise(resolve=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{ resolve({ filename:file.name, parsed:JSON.parse(reader.result), error:null }); }
+      catch(err){ resolve({ filename:file.name, parsed:null, error:err.message }); }
+    };
+    reader.onerror = ()=> resolve({ filename:file.name, parsed:null, error:'Could not read file' });
+    reader.readAsText(file);
+  }));
+
+  Promise.all(reads).then(results=>{
+    const plan = [];
+    const unrecognized = [];
+    const failed = [];
+
+    results.forEach(r=>{
+      if(r.error){ failed.push(r.filename + ' (' + r.error + ')'); return; }
+      // Browsers rename a second download of the same filename by appending
+      // " (1)", " (2)", etc. before the extension (e.g. a Budget backup with
+      // two fiscal years used to collide on one filename). Strip that back
+      // off so these still match normally instead of landing in Unrecognized.
+      const name = r.filename.replace(/ \(\d+\)(\.[^.]+)$/, '$1');
+
+      // Combined apparatus file — newest format: MFD_AllApparatus-YYMMDD.json
+      // (Backup All) or MFD_AllApparatus_combined.json / a manual export from
+      // the combined app. Detected by content (a "vehicles" object keyed by
+      // vehicle label) rather than filename, so it's recognized either way.
+      if(r.parsed && typeof r.parsed === 'object' && r.parsed.vehicles && typeof r.parsed.vehicles === 'object'){
+        let anyVehicleRecognized = false;
+        Object.keys(r.parsed.vehicles).forEach(vehicleLabel=>{
+          const id = APPARATUS_LABEL_TO_ID[vehicleLabel.trim().toLowerCase()];
+          const entry = r.parsed.vehicles[vehicleLabel];
+          if(!id || !entry) return;
+          anyVehicleRecognized = true;
+          if(entry.inventory) plan.push({ key:'mantuaFD_'+id+'_inventory', value:entry.inventory, label:vehicleLabel+' inventory' });
+          if(entry.vehicleInspection) plan.push({ key:'mantuaFD_'+id+'_vehicleInspection', value:entry.vehicleInspection, label:vehicleLabel+' vehicle inspection' });
+        });
+        // Resupply Cabinet — fleet-wide station stock, bundled into this same
+        // apparatus file by Backup All (see above) rather than filed separately.
+        if(r.parsed.resupplyCabinet){
+          anyVehicleRecognized = true;
+          plan.push({ key:'mantuaFD_resupplyCabinet', value:r.parsed.resupplyCabinet, label:'resupply cabinet' });
+        }
+        if(!anyVehicleRecognized) unrecognized.push(name + ' (no recognizable vehicles inside)');
+        return;
+      }
+
+      // Combined Roster & Time Card file — newest format: MFD_RosterTimecards-YYMMDD.json
+      // (Backup All). Detected by content (a "roster" and/or "timecards" key)
+      // rather than filename, so it's recognized either way.
+      if(r.parsed && typeof r.parsed === 'object' && !Array.isArray(r.parsed) && r.parsed.vehicles === undefined && (r.parsed.roster !== undefined || r.parsed.timecards !== undefined)){
+        let anyRecognized = false;
+        if(r.parsed.roster !== undefined){ anyRecognized = true; plan.push({ key:'mfd_members_v5', value:r.parsed.roster, label:'roster' }); }
+        if(r.parsed.timecards !== undefined){ anyRecognized = true; plan.push({ key:'mantua_fd_timecards_v1', value:r.parsed.timecards, label:'timecards' }); }
+        if(!anyRecognized) unrecognized.push(name + ' (no recognizable roster/timecards data inside)');
+        return;
+      }
+
+      // Older per-vehicle apparatus files, from before all 5 vehicles were
+      // combined into one app — still recognized so old backups still restore.
+      // MFD_Brush113-YYMMDD.json (old Backup All) or MFD_Brush113-full-record.json
+      // (old module's own Export button).
+      let m = name.match(/^(?:MFD_)?([a-zA-Z0-9]+)-\d{6}\.json$/) || name.match(/^(?:MFD_)?([a-zA-Z0-9]+)-full-record\.json$/i);
+      if(m && KNOWN_APPARATUS.includes(m[1].toLowerCase())){
+        const app = m[1].toLowerCase();
+        if(r.parsed.inventory) plan.push({ key:'mantuaFD_'+app+'_inventory', value:r.parsed.inventory, label:app+' inventory' });
+        if(r.parsed.vehicleInspection) plan.push({ key:'mantuaFD_'+app+'_vehicleInspection', value:r.parsed.vehicleInspection, label:app+' vehicle inspection' });
+        if(!r.parsed.inventory && !r.parsed.vehicleInspection) unrecognized.push(name + ' (no recognizable data inside)');
+        return;
+      }
+
+      // Roster, standalone file — legacy: Backup All now produces the combined
+      // MFD_RosterTimecards-YYMMDD.json above instead. Still recognized so old
+      // backups restore: MFD_Roster-YYMMDD.json, Roster's own Export button
+      // (MFD_Roster_Backup_YYYY-MM-DD.json), previous Roster-YYMMDD.json, and
+      // oldest mantua-roster.json.
+      if(/^(?:MFD_)?Roster-\d{6}\.json$/i.test(name) || /^MFD_Roster_Backup_\d{4}-\d{2}-\d{2}\.json$/i.test(name) || name === 'mantua-roster.json'){
+        plan.push({ key:'mfd_members_v5', value:r.parsed, label:'roster' });
+        return;
+      }
+
+      // Budget — newest: MFD_Budget-<fiscalYear>-YYYYMMDD.json (fiscal year is
+      // now in the filename, so multiple years back up as distinct files).
+      // Previous: MFD_Budget-YYYYMMDD.json / Budget-YYYYMMDD.json (no fiscal
+      // year in the name — read from the file's own fiscalYear field instead).
+      // Oldest: MFD_Budget_<year>.json (fiscal year in the filename, underscore).
+      m = name.match(/^(?:MFD_)?Budget-(\d{4})-\d{8}\.json$/i);
+      if(m){
+        plan.push({ key:'mfd_budget_'+m[1], value:r.parsed, label:'budget FY'+m[1] });
+        return;
+      }
+      if(/^(?:MFD_)?Budget-\d{8}\.json$/i.test(name)){
+        const fy = r.parsed && r.parsed.fiscalYear;
+        if(fy){
+          plan.push({ key:'mfd_budget_'+fy, value:r.parsed, label:'budget FY'+fy });
+        } else {
+          unrecognized.push(name + " (couldn't find a fiscal year inside the file)");
+        }
+        return;
+      }
+      m = name.match(/^MFD_Budget_(.+)\.json$/i);
+      if(m){
+        plan.push({ key:'mfd_budget_'+m[1], value:r.parsed, label:'budget FY'+m[1] });
+        return;
+      }
+
+      // Timecards, standalone file — legacy: Backup All now produces the combined
+      // MFD_RosterTimecards-YYMMDD.json above instead. Still recognized so old
+      // backups restore: MFD_Timecards-YYMMDD.json, Timecards' own Export button
+      // (mantua_fd_data_YYYY-MM-DD.json), previous Timecards-YYMMDD.json, and
+      // oldest mantua-timecards.json.
+      if(/^(?:MFD_)?Timecards-\d{6}\.json$/i.test(name) || /^mantua_fd_data_\d{4}-\d{2}-\d{2}\.json$/i.test(name) || name === 'mantua-timecards.json'){
+        plan.push({ key:'mantua_fd_timecards_v1', value:r.parsed, label:'timecards' });
+        return;
+      }
+      unrecognized.push(name);
+    });
+
+    if(plan.length === 0){
+      let msg = 'Nothing recognized to restore.';
+      if(unrecognized.length) msg += '\nUnrecognized file name(s): ' + unrecognized.join(', ') + '.';
+      if(failed.length) msg += '\nCould not read: ' + failed.join(', ') + '.';
+      restoreStatus.textContent = msg;
+      return;
+    }
+
+    const summary = plan.map(p=>'• '+p.label).join('\n');
+    const proceed = confirm(
+      'This will overwrite currently saved data in this browser for:\n\n' + summary +
+      '\n\nOpen each module page afterward to see the restored data. Continue?'
+    );
+    if(!proceed){ restoreStatus.textContent = 'Restore cancelled — nothing was changed.'; return; }
+
+    plan.forEach(p=>{
+      try{ localStorage.setItem(p.key, JSON.stringify(p.value)); }
+      catch(err){ console.warn('Could not restore', p.key, err); }
+    });
+
+    let msg = `Restored ${plan.length} item${plan.length===1?'':'s'}: ` + plan.map(p=>p.label).join(', ') + '.';
+    if(unrecognized.length) msg += '\nSkipped (unrecognized file name): ' + unrecognized.join(', ') + '.';
+    if(failed.length) msg += '\nCould not read: ' + failed.join(', ') + '.';
+    restoreStatus.textContent = msg;
+  });
+}
+</script>
+
+</div>
+<script src="mfdauth.js"></script>
+</body>
+</html>

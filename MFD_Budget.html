@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="dark" />
+<title>Mantua Fire Department – Budget Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --navy-950: #080e1e;
+  --navy-900: #0f172a;
+  --navy-800: #1e293b;
+  --navy-700: #334155;
+  --navy-600: #475569;
+  --navy-500: #64748b;
+  --fire-700: #b91c1c;
+  --fire-600: #dc2626;
+  --fire-500: #ef4444;
+  --fire-400: #f87171;
+  --gold-600: #d97706;
+  --gold-500: #f59e0b;
+  --gold-400: #fbbf24;
+  --green-500: #22c55e;
+  --green-400: #4ade80;
+  --blue-500: #3b82f6;
+  --blue-400: #60a5fa;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--navy-900);color:var(--slate-100);min-height:100vh;}
+input,select,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--navy-900);}
+::-webkit-scrollbar-thumb{background:var(--navy-700);border-radius:3px;}
+
+/* ── Sidebar ── */
+.sidebar{width:240px;min-width:240px;background:var(--navy-950);border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;height:100vh;position:fixed;left:0;top:0;z-index:60;}
+.sidebar-logo{padding:20px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.06);}
+.sidebar-logo .dept{font-size:11px;font-weight:700;color:var(--navy-500);text-transform:uppercase;letter-spacing:.08em;}
+.sidebar-logo .title{font-size:16px;font-weight:900;color:var(--slate-100);line-height:1.2;margin-top:2px;}
+.sidebar-logo .subtitle{font-size:11px;color:var(--fire-500);font-weight:600;margin-top:3px;}
+.sidebar-section{padding:14px 12px 6px;font-size:10px;font-weight:800;color:var(--navy-600);text-transform:uppercase;letter-spacing:.1em;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;font-size:.875rem;font-weight:600;color:var(--slate-400);cursor:pointer;transition:all .2s;margin:2px 12px;}
+.nav-item:hover{color:var(--slate-100);background:rgba(255,255,255,.04);}
+.nav-item.active{color:var(--fire-500);background:rgba(220,38,38,.10);border-left:3px solid var(--fire-600);margin-left:9px;}
+.nav-item .icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.sidebar-footer{margin-top:auto;padding:14px 16px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:var(--navy-600);}
+.sidebar-footer strong{color:var(--navy-500);}
+
+/* ── Main ── */
+.main{margin-left:0;min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── Shared top header (matches other MFD modules) ── */
+.mfd-top-header{background:linear-gradient(180deg,var(--navy-900) 0%, var(--navy-950) 100%);border-bottom:3px solid var(--fire-600);}
+.mfd-header-inner{max-width:100%;padding:14px 24px;display:flex;align-items:center;gap:14px;}
+.mfd-header-shield{flex-shrink:0;width:38px;height:44px;}
+.mfd-header-text-block{flex:1;}
+
+/* ── Top tab bar (primary navigation, replaces sidebar) ── */
+.mfd-tab-bar{display:flex;align-items:center;gap:4px;padding:10px 24px 0;background:var(--navy-950);border-bottom:1px solid var(--navy-700);flex-wrap:wrap;}
+.mfd-tab-bar .nav-item{width:auto;margin:0;padding:8px 16px;border-radius:6px 6px 0 0;border-left:none;border-bottom:3px solid transparent;}
+.mfd-tab-bar .nav-item.active{border-left:none;margin-left:0;border-bottom:3px solid var(--fire-600);background:rgba(220,38,38,.10);}
+
+/* ── Secondary toolbar (Quick Actions & Fiscal Year, replaces sidebar sections) ── */
+.mfd-toolbar-strip{display:flex;align-items:center;gap:18px;padding:10px 24px;background:var(--navy-900);border-bottom:1px solid var(--navy-700);flex-wrap:wrap;}
+.mfd-toolbar-group{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.mfd-toolbar-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--navy-500);margin-right:6px;}
+.mfd-toolbar-strip .nav-item{width:auto;margin:0;padding:6px 10px;border-radius:6px;border-left:none;font-size:.8rem;}
+.topbar{background:var(--navy-950);border-bottom:1px solid rgba(255,255,255,.06);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;}
+.topbar-title{font-size:20px;font-weight:800;color:var(--slate-100);}
+.topbar-sub{font-size:12px;color:var(--navy-500);margin-top:2px;}
+.topbar-actions{display:flex;gap:10px;align-items:center;}
+
+.page{display:none;padding:24px 28px;animation:fadeIn .2s ease-out;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ── Stat Cards ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.stat-card.red::before{background:linear-gradient(90deg,var(--fire-700),var(--fire-500));}
+.stat-card.gold::before{background:linear-gradient(90deg,var(--gold-600),var(--gold-400));}
+.stat-card.green::before{background:linear-gradient(90deg,#15803d,var(--green-500));}
+.stat-card.blue::before{background:linear-gradient(90deg,#1d4ed8,var(--blue-400));}
+.stat-label{font-size:11px;font-weight:700;color:var(--navy-500);text-transform:uppercase;letter-spacing:.07em;}
+.stat-value{font-size:26px;font-weight:900;margin-top:6px;font-variant-numeric:tabular-nums;}
+.stat-value.red{color:var(--fire-400);}
+.stat-value.gold{color:var(--gold-400);}
+.stat-value.green{color:var(--green-400);}
+.stat-value.blue{color:var(--blue-400);}
+.stat-sub{font-size:11px;color:var(--navy-500);margin-top:4px;}
+
+/* ── Progress bar ── */
+.budget-bar-wrap{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:12px;padding:18px 20px;margin-bottom:24px;}
+.budget-bar-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.budget-bar-title{font-size:13px;font-weight:700;color:var(--slate-300);}
+.budget-bar-pct{font-size:22px;font-weight:900;color:var(--slate-100);}
+.bar-outer{height:14px;background:var(--navy-700);border-radius:7px;overflow:hidden;}
+.bar-inner{height:100%;border-radius:7px;transition:width .6s ease;}
+.bar-legend{display:flex;gap:20px;margin-top:10px;font-size:11px;color:var(--navy-500);}
+.bar-legend span b{font-weight:700;}
+
+/* ── Category budget cards ── */
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+.cat-card{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:10px;padding:14px 16px;cursor:pointer;transition:border-color .2s;}
+.cat-card:hover{border-color:var(--navy-600);}
+.cat-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.cat-name{font-size:12px;font-weight:700;color:var(--slate-300);display:flex;align-items:center;gap:6px;}
+.cat-icon{font-size:15px;}
+.cat-pct{font-size:11px;font-weight:700;}
+.cat-bar-outer{height:6px;background:var(--navy-700);border-radius:3px;overflow:hidden;margin-bottom:6px;}
+.cat-bar-inner{height:100%;border-radius:3px;}
+.cat-amounts{display:flex;justify-content:space-between;font-size:11px;color:var(--navy-500);}
+
+/* ── Section headers ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.section-title{font-size:15px;font-weight:800;color:var(--slate-100);}
+.section-sub{font-size:11px;color:var(--navy-500);margin-top:1px;}
+
+/* ── Table ── */
+.tbl-wrap{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:12px;overflow:hidden;margin-bottom:24px;}
+.tbl-toolbar{padding:12px 18px;border-bottom:1px solid var(--navy-700);display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{background:var(--navy-950);padding:10px 14px;text-align:left;font-size:10px;font-weight:800;color:var(--navy-500);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--navy-700);white-space:nowrap;cursor:pointer;user-select:none;}
+thead th:hover{color:var(--slate-300);}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,.03);}
+tbody td{padding:11px 14px;vertical-align:middle;}
+.td-item{font-weight:600;color:var(--slate-100);}
+.td-desc{font-size:11px;color:var(--navy-500);margin-top:2px;}
+.td-vendor{color:var(--slate-300);}
+.td-amount{font-variant-numeric:tabular-nums;font-weight:700;}
+.td-amount.expense{color:var(--fire-400);}
+.td-amount.income{color:var(--green-400);}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.badge-apparatus{background:rgba(239,68,68,.15);color:var(--fire-400);border:1px solid rgba(239,68,68,.3);}
+.badge-equipment{background:rgba(245,158,11,.15);color:var(--gold-400);border:1px solid rgba(245,158,11,.3);}
+.badge-training{background:rgba(59,130,246,.15);color:var(--blue-400);border:1px solid rgba(59,130,246,.3);}
+.badge-ppe{background:rgba(168,85,247,.15);color:#c084fc;border:1px solid rgba(168,85,247,.3);}
+.badge-facilities{background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3);}
+.badge-supplies{background:rgba(100,116,139,.15);color:var(--slate-400);border:1px solid rgba(100,116,139,.3);}
+.badge-admin{background:rgba(234,179,8,.15);color:#fde047;border:1px solid rgba(234,179,8,.3);}
+.badge-ems{background:rgba(20,184,166,.15);color:#2dd4bf;border:1px solid rgba(20,184,166,.3);}
+.badge-grant{background:rgba(34,197,94,.15);color:var(--green-400);border:1px solid rgba(34,197,94,.3);}
+.badge-approved{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3);}
+.badge-pending{background:rgba(245,158,11,.12);color:var(--gold-400);border:1px solid rgba(245,158,11,.3);}
+.badge-rejected{background:rgba(239,68,68,.12);color:var(--fire-400);border:1px solid rgba(239,68,68,.3);}
+.badge-submitted{background:rgba(99,102,241,.12);color:#818cf8;border:1px solid rgba(99,102,241,.3);}
+.badge-paid{background:rgba(20,184,166,.12);color:#2dd4bf;border:1px solid rgba(20,184,166,.3);}
+.badge-po{background:rgba(59,130,246,.12);color:var(--blue-400);border:1px solid rgba(59,130,246,.3);}
+.badge-reimbursement{background:rgba(168,85,247,.12);color:#c084fc;border:1px solid rgba(168,85,247,.3);}
+.badge-credit-card{background:rgba(100,116,139,.12);color:var(--slate-400);border:1px solid rgba(100,116,139,.3);}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;}
+.btn-primary{background:var(--fire-600);color:#fff;}
+.btn-primary:hover{background:var(--fire-700);}
+.btn-ghost{background:var(--navy-700);color:var(--slate-300);border:1px solid var(--navy-600);}
+.btn-ghost:hover{background:var(--navy-600);color:var(--slate-100);}
+.btn-sm{padding:5px 11px;font-size:12px;}
+.btn-green{background:#15803d;color:#fff;}
+.btn-green:hover{background:#166534;}
+.btn-danger{background:#7f1d1d;color:#fca5a5;border:1px solid var(--fire-700);}
+.btn-danger:hover{background:#991b1b;}
+
+/* ── Form inputs ── */
+.input{background:var(--navy-900);border:1px solid var(--navy-700);color:var(--slate-100);padding:9px 12px;border-radius:8px;font-size:13px;width:100%;transition:border-color .2s;}
+.input:focus{outline:none;border-color:var(--fire-600);}
+.input::placeholder{color:var(--navy-600);}
+select.input option{background:var(--navy-800);}
+.label{font-size:11px;font-weight:700;color:var(--slate-400);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.05em;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;}
+.form-group.span2{grid-column:span 2;}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;overflow-y:auto;padding:32px 16px;animation:fadeIn .2s ease-out;}
+.modal-overlay.open{display:block;}
+.modal{max-width:680px;margin:0 auto;background:var(--navy-900);border:1px solid var(--navy-700);border-radius:14px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.6);}
+.modal-header{background:var(--navy-800);padding:18px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--navy-700);}
+.modal-title{font-size:16px;font-weight:800;color:var(--slate-100);display:flex;align-items:center;gap:10px;}
+.modal-body{padding:22px 24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--navy-700);display:flex;justify-content:flex-end;gap:10px;background:var(--navy-950);}
+
+/* ── Toast ── */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;animation:slideInRight .25s ease-out;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:320px;}
+.toast.success{border-left:4px solid var(--green-500);}
+.toast.error{border-left:4px solid var(--fire-600);}
+.toast.info{border-left:4px solid var(--blue-500);}
+@keyframes slideInRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── Empty state ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--navy-600);}
+.empty-state .es-icon{font-size:40px;margin-bottom:12px;}
+.empty-state .es-title{font-size:15px;font-weight:700;color:var(--navy-500);margin-bottom:6px;}
+.empty-state .es-sub{font-size:12px;}
+
+/* ── Search / filter bar ── */
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex:1;}
+.filter-btn{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--navy-700);background:var(--navy-800);color:var(--slate-400);transition:all .2s;}
+.filter-btn:hover,.filter-btn.active{background:var(--fire-600);color:#fff;border-color:var(--fire-700);}
+.search-input{background:var(--navy-900);border:1px solid var(--navy-700);color:var(--slate-100);padding:7px 12px;border-radius:8px;font-size:12px;width:200px;}
+.search-input:focus{outline:none;border-color:var(--fire-600);}
+.search-input::placeholder{color:var(--navy-600);}
+
+/* ── Fiscal year selector ── */
+.fy-selector{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--slate-300);}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .cat-grid{grid-template-columns:1fr 1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .form-group.span2{grid-column:span 1;}
+}
+</style>
+</head>
+<body>
+<div id="mfdAuthGate"></div>
+<div id="mfdAppContent" style="display:none;">
+
+<!-- ══════════════════════════════════════════
+     SHARED TOP HEADER
+══════════════════════════════════════════ -->
+<header class="mfd-top-header">
+  <div class="mfd-header-inner">
+    <svg class="mfd-header-shield" viewBox="0 0 64 74" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 2 L60 14 L60 36 C60 54 32 72 32 72 C32 72 4 54 4 36 L4 14 Z"
+            fill="rgba(220,38,38,0.15)" stroke="rgba(220,38,38,0.5)" stroke-width="1.5"/>
+      <path d="M32 56 C24 52 20 44 24 36 C26 40 30 38 29 32 C33 36 35 30 32 24 C38 28 42 36 40 44 C44 40 44 34 42 30 C48 36 50 46 44 54 C42 58 36 60 32 56Z"
+            fill="rgba(248,113,113,0.85)"/>
+    </svg>
+    <div class="mfd-header-text-block">
+      <div class="dept">Mantua Township</div>
+      <div class="title">🔥 Fire Department</div>
+      <div class="subtitle">Budget &amp; Finance Tracker</div>
+    </div>
+    <a href="index.html" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;background:rgba(255,255,255,0.05);border:1px solid var(--navy-700);color:var(--slate-400);font-size:12px;font-weight:600;text-decoration:none;transition:all .2s;flex-shrink:0;"
+       onmouseover="this.style.color='#f1f5f9';this.style.background='rgba(255,255,255,0.09)'"
+       onmouseout="this.style.color='';this.style.background='rgba(255,255,255,0.05)'">
+      ← Back to Hub
+    </a>
+  </div>
+</header>
+
+<!-- Primary navigation (was sidebar nav) -->
+<div class="mfd-tab-bar">
+  <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+    <span class="icon">📊</span> Dashboard
+  </div>
+  <div class="nav-item" onclick="showPage('expenses')" id="nav-expenses">
+    <span class="icon">💸</span> Expenses
+  </div>
+  <div class="nav-item" onclick="showPage('budgets')" id="nav-budgets">
+    <span class="icon">🗂️</span> Budget Lines
+  </div>
+  <div class="nav-item" onclick="showPage('vendors')" id="nav-vendors">
+    <span class="icon">🏪</span> Vendors
+  </div>
+  <div class="nav-item" onclick="showPage('reports')" id="nav-reports">
+    <span class="icon">📋</span> Reports
+  </div>
+</div>
+
+<!-- Quick Actions & Fiscal Year (was sidebar sections) -->
+<div class="mfd-toolbar-strip">
+  <div class="mfd-toolbar-group">
+    <span class="mfd-toolbar-label">Quick Actions</span>
+    <div class="nav-item" onclick="openExpenseModal()">
+      <span class="icon">➕</span> Log Expense
+    </div>
+    <div class="nav-item" onclick="exportJSON()">
+      <span class="icon">💾</span> Export JSON
+    </div>
+    <div class="nav-item" onclick="document.getElementById('import-file').click()">
+      <span class="icon">📂</span> Import JSON
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(event)">
+  </div>
+  <div class="mfd-toolbar-group">
+    <span class="mfd-toolbar-label">Fiscal Year</span>
+    <select id="fy-select" class="input" style="padding:5px 8px;font-size:12px;" onchange="onFYChange()"></select>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════ -->
+<div class="main">
+  <!-- Top bar -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div class="topbar-sub" id="page-sub">Overview for current fiscal year</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" onclick="exportJSON()">💾 Export</button>
+      <button class="btn btn-primary btn-sm" onclick="openExpenseModal()">➕ Log Expense</button>
+    </div>
+  </div>
+
+  <!-- ──────── DASHBOARD ──────── -->
+  <div class="page active" id="page-dashboard">
+    <!-- Stat cards -->
+    <div class="stat-grid" style="margin-top:8px;">
+      <div class="stat-card gold">
+        <div class="stat-label">Annual Budget</div>
+        <div class="stat-value gold" id="stat-budget">$0</div>
+        <div class="stat-sub" id="stat-fy-label">FY 2025</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Total Spent</div>
+        <div class="stat-value red" id="stat-spent">$0</div>
+        <div class="stat-sub" id="stat-spent-sub">0 transactions</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Remaining</div>
+        <div class="stat-value green" id="stat-remaining">$0</div>
+        <div class="stat-sub" id="stat-remaining-sub">0% remaining</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Pending / PO</div>
+        <div class="stat-value blue" id="stat-pending">$0</div>
+        <div class="stat-sub" id="stat-pending-sub">0 items</div>
+      </div>
+    </div>
+
+    <!-- Overall progress bar -->
+    <div class="budget-bar-wrap">
+      <div class="budget-bar-header">
+        <div>
+          <div class="budget-bar-title">Overall Budget Utilization</div>
+          <div style="font-size:11px;color:var(--navy-500);margin-top:2px;" id="bar-detail-text">$0 spent of $0</div>
+        </div>
+        <div class="budget-bar-pct" id="bar-pct-label">0%</div>
+      </div>
+      <div class="bar-outer">
+        <div class="bar-inner" id="main-bar" style="width:0%;background:linear-gradient(90deg,#b91c1c,#ef4444);"></div>
+      </div>
+      <div class="bar-legend">
+        <span>🟥 <b id="leg-spent">$0</b> Spent</span>
+        <span>🟨 <b id="leg-pending">$0</b> Pending</span>
+        <span>🟩 <b id="leg-remain">$0</b> Available</span>
+      </div>
+    </div>
+
+    <!-- Category breakdown -->
+    <div class="section-header">
+      <div>
+        <div class="section-title">Category Breakdown</div>
+        <div class="section-sub">Spending by budget category</div>
+      </div>
+    </div>
+    <div class="cat-grid" id="cat-grid">
+      <div class="empty-state" style="grid-column:span 3;padding:30px 0;">
+        <div class="es-icon">📂</div>
+        <div class="es-title">No expenses logged</div>
+        <div class="es-sub">Log your first expense to see category breakdowns</div>
+      </div>
+    </div>
+
+    <!-- Recent transactions -->
+    <div class="section-header">
+      <div>
+        <div class="section-title">Recent Transactions</div>
+        <div class="section-sub">Latest 10 expenses</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="showPage('expenses')">View All →</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Item / Description</th>
+            <th>Category</th>
+            <th>Vendor</th>
+            <th>Method</th>
+            <th>Status</th>
+            <th style="text-align:right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody id="recent-tbody">
+          <tr><td colspan="7"><div class="empty-state"><div class="es-icon">🧾</div><div class="es-title">No transactions yet</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ──────── EXPENSES ──────── -->
+  <div class="page" id="page-expenses">
+    <div class="tbl-wrap" style="margin-top:8px;">
+      <div class="tbl-toolbar">
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="setExpFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="setExpFilter('Utilities',this)">💡 Utilities</button>
+          <button class="filter-btn" onclick="setExpFilter('Supplies & Materials',this)">📦 Supplies & Materials</button>
+          <button class="filter-btn" onclick="setExpFilter('Membership & Dues',this)">🏅 Membership & Dues</button>
+          <button class="filter-btn" onclick="setExpFilter('Phone & Radio',this)">📡 Phone & Radio</button>
+          <button class="filter-btn" onclick="setExpFilter('Fuel',this)">⛽ Fuel</button>
+          <button class="filter-btn" onclick="setExpFilter('Vehicle Maintenance',this)">🔧 Vehicle Maintenance</button>
+          <button class="filter-btn" onclick="setExpFilter('Education',this)">📚 Education</button>
+          <button class="filter-btn" onclick="setExpFilter('EMS Supplies',this)">🚑 EMS Supplies</button>
+          <button class="filter-btn" onclick="setExpFilter('Fire Supplies',this)">🔥 Fire Supplies</button>
+          <button class="filter-btn" onclick="setExpFilter('Wildland Supplies',this)">🌲 Wildland Supplies</button>
+          <button class="filter-btn" onclick="setExpFilter('Wages',this)">💰 Wages</button>
+          <button class="filter-btn" onclick="setExpFilter('Grants',this)">🏛️ Grants</button>
+        </div>
+        <input class="search-input" type="text" placeholder="Search expenses…" id="exp-search" oninput="renderExpenses()">
+        <button class="btn btn-primary btn-sm" onclick="openExpenseModal()">➕ Add</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortExp('date')">Date ⇅</th>
+            <th onclick="sortExp('item')">Item ⇅</th>
+            <th onclick="sortExp('category')">Category ⇅</th>
+            <th onclick="sortExp('vendor')">Vendor ⇅</th>
+            <th>PO / Ref #</th>
+            <th>Method</th>
+            <th>Requested By</th>
+            <th onclick="sortExp('status')">Status ⇅</th>
+            <th onclick="sortExp('amount')" style="text-align:right;">Amount ⇅</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="exp-tbody"></tbody>
+      </table>
+      <div id="exp-pagination" style="padding:10px 14px;border-top:1px solid var(--navy-700);font-size:11px;color:var(--navy-500);display:flex;justify-content:space-between;align-items:center;"></div>
+    </div>
+  </div>
+
+  <!-- ──────── BUDGET LINES ──────── -->
+  <div class="page" id="page-budgets">
+    <div style="display:flex;justify-content:flex-end;margin-top:8px;margin-bottom:16px;">
+      <button class="btn btn-green btn-sm" onclick="openBudgetModal()">⚙️ Set Budget Allocations</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Allocated</th>
+            <th>Spent</th>
+            <th>Pending</th>
+            <th>Available</th>
+            <th>% Used</th>
+            <th>Progress</th>
+          </tr>
+        </thead>
+        <tbody id="budget-tbody"></tbody>
+        <tfoot>
+          <tr style="background:var(--navy-950);">
+            <td style="padding:10px 14px;font-size:12px;font-weight:800;color:var(--slate-300);">TOTAL</td>
+            <td class="td-amount" id="bfoot-alloc" style="padding:10px 14px;color:var(--gold-400);font-weight:800;"></td>
+            <td class="td-amount" id="bfoot-spent" style="padding:10px 14px;color:var(--fire-400);font-weight:800;"></td>
+            <td class="td-amount" id="bfoot-pending" style="padding:10px 14px;color:var(--blue-400);font-weight:800;"></td>
+            <td class="td-amount" id="bfoot-avail" style="padding:10px 14px;color:var(--green-400);font-weight:800;"></td>
+            <td id="bfoot-pct" style="padding:10px 14px;font-size:12px;font-weight:800;color:var(--slate-300);"></td>
+            <td style="padding:10px 14px;"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- ──────── VENDORS ──────── -->
+  <div class="page" id="page-vendors">
+    <div style="display:flex;justify-content:flex-end;margin-top:8px;margin-bottom:16px;gap:10px;">
+      <input class="search-input" type="text" placeholder="Search vendors…" id="vendor-search" oninput="renderVendors()">
+      <button class="btn btn-primary btn-sm" onclick="openVendorModal()">➕ Add Vendor</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Vendor Name</th>
+            <th>Category</th>
+            <th>Contact</th>
+            <th>Phone / Email</th>
+            <th>Account #</th>
+            <th>Total Spent</th>
+            <th>Transactions</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="vendor-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ──────── REPORTS ──────── -->
+  <div class="page" id="page-reports">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;">
+      <!-- Monthly spending table -->
+      <div class="tbl-wrap" style="grid-column:span 2;">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--navy-700);">
+          <div class="section-title">Monthly Spending Summary</div>
+          <div class="section-sub" style="margin-top:2px;">Totals broken down by month</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Month</th>
+              <th>Expenses</th>
+              <th style="text-align:right;">Total Spent</th>
+              <th style="text-align:right;">Running Total</th>
+              <th>Bar</th>
+            </tr>
+          </thead>
+          <tbody id="report-monthly-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Top vendors -->
+      <div class="tbl-wrap">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--navy-700);">
+          <div class="section-title">Top Vendors by Spend</div>
+        </div>
+        <table>
+          <thead><tr><th>Vendor</th><th style="text-align:right;">Total</th></tr></thead>
+          <tbody id="report-vendor-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Category pie-ish -->
+      <div class="tbl-wrap">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--navy-700);">
+          <div class="section-title">Category Distribution</div>
+        </div>
+        <table>
+          <thead><tr><th>Category</th><th style="text-align:right;">Amount</th><th>Share</th></tr></thead>
+          <tbody id="report-cat-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Largest single expenses -->
+      <div class="tbl-wrap" style="grid-column:span 2;">
+        <div style="padding:14px 18px;border-bottom:1px solid var(--navy-700);">
+          <div class="section-title">Largest Single Expenses</div>
+          <div class="section-sub" style="margin-top:2px;">Top 10 purchases this fiscal year</div>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Item</th><th>Category</th><th>Vendor</th><th style="text-align:right;">Amount</th></tr>
+          </thead>
+          <tbody id="report-top-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ══════════════════════════════════════════
+     EXPENSE MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="expense-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🧾 <span id="exp-modal-title">Log Expense</span></div>
+      <button class="btn btn-danger btn-sm" onclick="closeModal('expense-modal')">✕ Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="label">Date *</label>
+          <input type="date" class="input" id="ef-date" />
+        </div>
+        <div class="form-group">
+          <label class="label">Category *</label>
+          <select class="input" id="ef-category">
+            <option value="">— Select —</option>
+            <option>Utilities</option>
+            <option>Supplies & Materials</option>
+            <option>Membership & Dues</option>
+            <option>Phone & Radio</option>
+            <option>Fuel</option>
+            <option>Vehicle Maintenance</option>
+            <option>Education</option>
+            <option>EMS Supplies</option>
+            <option>Fire Supplies</option>
+            <option>Wildland Supplies</option>
+            <option>Wages</option>
+            <option>Grants</option>
+          </select>
+        </div>
+        <div class="form-group span2">
+          <label class="label">Item / Description *</label>
+          <input type="text" class="input" id="ef-item" placeholder="e.g. SCBA Cylinder Replacement" />
+        </div>
+        <div class="form-group">
+          <label class="label">Vendor / Source *</label>
+          <input type="text" class="input" id="ef-vendor" placeholder="e.g. Municipal Emergency Services" list="vendor-list-dl"/>
+          <datalist id="vendor-list-dl"></datalist>
+        </div>
+        <div class="form-group">
+          <label class="label">Amount ($) *</label>
+          <input type="number" class="input" id="ef-amount" placeholder="0.00" min="0" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label class="label">Payment Method</label>
+          <select class="input" id="ef-method">
+            <option>Purchase Order</option>
+            <option>Credit Card</option>
+            <option>Check</option>
+            <option>Reimbursement</option>
+            <option>EFT / ACH</option>
+            <option>Cash</option>
+            <option>Grant Funded</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="label">Status</label>
+          <select class="input" id="ef-status">
+            <option>Pending</option>
+            <option>Submitted</option>
+            <option>Approved</option>
+            <option>Paid</option>
+            <option>Rejected</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="label">PO / Invoice / Ref #</label>
+          <input type="text" class="input" id="ef-po" placeholder="PO-2025-001" />
+        </div>
+        <div class="form-group">
+          <label class="label">Requested By</label>
+          <input type="text" class="input" id="ef-requestor" placeholder="e.g. Chief Smith" />
+        </div>
+        <div class="form-group span2">
+          <label class="label">Notes</label>
+          <textarea class="input" id="ef-notes" rows="2" placeholder="Additional notes, line item detail, or justification…"></textarea>
+        </div>
+        <div class="form-group span2">
+          <label class="label">Receipt / Attachment Reference</label>
+          <input type="text" class="input" id="ef-receipt" placeholder="Receipt filename or document reference number" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('expense-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveExpense()" id="save-exp-btn">💾 Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     BUDGET ALLOCATION MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="budget-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🗂️ Set Budget Allocations</div>
+      <button class="btn btn-danger btn-sm" onclick="closeModal('budget-modal')">✕ Close</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--navy-500);margin-bottom:16px;">Enter the allocated budget for each category for the selected fiscal year.</div>
+      <div id="budget-alloc-fields"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('budget-modal')">Cancel</button>
+      <button class="btn btn-green" onclick="saveBudgetAllocations()">💾 Save Allocations</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     VENDOR MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="vendor-modal">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <div class="modal-title">🏪 <span id="vnd-modal-title">Add Vendor</span></div>
+      <button class="btn btn-danger btn-sm" onclick="closeModal('vendor-modal')">✕ Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group span2">
+          <label class="label">Vendor Name *</label>
+          <input type="text" class="input" id="vf-name" placeholder="e.g. Municipal Emergency Services" />
+        </div>
+        <div class="form-group">
+          <label class="label">Category</label>
+          <select class="input" id="vf-category">
+            <option value="">— General —</option>
+            <option>Utilities</option><option>Supplies & Materials</option><option>Membership & Dues</option>
+            <option>Phone & Radio</option><option>Fuel</option><option>Vehicle Maintenance</option>
+            <option>Education</option><option>EMS Supplies</option><option>Fire Supplies</option>
+            <option>Wildland Supplies</option><option>Wages</option><option>Grants</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="label">Account #</label>
+          <input type="text" class="input" id="vf-account" placeholder="Account number" />
+        </div>
+        <div class="form-group">
+          <label class="label">Contact Name</label>
+          <input type="text" class="input" id="vf-contact" placeholder="Sales rep / contact" />
+        </div>
+        <div class="form-group">
+          <label class="label">Phone</label>
+          <input type="tel" class="input" id="vf-phone" placeholder="(801) 555-0100" />
+        </div>
+        <div class="form-group span2">
+          <label class="label">Email</label>
+          <input type="email" class="input" id="vf-email" placeholder="vendor@example.com" />
+        </div>
+        <div class="form-group span2">
+          <label class="label">Address</label>
+          <input type="text" class="input" id="vf-address" placeholder="Street, City, State, ZIP" />
+        </div>
+        <div class="form-group span2">
+          <label class="label">Notes</label>
+          <textarea class="input" id="vf-notes" rows="2" placeholder="Contract details, lead times, preferred contact method…"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('vendor-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVendor()">💾 Save Vendor</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     DETAIL MODAL (view/edit expense)
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title">🔍 Expense Detail</div>
+      <button class="btn btn-danger btn-sm" onclick="closeModal('detail-modal')">✕ Close</button>
+    </div>
+    <div class="modal-body" id="detail-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="detail-delete-btn" data-mfd-verb="delete">🗑 Delete</button>
+      <button class="btn btn-ghost" onclick="closeModal('detail-modal')">Close</button>
+      <button class="btn btn-primary" id="detail-edit-btn" data-mfd-verb="edit">✏️ Edit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  DATA MODEL
+// ══════════════════════════════════════════
+const CATEGORIES = ['Utilities','Supplies & Materials','Membership & Dues','Phone & Radio','Fuel','Vehicle Maintenance','Education','EMS Supplies','Fire Supplies','Wildland Supplies','Wages','Grants'];
+const CAT_ICONS  = {'Utilities':'💡','Supplies & Materials':'📦','Membership & Dues':'🏅','Phone & Radio':'📡','Fuel':'⛽','Vehicle Maintenance':'🔧','Education':'📚','EMS Supplies':'🚑','Fire Supplies':'🔥','Wildland Supplies':'🌲','Wages':'💰','Grants':'🏛️'};
+const CAT_COLORS = {
+  'Utilities':'#f59e0b', 'Supplies & Materials':'#64748b', 'Membership & Dues':'#a855f7',
+  'Phone & Radio':'#3b82f6', 'Fuel':'#f97316', 'Vehicle Maintenance':'#ef4444',
+  'Education':'#14b8a6', 'EMS Supplies':'#10b981', 'Fire Supplies':'#dc2626',
+  'Wildland Supplies':'#65a30d', 'Wages':'#eab308', 'Grants':'#22c55e'
+};
+const METHOD_BADGES = {
+  'Purchase Order':'badge-po','Credit Card':'badge-credit-card',
+  'Check':'badge-supplies','Reimbursement':'badge-reimbursement',
+  'EFT / ACH':'badge-training','Cash':'badge-supplies','Grant Funded':'badge-grant'
+};
+const STATUS_BADGES = {Approved:'badge-approved',Pending:'badge-pending',Submitted:'badge-submitted',Paid:'badge-paid',Rejected:'badge-rejected'};
+
+let db = { expenses:[], vendors:[], budgets:{}, fiscalYear: currentFY() };
+let editingExpenseId = null;
+let editingVendorId  = null;
+let expFilter = 'all';
+let expSort   = {col:'date', dir:-1};
+let expPage   = 1;
+const EXP_PAGE_SIZE = 25;
+
+function currentFY() {
+  const d = new Date();
+  return d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1;
+}
+
+function fyLabel(y){ return `FY ${y}–${String(y+1).slice(2)}`; }
+
+// ──── Persistence ────
+function save(){
+  try{ localStorage.setItem('mfd_budget_'+db.fiscalYear, JSON.stringify(db)); }catch(e){}
+}
+function loadFY(fy){
+  const raw = localStorage.getItem('mfd_budget_'+fy);
+  if(raw){ try{ db = JSON.parse(raw); db.fiscalYear=fy; }catch(e){ initDB(fy); } }
+  else{ initDB(fy); }
+  if(!db.vendors) db.vendors=[];
+  if(!db.budgets) db.budgets={};
+  // migrate old: load vendors from all FYs
+  refreshAll();
+}
+function initDB(fy){
+  db = { expenses:[], vendors:[], budgets:{}, fiscalYear:fy };
+}
+
+// ──── Export / Import ────
+function exportJSON(){
+  const blob = new Blob([JSON.stringify(db, null, 2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `MFD_Budget_${db.fiscalYear}.json`;
+  a.click();
+  toast('JSON exported successfully','success');
+}
+function importJSON(e){
+  const file = e.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try{
+      const imp = JSON.parse(ev.target.result);
+      if(!imp.expenses) throw new Error('Invalid file');
+      db = imp;
+      if(!db.vendors) db.vendors=[];
+      if(!db.budgets) db.budgets={};
+      save(); refreshAll();
+      toast('Data imported successfully','success');
+    }catch(err){ toast('Import failed: '+err.message,'error'); }
+  };
+  r.readAsText(file);
+  e.target.value='';
+}
+
+// ══════════════════════════════════════════
+//  NAV & PAGES
+// ══════════════════════════════════════════
+const PAGE_META = {
+  dashboard:{title:'Dashboard',sub:'Overview for current fiscal year'},
+  expenses:{title:'Expenses',sub:'All logged transactions'},
+  budgets:{title:'Budget Lines',sub:'Allocations and spending by category'},
+  vendors:{title:'Vendors',sub:'Registered vendors and suppliers'},
+  reports:{title:'Reports',sub:'Monthly and category summaries'}
+};
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('nav-'+id)?.classList.add('active');
+  document.getElementById('page-title').textContent = PAGE_META[id].title;
+  document.getElementById('page-sub').textContent   = PAGE_META[id].sub;
+  if(id==='dashboard') renderDashboard();
+  if(id==='expenses')  renderExpenses();
+  if(id==='budgets')   renderBudgets();
+  if(id==='vendors')   renderVendors();
+  if(id==='reports')   renderReports();
+}
+
+// ══════════════════════════════════════════
+//  FISCAL YEAR SELECTOR
+// ══════════════════════════════════════════
+function buildFYOptions(){
+  const sel = document.getElementById('fy-select');
+  sel.innerHTML='';
+  const cur = currentFY();
+  for(let y = cur+1; y >= cur-4; y--){
+    const o = document.createElement('option');
+    o.value=y; o.textContent=fyLabel(y);
+    if(y===db.fiscalYear) o.selected=true;
+    sel.appendChild(o);
+  }
+}
+function onFYChange(){
+  const fy = parseInt(document.getElementById('fy-select').value);
+  loadFY(fy);
+}
+
+// ══════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════
+function fmt(n){ return '$'+Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function catBadge(c){ const cl='badge-'+(c||'').toLowerCase(); return `<span class="badge ${cl}">${CAT_ICONS[c]||''} ${c||'—'}</span>`; }
+function statusBadge(s){ return `<span class="badge ${STATUS_BADGES[s]||'badge-pending'}">${s||'Pending'}</span>`; }
+function methodBadge(m){ return `<span class="badge ${METHOD_BADGES[m]||'badge-supplies'}" style="font-size:9px;">${m||'—'}</span>`; }
+
+function fyExpenses(){
+  // Filter expenses to the selected fiscal year (Jul 1 – Jun 30)
+  const fy = db.fiscalYear;
+  const start = new Date(fy, 6, 1);   // July 1
+  const end   = new Date(fy+1, 5, 30, 23, 59, 59);
+  return db.expenses.filter(e=>{
+    const d = new Date(e.date+'T00:00:00');
+    return d>=start && d<=end;
+  });
+}
+
+function totalBudget(){
+  return Object.values(db.budgets||{}).reduce((s,v)=>s+(v||0),0);
+}
+function catSpent(cat, exps){
+  return exps.filter(e=>e.category===cat && e.status!=='Rejected').reduce((s,e)=>s+Number(e.amount||0),0);
+}
+function catPending(cat, exps){
+  return exps.filter(e=>e.category===cat && e.status==='Pending').reduce((s,e)=>s+Number(e.amount||0),0);
+}
+
+// ══════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════
+function renderDashboard(){
+  const exps = fyExpenses();
+  const budget = totalBudget();
+  const spent  = exps.filter(e=>e.status!=='Rejected').reduce((s,e)=>s+Number(e.amount||0),0);
+  const pending= exps.filter(e=>e.status==='Pending').reduce((s,e)=>s+Number(e.amount||0),0);
+  const remain = budget - spent;
+  const pct    = budget>0 ? Math.min(100,(spent/budget)*100) : 0;
+
+  document.getElementById('stat-budget').textContent    = fmt(budget);
+  document.getElementById('stat-fy-label').textContent  = fyLabel(db.fiscalYear);
+  document.getElementById('stat-spent').textContent     = fmt(spent);
+  document.getElementById('stat-spent-sub').textContent = exps.filter(e=>e.status!=='Rejected').length+' transactions';
+  document.getElementById('stat-remaining').textContent = fmt(remain);
+  document.getElementById('stat-remaining-sub').textContent = budget>0 ? Math.round(100-pct)+'% remaining' : '—';
+  document.getElementById('stat-pending').textContent   = fmt(pending);
+  document.getElementById('stat-pending-sub').textContent = exps.filter(e=>e.status==='Pending').length+' items';
+
+  const barColor = pct<70 ? 'linear-gradient(90deg,#15803d,#22c55e)'
+                 : pct<90 ? 'linear-gradient(90deg,#b45309,#f59e0b)'
+                 :          'linear-gradient(90deg,#b91c1c,#ef4444)';
+  document.getElementById('main-bar').style.width    = pct.toFixed(1)+'%';
+  document.getElementById('main-bar').style.background = barColor;
+  document.getElementById('bar-pct-label').textContent = pct.toFixed(1)+'%';
+  document.getElementById('bar-detail-text').textContent = fmt(spent)+' spent of '+fmt(budget);
+  document.getElementById('leg-spent').textContent   = fmt(spent);
+  document.getElementById('leg-pending').textContent = fmt(pending);
+  document.getElementById('leg-remain').textContent  = fmt(Math.max(0,remain));
+
+  // Category grid
+  const grid = document.getElementById('cat-grid');
+  const activeCats = CATEGORIES.filter(c=>((db.budgets[c]||0)>0 || catSpent(c,exps)>0));
+  if(!activeCats.length){
+    grid.innerHTML=`<div class="empty-state" style="grid-column:span 3;padding:30px 0;"><div class="es-icon">📂</div><div class="es-title">No expenses logged</div><div class="es-sub">Log your first expense to see category breakdowns</div></div>`;
+  } else {
+    grid.innerHTML = activeCats.map(cat=>{
+      const alloc = db.budgets[cat]||0;
+      const sp    = catSpent(cat,exps);
+      const p     = alloc>0 ? Math.min(100,(sp/alloc)*100) : (sp>0?100:0);
+      const col   = CAT_COLORS[cat]||'#64748b';
+      const pctStr= p.toFixed(0)+'%';
+      const pctColor = p<70 ? '#4ade80' : p<90 ? '#fbbf24' : '#f87171';
+      return `<div class="cat-card" onclick="showPage('expenses');setExpFilter('${cat}',null)">
+        <div class="cat-card-header">
+          <div class="cat-name"><span class="cat-icon">${CAT_ICONS[cat]||''}</span>${cat}</div>
+          <div class="cat-pct" style="color:${pctColor}">${pctStr}</div>
+        </div>
+        <div class="cat-bar-outer"><div class="cat-bar-inner" style="width:${p.toFixed(1)}%;background:${col};"></div></div>
+        <div class="cat-amounts">
+          <span>${fmt(sp)} spent</span><span>${fmt(alloc)} allocated</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Recent
+  const recent = [...exps].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+  const rt = document.getElementById('recent-tbody');
+  if(!recent.length){
+    rt.innerHTML=`<tr><td colspan="7"><div class="empty-state"><div class="es-icon">🧾</div><div class="es-title">No transactions yet</div><div class="es-sub">Log your first expense using the button above</div></div></td></tr>`;
+  } else {
+    rt.innerHTML = recent.map(e=>`<tr onclick="openDetail('${e.id}')" style="cursor:pointer;">
+      <td style="padding:10px 14px;white-space:nowrap;font-size:12px;color:var(--slate-400);">${fmtDate(e.date)}</td>
+      <td style="padding:10px 14px;"><div class="td-item">${escHtml(e.item)}</div>${e.notes?`<div class="td-desc">${escHtml(e.notes.slice(0,60))}${e.notes.length>60?'…':''}</div>`:''}</td>
+      <td style="padding:10px 14px;">${catBadge(e.category)}</td>
+      <td style="padding:10px 14px;" class="td-vendor">${escHtml(e.vendor||'—')}</td>
+      <td style="padding:10px 14px;">${methodBadge(e.method)}</td>
+      <td style="padding:10px 14px;">${statusBadge(e.status)}</td>
+      <td style="padding:10px 14px;text-align:right;" class="td-amount expense">${fmt(e.amount)}</td>
+    </tr>`).join('');
+  }
+}
+
+// ══════════════════════════════════════════
+//  EXPENSES
+// ══════════════════════════════════════════
+function setExpFilter(cat, btn){
+  expFilter = cat; expPage = 1;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderExpenses();
+}
+function sortExp(col){
+  if(expSort.col===col) expSort.dir*=-1; else{ expSort.col=col; expSort.dir=-1; }
+  renderExpenses();
+}
+function renderExpenses(){
+  let exps = fyExpenses();
+  const q = (document.getElementById('exp-search')?.value||'').toLowerCase();
+  if(expFilter!=='all') exps = exps.filter(e=>e.category===expFilter);
+  if(q) exps = exps.filter(e=>[e.item,e.vendor,e.notes,e.po,e.requestor].join(' ').toLowerCase().includes(q));
+  exps.sort((a,b)=>{
+    let av=a[expSort.col]||'', bv=b[expSort.col]||'';
+    if(expSort.col==='amount'){ av=Number(av); bv=Number(bv); }
+    return av<bv ? -expSort.dir : av>bv ? expSort.dir : 0;
+  });
+  const total = exps.length;
+  const pages = Math.ceil(total/EXP_PAGE_SIZE)||1;
+  if(expPage>pages) expPage=pages;
+  const slice = exps.slice((expPage-1)*EXP_PAGE_SIZE, expPage*EXP_PAGE_SIZE);
+
+  const tbody = document.getElementById('exp-tbody');
+  if(!slice.length){
+    tbody.innerHTML=`<tr><td colspan="10"><div class="empty-state"><div class="es-icon">🔍</div><div class="es-title">No expenses found</div><div class="es-sub">Try adjusting the filter or search</div></div></td></tr>`;
+  } else {
+    tbody.innerHTML = slice.map(e=>`<tr onclick="openDetail('${e.id}')" style="cursor:pointer;">
+      <td style="padding:10px 14px;white-space:nowrap;font-size:12px;color:var(--slate-400);">${fmtDate(e.date)}</td>
+      <td style="padding:10px 14px;"><div class="td-item">${escHtml(e.item)}</div>${e.notes?`<div class="td-desc">${escHtml(e.notes.slice(0,50))}${e.notes.length>50?'…':''}</div>`:''}</td>
+      <td style="padding:10px 14px;">${catBadge(e.category)}</td>
+      <td style="padding:10px 14px;" class="td-vendor">${escHtml(e.vendor||'—')}</td>
+      <td style="padding:10px 14px;font-size:11px;color:var(--slate-400);">${escHtml(e.po||'—')}</td>
+      <td style="padding:10px 14px;">${methodBadge(e.method)}</td>
+      <td style="padding:10px 14px;font-size:12px;color:var(--slate-400);">${escHtml(e.requestor||'—')}</td>
+      <td style="padding:10px 14px;">${statusBadge(e.status)}</td>
+      <td style="padding:10px 14px;text-align:right;" class="td-amount expense">${fmt(e.amount)}</td>
+      <td style="padding:10px 14px;">
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editExpense('${e.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" style="margin-left:4px;" onclick="event.stopPropagation();deleteExpense('${e.id}')">🗑</button>
+      </td>
+    </tr>`).join('');
+  }
+
+  const pag = document.getElementById('exp-pagination');
+  pag.innerHTML = `<span>${total} record${total!==1?'s':''}</span>
+    <span style="display:flex;gap:6px;align-items:center;">
+      <button class="btn btn-ghost btn-sm" onclick="expPage=Math.max(1,expPage-1);renderExpenses()" ${expPage<=1?'disabled':''}>‹ Prev</button>
+      <span>Page ${expPage} of ${pages}</span>
+      <button class="btn btn-ghost btn-sm" onclick="expPage=Math.min(${pages},expPage+1);renderExpenses()" ${expPage>=pages?'disabled':''}>Next ›</button>
+    </span>`;
+  updateVendorDatalist();
+}
+
+// ══════════════════════════════════════════
+//  BUDGETS
+// ══════════════════════════════════════════
+function renderBudgets(){
+  const exps = fyExpenses();
+  let tA=0,tS=0,tP=0;
+  const tbody = document.getElementById('budget-tbody');
+  tbody.innerHTML = CATEGORIES.map(cat=>{
+    const alloc = db.budgets[cat]||0;
+    const sp    = catSpent(cat,exps);
+    const pend  = catPending(cat,exps);
+    const avail = alloc - sp;
+    const p     = alloc>0 ? Math.min(100,(sp/alloc)*100) : (sp>0?100:0);
+    const col   = p<70 ? '#22c55e' : p<90 ? '#f59e0b' : '#ef4444';
+    tA+=alloc; tS+=sp; tP+=pend;
+    return `<tr>
+      <td style="padding:10px 14px;">${catBadge(cat)}</td>
+      <td style="padding:10px 14px;" class="td-amount" style="color:var(--gold-400);">${fmt(alloc)}</td>
+      <td style="padding:10px 14px;" class="td-amount expense">${fmt(sp)}</td>
+      <td style="padding:10px 14px;" class="td-amount" style="color:var(--blue-400);">${fmt(pend)}</td>
+      <td style="padding:10px 14px;" class="td-amount income">${fmt(avail)}</td>
+      <td style="padding:10px 14px;font-weight:700;color:${col};">${p.toFixed(1)}%</td>
+      <td style="padding:10px 14px;width:180px;">
+        <div class="bar-outer" style="height:8px;">
+          <div class="bar-inner" style="width:${p.toFixed(1)}%;background:${col};"></div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+  const tAvail = tA - tS;
+  const tPct   = tA>0 ? (tS/tA*100).toFixed(1)+'%' : '—';
+  document.getElementById('bfoot-alloc').textContent  = fmt(tA);
+  document.getElementById('bfoot-spent').textContent  = fmt(tS);
+  document.getElementById('bfoot-pending').textContent= fmt(tP);
+  document.getElementById('bfoot-avail').textContent  = fmt(tAvail);
+  document.getElementById('bfoot-pct').textContent    = tPct;
+}
+
+// ══════════════════════════════════════════
+//  VENDORS
+// ══════════════════════════════════════════
+function renderVendors(){
+  const exps = fyExpenses();
+  const q = (document.getElementById('vendor-search')?.value||'').toLowerCase();
+  let vl = [...(db.vendors||[])];
+  if(q) vl = vl.filter(v=>(v.name+v.contact+v.category).toLowerCase().includes(q));
+  const tbody = document.getElementById('vendor-tbody');
+  if(!vl.length){
+    tbody.innerHTML=`<tr><td colspan="8"><div class="empty-state"><div class="es-icon">🏪</div><div class="es-title">No vendors added</div><div class="es-sub">Add vendors to track contacts and spending</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = vl.map(v=>{
+    const vExps = exps.filter(e=>e.vendor===v.name);
+    const total = vExps.reduce((s,e)=>s+Number(e.amount||0),0);
+    return `<tr>
+      <td style="padding:10px 14px;font-weight:700;color:var(--slate-100);">${escHtml(v.name)}</td>
+      <td style="padding:10px 14px;">${v.category?catBadge(v.category):'<span style="color:var(--navy-600);">—</span>'}</td>
+      <td style="padding:10px 14px;color:var(--slate-400);">${escHtml(v.contact||'—')}</td>
+      <td style="padding:10px 14px;font-size:12px;color:var(--slate-400);">${escHtml(v.phone||'')}${v.phone&&v.email?'<br>':''}${escHtml(v.email||'')}</td>
+      <td style="padding:10px 14px;font-size:12px;color:var(--slate-400);">${escHtml(v.account||'—')}</td>
+      <td style="padding:10px 14px;" class="td-amount expense">${fmt(total)}</td>
+      <td style="padding:10px 14px;color:var(--slate-400);">${vExps.length}</td>
+      <td style="padding:10px 14px;">
+        <button class="btn btn-ghost btn-sm" onclick="editVendor('${v.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" style="margin-left:4px;" onclick="deleteVendor('${v.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+//  REPORTS
+// ══════════════════════════════════════════
+function renderReports(){
+  const exps = fyExpenses().filter(e=>e.status!=='Rejected');
+  const total= exps.reduce((s,e)=>s+Number(e.amount||0),0);
+
+  // Monthly
+  const months = {};
+  exps.forEach(e=>{
+    const m = e.date.slice(0,7); // YYYY-MM
+    months[m] = (months[m]||0)+Number(e.amount||0);
+  });
+  const sortedMonths = Object.keys(months).sort();
+  let running=0;
+  const maxMonth = Math.max(...Object.values(months),1);
+  document.getElementById('report-monthly-tbody').innerHTML = sortedMonths.length
+    ? sortedMonths.map(m=>{
+        const v=months[m]; running+=v;
+        const cnt = exps.filter(e=>e.date.startsWith(m)).length;
+        const pct = (v/maxMonth*100).toFixed(1);
+        const [yr,mo] = m.split('-');
+        const label = new Date(yr,mo-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+        return `<tr>
+          <td style="padding:10px 14px;font-weight:600;color:var(--slate-300);">${label}</td>
+          <td style="padding:10px 14px;color:var(--slate-400);">${cnt}</td>
+          <td style="padding:10px 14px;text-align:right;" class="td-amount expense">${fmt(v)}</td>
+          <td style="padding:10px 14px;text-align:right;" class="td-amount" style="color:var(--gold-400);">${fmt(running)}</td>
+          <td style="padding:10px 14px;width:160px;">
+            <div class="bar-outer" style="height:6px;"><div class="bar-inner" style="width:${pct}%;background:#ef4444;"></div></div>
+          </td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="5"><div class="empty-state"><div class="es-icon">📅</div><div class="es-title">No data</div></div></td></tr>`;
+
+  // Top vendors
+  const vMap={};
+  exps.forEach(e=>{ vMap[e.vendor||'Unknown']=(vMap[e.vendor||'Unknown']||0)+Number(e.amount||0); });
+  const sortedV = Object.entries(vMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('report-vendor-tbody').innerHTML = sortedV.length
+    ? sortedV.map(([v,a])=>`<tr>
+        <td style="padding:10px 14px;font-weight:600;color:var(--slate-300);">${escHtml(v)}</td>
+        <td style="padding:10px 14px;text-align:right;" class="td-amount expense">${fmt(a)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="2"><div class="empty-state"><div class="es-icon">🏪</div><div class="es-title">No data</div></div></td></tr>`;
+
+  // Category distribution
+  const cMap={};
+  exps.forEach(e=>{ cMap[e.category||'Uncategorized']=(cMap[e.category||'Uncategorized']||0)+Number(e.amount||0); });
+  const sortedC = Object.entries(cMap).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('report-cat-tbody').innerHTML = sortedC.length
+    ? sortedC.map(([c,a])=>{
+        const pct = total>0 ? (a/total*100).toFixed(1) : '0.0';
+        return `<tr>
+          <td style="padding:10px 14px;">${catBadge(c)}</td>
+          <td style="padding:10px 14px;text-align:right;" class="td-amount expense">${fmt(a)}</td>
+          <td style="padding:10px 14px;width:120px;">
+            <div class="bar-outer" style="height:6px;"><div class="bar-inner" style="width:${pct}%;background:${CAT_COLORS[c]||'#64748b'};"></div></div>
+            <div style="font-size:10px;color:var(--navy-500);margin-top:3px;">${pct}%</div>
+          </td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="3"><div class="empty-state"><div class="es-icon">📊</div><div class="es-title">No data</div></div></td></tr>`;
+
+  // Top 10 single expenses
+  const top10 = [...exps].sort((a,b)=>Number(b.amount)-Number(a.amount)).slice(0,10);
+  document.getElementById('report-top-tbody').innerHTML = top10.length
+    ? top10.map(e=>`<tr>
+        <td style="padding:10px 14px;white-space:nowrap;font-size:12px;color:var(--slate-400);">${fmtDate(e.date)}</td>
+        <td style="padding:10px 14px;font-weight:600;color:var(--slate-100);">${escHtml(e.item)}</td>
+        <td style="padding:10px 14px;">${catBadge(e.category)}</td>
+        <td style="padding:10px 14px;color:var(--slate-400);">${escHtml(e.vendor||'—')}</td>
+        <td style="padding:10px 14px;text-align:right;" class="td-amount expense">${fmt(e.amount)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="5"><div class="empty-state"><div class="es-icon">🏆</div><div class="es-title">No data</div></div></td></tr>`;
+}
+
+// ══════════════════════════════════════════
+//  EXPENSE CRUD
+// ══════════════════════════════════════════
+function openExpenseModal(id=null){
+  editingExpenseId = id;
+  const modal = document.getElementById('expense-modal');
+  document.getElementById('exp-modal-title').textContent = id ? 'Edit Expense' : 'Log Expense';
+  if(id){
+    const e = db.expenses.find(x=>x.id===id);
+    if(!e) return;
+    document.getElementById('ef-date').value      = e.date;
+    document.getElementById('ef-category').value  = e.category;
+    document.getElementById('ef-item').value      = e.item;
+    document.getElementById('ef-vendor').value    = e.vendor;
+    document.getElementById('ef-amount').value    = e.amount;
+    document.getElementById('ef-method').value    = e.method;
+    document.getElementById('ef-status').value    = e.status;
+    document.getElementById('ef-po').value        = e.po||'';
+    document.getElementById('ef-requestor').value = e.requestor||'';
+    document.getElementById('ef-notes').value     = e.notes||'';
+    document.getElementById('ef-receipt').value   = e.receipt||'';
+  } else {
+    document.getElementById('ef-date').value      = new Date().toISOString().slice(0,10);
+    document.getElementById('ef-category').value  = '';
+    document.getElementById('ef-item').value      = '';
+    document.getElementById('ef-vendor').value    = '';
+    document.getElementById('ef-amount').value    = '';
+    document.getElementById('ef-method').value    = 'Purchase Order';
+    document.getElementById('ef-status').value    = 'Approved';
+    document.getElementById('ef-po').value        = '';
+    document.getElementById('ef-requestor').value = '';
+    document.getElementById('ef-notes').value     = '';
+    document.getElementById('ef-receipt').value   = '';
+  }
+  modal.classList.add('open');
+}
+function saveExpense(){
+  const date     = document.getElementById('ef-date').value;
+  const category = document.getElementById('ef-category').value;
+  const item     = document.getElementById('ef-item').value.trim();
+  const vendor   = document.getElementById('ef-vendor').value.trim();
+  const amount   = parseFloat(document.getElementById('ef-amount').value);
+  if(!date||!category||!item||!vendor||isNaN(amount)||amount<0){
+    toast('Please fill in all required fields','error'); return;
+  }
+  const obj = {
+    id: editingExpenseId || uid(),
+    date, category, item, vendor, amount,
+    method    : document.getElementById('ef-method').value,
+    status    : document.getElementById('ef-status').value,
+    po        : document.getElementById('ef-po').value.trim(),
+    requestor : document.getElementById('ef-requestor').value.trim(),
+    notes     : document.getElementById('ef-notes').value.trim(),
+    receipt   : document.getElementById('ef-receipt').value.trim(),
+    createdAt : editingExpenseId ? db.expenses.find(e=>e.id===editingExpenseId)?.createdAt : new Date().toISOString(),
+    updatedAt : new Date().toISOString()
+  };
+  if(editingExpenseId){
+    const idx = db.expenses.findIndex(e=>e.id===editingExpenseId);
+    if(idx!==-1) db.expenses[idx]=obj;
+    toast('Expense updated','success');
+  } else {
+    db.expenses.push(obj);
+    toast('Expense logged','success');
+  }
+  save(); closeModal('expense-modal'); refreshAll();
+}
+function editExpense(id){ openExpenseModal(id); }
+function deleteExpense(id){
+  if(!confirm('Delete this expense? This cannot be undone.')) return;
+  db.expenses = db.expenses.filter(e=>e.id!==id);
+  save(); toast('Expense deleted','info'); refreshAll();
+}
+
+// ══════════════════════════════════════════
+//  DETAIL MODAL
+// ══════════════════════════════════════════
+function openDetail(id){
+  const e = db.expenses.find(x=>x.id===id); if(!e) return;
+  document.getElementById('detail-modal-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      ${dRow('Date', fmtDate(e.date))}
+      ${dRow('Category', catBadge(e.category))}
+      ${dRow('Item / Description', `<span style="font-weight:700;color:var(--slate-100);">${escHtml(e.item)}</span>`)}
+      ${dRow('Vendor', escHtml(e.vendor||'—'))}
+      ${dRow('Amount', `<span style="font-size:18px;font-weight:900;color:var(--fire-400);">${fmt(e.amount)}</span>`)}
+      ${dRow('Payment Method', methodBadge(e.method))}
+      ${dRow('Status', statusBadge(e.status))}
+      ${dRow('PO / Ref #', escHtml(e.po||'—'))}
+      ${dRow('Requested By', escHtml(e.requestor||'—'))}
+      ${dRow('Receipt Ref', escHtml(e.receipt||'—'))}
+      ${e.notes ? `<div style="grid-column:span 2;"><label class="label">Notes</label><div style="background:var(--navy-800);border:1px solid var(--navy-700);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--slate-300);margin-top:4px;">${escHtml(e.notes)}</div></div>` : ''}
+      <div style="grid-column:span 2;font-size:10px;color:var(--navy-600);margin-top:4px;">
+        Created: ${e.createdAt ? new Date(e.createdAt).toLocaleString() : '—'}
+        ${e.updatedAt && e.updatedAt!==e.createdAt ? ' · Updated: '+new Date(e.updatedAt).toLocaleString() : ''}
+      </div>
+    </div>`;
+  document.getElementById('detail-edit-btn').onclick   = ()=>{ closeModal('detail-modal'); openExpenseModal(id); };
+  document.getElementById('detail-delete-btn').onclick = ()=>{ if(confirm('Delete this expense?')){ closeModal('detail-modal'); deleteExpense(id); } };
+  document.getElementById('detail-modal').classList.add('open');
+}
+function dRow(label, val){
+  return `<div><label class="label">${label}</label><div style="margin-top:4px;font-size:13px;color:var(--slate-300);">${val}</div></div>`;
+}
+
+// ══════════════════════════════════════════
+//  BUDGET ALLOCATION MODAL
+// ══════════════════════════════════════════
+function openBudgetModal(){
+  const fields = document.getElementById('budget-alloc-fields');
+  fields.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      ${CATEGORIES.map(cat=>`
+        <div class="form-group">
+          <label class="label">${CAT_ICONS[cat]} ${cat}</label>
+          <input type="number" class="input" id="ba-${cat}" value="${db.budgets[cat]||0}" min="0" step="100" placeholder="0.00"/>
+        </div>`).join('')}
+    </div>
+    <div style="margin-top:14px;padding:10px 12px;background:var(--navy-800);border-radius:8px;font-size:11px;color:var(--navy-500);">
+      These allocations apply to <strong style="color:var(--slate-400);">${fyLabel(db.fiscalYear)}</strong>.
+    </div>`;
+  document.getElementById('budget-modal').classList.add('open');
+}
+function saveBudgetAllocations(){
+  CATEGORIES.forEach(cat=>{
+    const v = parseFloat(document.getElementById('ba-'+cat)?.value)||0;
+    db.budgets[cat] = v;
+  });
+  save(); closeModal('budget-modal'); toast('Budget allocations saved','success'); refreshAll();
+}
+
+// ══════════════════════════════════════════
+//  VENDOR CRUD
+// ══════════════════════════════════════════
+function openVendorModal(id=null){
+  editingVendorId = id;
+  document.getElementById('vnd-modal-title').textContent = id ? 'Edit Vendor' : 'Add Vendor';
+  if(id){
+    const v = db.vendors.find(x=>x.id===id); if(!v) return;
+    document.getElementById('vf-name').value    = v.name;
+    document.getElementById('vf-category').value= v.category||'';
+    document.getElementById('vf-account').value = v.account||'';
+    document.getElementById('vf-contact').value = v.contact||'';
+    document.getElementById('vf-phone').value   = v.phone||'';
+    document.getElementById('vf-email').value   = v.email||'';
+    document.getElementById('vf-address').value = v.address||'';
+    document.getElementById('vf-notes').value   = v.notes||'';
+  } else {
+    ['vf-name','vf-category','vf-account','vf-contact','vf-phone','vf-email','vf-address','vf-notes']
+      .forEach(id=>{ document.getElementById(id).value=''; });
+  }
+  document.getElementById('vendor-modal').classList.add('open');
+}
+function saveVendor(){
+  const name = document.getElementById('vf-name').value.trim();
+  if(!name){ toast('Vendor name is required','error'); return; }
+  const obj = {
+    id: editingVendorId || uid(),
+    name,
+    category: document.getElementById('vf-category').value,
+    account : document.getElementById('vf-account').value.trim(),
+    contact : document.getElementById('vf-contact').value.trim(),
+    phone   : document.getElementById('vf-phone').value.trim(),
+    email   : document.getElementById('vf-email').value.trim(),
+    address : document.getElementById('vf-address').value.trim(),
+    notes   : document.getElementById('vf-notes').value.trim(),
+  };
+  if(editingVendorId){
+    const idx = db.vendors.findIndex(v=>v.id===editingVendorId);
+    if(idx!==-1) db.vendors[idx]=obj;
+    toast('Vendor updated','success');
+  } else {
+    db.vendors.push(obj);
+    toast('Vendor added','success');
+  }
+  save(); closeModal('vendor-modal'); renderVendors();
+}
+function editVendor(id){ openVendorModal(id); }
+function deleteVendor(id){
+  if(!confirm('Delete this vendor?')) return;
+  db.vendors = db.vendors.filter(v=>v.id!==id);
+  save(); toast('Vendor deleted','info'); renderVendors();
+}
+function updateVendorDatalist(){
+  const dl = document.getElementById('vendor-list-dl');
+  if(!dl) return;
+  // Combine saved vendors + unique vendors from expenses
+  const names = new Set([
+    ...(db.vendors||[]).map(v=>v.name),
+    ...db.expenses.map(e=>e.vendor).filter(Boolean)
+  ]);
+  dl.innerHTML = [...names].map(n=>`<option value="${escHtml(n)}">`).join('');
+}
+
+// ══════════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════════
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(s){
+  if(!s) return '—';
+  const [y,m,d] = s.split('-');
+  return `${m}/${d}/${y}`;
+}
+function toast(msg, type='info'){
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icons = {success:'✅',error:'❌',info:'ℹ️'};
+  t.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(()=>t.remove(),400); }, 3200);
+}
+function refreshAll(){
+  const activePage = document.querySelector('.page.active')?.id.replace('page-','');
+  if(activePage==='dashboard') renderDashboard();
+  else if(activePage==='expenses') renderExpenses();
+  else if(activePage==='budgets') renderBudgets();
+  else if(activePage==='vendors') renderVendors();
+  else if(activePage==='reports') renderReports();
+  // Always update dashboard stats silently if not active
+  if(activePage!=='dashboard') renderDashboard();
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', ()=>{
+  loadFY(currentFY());
+  buildFYOptions();
+  // Close modals on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(o=>{
+    o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
+  });
+});
+</script>
+</div>
+<script src="mfdauth.js"></script>
+</body>
+</html>
