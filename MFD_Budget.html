@@ -703,7 +703,7 @@ select.input option{background:var(--navy-800);}
         </div>
         <div class="form-group">
           <label class="label">Phone</label>
-          <input type="tel" class="input" id="vf-phone" placeholder="(801) 555-0100" />
+          <input type="tel" class="input" id="vf-phone" placeholder="(801) 555-0100" maxlength="14" oninput="onPhoneInput(this)" />
         </div>
         <div class="form-group span2">
           <label class="label">Email</label>
@@ -1295,6 +1295,22 @@ function saveBudgetAllocations(){
   save(); closeModal('budget-modal'); toast('Budget allocations saved','success'); refreshAll();
 }
 
+// ── Phone formatting (matches the Roster app's mask: live (xxx) xxx-xxxx) ──
+function formatPhone(val){
+  if(!val) return '';
+  const digits = val.replace(/\D/g,'').slice(0,10);
+  if(digits.length<=3) return digits;
+  if(digits.length<=6) return '('+digits.slice(0,3)+') '+digits.slice(3);
+  return '('+digits.slice(0,3)+') '+digits.slice(3,6)+'-'+digits.slice(6);
+}
+function onPhoneInput(el){
+  const pos = el.selectionStart;
+  const old = el.value;
+  el.value = formatPhone(el.value);
+  const diff = el.value.length - old.length;
+  try{ el.setSelectionRange(pos+diff, pos+diff); }catch(e){}
+}
+
 // ══════════════════════════════════════════
 //  VENDOR CRUD
 // ══════════════════════════════════════════
@@ -1307,7 +1323,7 @@ function openVendorModal(id=null){
     document.getElementById('vf-category').value= v.category||'';
     document.getElementById('vf-account').value = v.account||'';
     document.getElementById('vf-contact').value = v.contact||'';
-    document.getElementById('vf-phone').value   = v.phone||'';
+    document.getElementById('vf-phone').value   = formatPhone(v.phone||'');
     document.getElementById('vf-email').value   = v.email||'';
     document.getElementById('vf-address').value = v.address||'';
     document.getElementById('vf-notes').value   = v.notes||'';

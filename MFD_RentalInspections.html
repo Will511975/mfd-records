@@ -435,7 +435,7 @@ select.input option{background:var(--navy-800);}
         </div>
         <div class="form-group">
           <label class="label">Phone Number</label>
-          <input class="input" id="if-phone" placeholder="(xxx) xxx-xxxx">
+          <input class="input" type="tel" id="if-phone" placeholder="(435) 555-0100" maxlength="14" oninput="onPhoneInput(this)">
         </div>
         <div class="form-group" id="fg-bedrooms">
           <label class="label">Number of Bedrooms</label>
@@ -615,6 +615,22 @@ let inspections = [];
 let editingInspectionId = null;
 let resultFilter = 'all';
 let inspSort = { col:'date', dir:-1 };
+
+// ── Phone formatting (matches the Roster app's mask: live (xxx) xxx-xxxx) ──
+function formatPhone(val){
+  if(!val) return '';
+  const digits = val.replace(/\D/g,'').slice(0,10);
+  if(digits.length<=3) return digits;
+  if(digits.length<=6) return '('+digits.slice(0,3)+') '+digits.slice(3);
+  return '('+digits.slice(0,3)+') '+digits.slice(3,6)+'-'+digits.slice(6);
+}
+function onPhoneInput(el){
+  const pos = el.selectionStart;
+  const old = el.value;
+  el.value = formatPhone(el.value);
+  const diff = el.value.length - old.length;
+  try{ el.setSelectionRange(pos+diff, pos+diff); }catch(e){}
+}
 
 // ──── Persistence ────
 function save(){
@@ -912,7 +928,7 @@ function openInspectionModal(id=null){
   document.getElementById('if-owner').value      = rec ? rec.owner : '';
   document.getElementById('if-bizname').value    = rec ? (rec.businessName||'') : '';
   document.getElementById('if-address').value    = rec ? rec.address : '';
-  document.getElementById('if-phone').value      = rec ? (rec.phone||'') : '';
+  document.getElementById('if-phone').value      = rec ? formatPhone(rec.phone||'') : '';
   document.getElementById('if-bedrooms').value   = rec ? (rec.bedrooms!==undefined?rec.bedrooms:'') : '';
   document.getElementById('if-occupancy').value      = rec ? (rec.occupancyType||'') : '';
   document.getElementById('if-occupantload').value   = rec ? (rec.occupantLoad!==undefined?rec.occupantLoad:'') : '';
