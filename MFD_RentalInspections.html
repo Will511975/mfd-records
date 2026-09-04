@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="dark" />
+<title>Mantua Fire Department – Rental Inspections</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --navy-950: #080e1e;
+  --navy-900: #0f172a;
+  --navy-800: #1e293b;
+  --navy-700: #334155;
+  --navy-600: #475569;
+  --navy-500: #64748b;
+  --fire-700: #b91c1c;
+  --fire-600: #dc2626;
+  --fire-500: #ef4444;
+  --fire-400: #f87171;
+  --gold-600: #d97706;
+  --gold-500: #f59e0b;
+  --gold-400: #fbbf24;
+  --green-500: #22c55e;
+  --green-400: #4ade80;
+  --blue-500: #3b82f6;
+  --blue-400: #60a5fa;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--navy-900);color:var(--slate-100);min-height:100vh;}
+input,select,textarea{font-family:inherit;}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:var(--navy-900);}
+::-webkit-scrollbar-thumb{background:var(--navy-700);border-radius:3px;}
+
+/* ── Shared top header (matches other MFD modules) ── */
+.mfd-top-header{background:linear-gradient(180deg,var(--navy-900) 0%, var(--navy-950) 100%);border-bottom:3px solid var(--fire-600);}
+.mfd-header-inner{max-width:100%;padding:14px 24px;display:flex;align-items:center;gap:14px;}
+.mfd-header-shield{flex-shrink:0;width:38px;height:44px;}
+.mfd-header-text-block{flex:1;}
+.dept{font-size:11px;font-weight:700;color:var(--navy-500);text-transform:uppercase;letter-spacing:.08em;}
+.title{font-size:16px;font-weight:900;color:var(--slate-100);line-height:1.2;margin-top:2px;}
+.subtitle{font-size:11px;color:var(--fire-500);font-weight:600;margin-top:3px;}
+
+/* ── Top tab bar (primary navigation) ── */
+.nav-item{display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .2s;font-weight:600;color:var(--slate-400);}
+.nav-item:hover{color:var(--slate-100);background:rgba(255,255,255,.04);}
+.nav-item .icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.mfd-tab-bar{display:flex;align-items:center;gap:4px;padding:10px 24px 0;background:var(--navy-950);border-bottom:1px solid var(--navy-700);flex-wrap:wrap;}
+.mfd-tab-bar .nav-item{width:auto;margin:0;padding:8px 16px;border-radius:6px 6px 0 0;border-left:none;border-bottom:3px solid transparent;font-size:.875rem;}
+.mfd-tab-bar .nav-item.active{border-left:none;margin-left:0;border-bottom:3px solid var(--fire-600);background:rgba(220,38,38,.10);color:var(--fire-500);}
+
+/* ── Secondary toolbar ── */
+.mfd-toolbar-strip{display:flex;align-items:center;gap:18px;padding:10px 24px;background:var(--navy-900);border-bottom:1px solid var(--navy-700);flex-wrap:wrap;}
+.mfd-toolbar-group{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.mfd-toolbar-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--navy-500);margin-right:6px;}
+.mfd-toolbar-strip .nav-item{width:auto;margin:0;padding:6px 10px;border-radius:6px;border-left:none;font-size:.8rem;}
+.topbar{background:var(--navy-950);border-bottom:1px solid rgba(255,255,255,.06);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;}
+.topbar-title{font-size:20px;font-weight:800;color:var(--slate-100);}
+.topbar-sub{font-size:12px;color:var(--navy-500);margin-top:2px;}
+.topbar-actions{display:flex;gap:10px;align-items:center;}
+
+.page{display:none;padding:24px 28px;animation:fadeIn .2s ease-out;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ── Stat Cards ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+.stat-card.red::before{background:linear-gradient(90deg,var(--fire-700),var(--fire-500));}
+.stat-card.gold::before{background:linear-gradient(90deg,var(--gold-600),var(--gold-400));}
+.stat-card.green::before{background:linear-gradient(90deg,#15803d,var(--green-500));}
+.stat-card.blue::before{background:linear-gradient(90deg,#1d4ed8,var(--blue-400));}
+.stat-label{font-size:11px;font-weight:700;color:var(--navy-500);text-transform:uppercase;letter-spacing:.07em;}
+.stat-value{font-size:26px;font-weight:900;margin-top:6px;font-variant-numeric:tabular-nums;}
+.stat-value.red{color:var(--fire-400);}
+.stat-value.gold{color:var(--gold-400);}
+.stat-value.green{color:var(--green-400);}
+.stat-value.blue{color:var(--blue-400);}
+.stat-sub{font-size:11px;color:var(--navy-500);margin-top:4px;}
+
+/* ── Section headers ── */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.section-title{font-size:15px;font-weight:800;color:var(--slate-100);}
+.section-sub{font-size:11px;color:var(--navy-500);margin-top:1px;}
+
+/* ── Table ── */
+.tbl-wrap{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:12px;overflow:hidden;margin-bottom:24px;}
+.tbl-toolbar{padding:12px 18px;border-bottom:1px solid var(--navy-700);display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{background:var(--navy-950);padding:10px 14px;text-align:left;font-size:10px;font-weight:800;color:var(--navy-500);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--navy-700);white-space:nowrap;cursor:pointer;user-select:none;}
+thead th:hover{color:var(--slate-300);}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:rgba(255,255,255,.03);}
+tbody td{padding:11px 14px;vertical-align:middle;}
+.td-addr{font-weight:600;color:var(--slate-100);}
+.td-sub{font-size:11px;color:var(--navy-500);margin-top:2px;}
+
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.badge-pass{background:rgba(34,197,94,.15);color:var(--green-400);border:1px solid rgba(34,197,94,.3);}
+.badge-fail{background:rgba(239,68,68,.15);color:var(--fire-400);border:1px solid rgba(239,68,68,.3);}
+.badge-pending{background:rgba(100,116,139,.15);color:var(--slate-400);border:1px solid rgba(100,116,139,.3);}
+.badge-yes{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3);}
+.badge-no{background:rgba(239,68,68,.12);color:var(--fire-400);border:1px solid rgba(239,68,68,.3);}
+.badge-unset{background:rgba(100,116,139,.12);color:var(--slate-400);border:1px solid rgba(100,116,139,.3);}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;}
+.btn-primary{background:var(--fire-600);color:#fff;}
+.btn-primary:hover{background:var(--fire-700);}
+.btn-ghost{background:var(--navy-700);color:var(--slate-300);border:1px solid var(--navy-600);}
+.btn-ghost:hover{background:var(--navy-600);color:var(--slate-100);}
+.btn-sm{padding:5px 11px;font-size:12px;}
+.btn-danger{background:#7f1d1d;color:#fca5a5;border:1px solid var(--fire-700);}
+.btn-danger:hover{background:#991b1b;}
+
+/* ── Form inputs ── */
+.input{background:var(--navy-900);border:1px solid var(--navy-700);color:var(--slate-100);padding:9px 12px;border-radius:8px;font-size:13px;width:100%;transition:border-color .2s;}
+.input:focus{outline:none;border-color:var(--fire-600);}
+.input::placeholder{color:var(--navy-600);}
+select.input option{background:var(--navy-800);}
+.label{font-size:11px;font-weight:700;color:var(--slate-400);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.05em;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;}
+.form-group.span2{grid-column:span 2;}
+
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;overflow-y:auto;padding:32px 16px;animation:fadeIn .2s ease-out;}
+.modal-overlay.open{display:block;}
+.modal{max-width:760px;margin:0 auto;background:var(--navy-900);border:1px solid var(--navy-700);border-radius:14px;overflow:hidden;box-shadow:0 25px 60px rgba(0,0,0,.6);}
+.modal-header{background:var(--navy-800);padding:18px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--navy-700);}
+.modal-title{font-size:16px;font-weight:800;color:var(--slate-100);display:flex;align-items:center;gap:10px;}
+.modal-body{padding:22px 24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--navy-700);display:flex;justify-content:flex-end;gap:10px;background:var(--navy-950);}
+.modal-close{background:none;border:none;color:var(--navy-500);font-size:20px;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--slate-100);}
+
+/* ── Checklist rows (in the log/edit form) ── */
+.checklist-wrap{border:1px solid var(--navy-700);border-radius:10px;overflow:hidden;margin-top:6px;}
+.ci-row{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);}
+.ci-row:last-child{border-bottom:none;}
+.ci-row:nth-child(odd){background:rgba(255,255,255,.015);}
+.ci-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--navy-700);color:var(--slate-300);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+.ci-main{flex:1;min-width:0;}
+.ci-label{font-size:12.5px;color:var(--slate-200);line-height:1.4;}
+.ci-legal{font-size:10.5px;color:var(--gold-400);margin-top:4px;line-height:1.4;font-style:italic;}
+.ci-note-input{margin-top:8px;max-width:260px;}
+.ci-toggle{flex-shrink:0;display:flex;gap:6px;margin-top:1px;}
+.ci-btn{padding:5px 13px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;border:1px solid var(--navy-700);background:var(--navy-800);color:var(--slate-400);transition:all .15s;text-transform:uppercase;letter-spacing:.04em;}
+.ci-btn.yes.active{background:rgba(34,197,94,.18);color:#4ade80;border-color:rgba(34,197,94,.5);}
+.ci-btn.no.active{background:rgba(239,68,68,.18);color:var(--fire-400);border-color:rgba(239,68,68,.5);}
+.ci-btn:hover{border-color:var(--navy-600);}
+
+/* ── Checklist rows (detail / read-only view) ── */
+.ci-view-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);}
+.ci-view-row:last-child{border-bottom:none;}
+.ci-view-row:nth-child(odd){background:rgba(255,255,255,.015);}
+.ci-view-label{font-size:12px;color:var(--slate-300);flex:1;}
+.ci-view-note{font-size:11px;color:var(--navy-500);margin-top:2px;}
+.ci-view-right{flex-shrink:0;text-align:right;}
+
+/* ── Toast ── */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;animation:slideInRight .25s ease-out;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:320px;}
+.toast.success{border-left:4px solid var(--green-500);}
+.toast.error{border-left:4px solid var(--fire-600);}
+.toast.info{border-left:4px solid var(--blue-500);}
+@keyframes slideInRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ── Empty state ── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--navy-600);}
+.empty-state .es-icon{font-size:40px;margin-bottom:12px;}
+.empty-state .es-title{font-size:15px;font-weight:700;color:var(--navy-500);margin-bottom:6px;}
+.empty-state .es-sub{font-size:12px;}
+
+/* ── Search / filter bar ── */
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex:1;}
+.filter-btn{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--navy-700);background:var(--navy-800);color:var(--slate-400);transition:all .2s;}
+.filter-btn:hover,.filter-btn.active{background:var(--fire-600);color:#fff;border-color:var(--fire-700);}
+.search-input{background:var(--navy-900);border:1px solid var(--navy-700);color:var(--slate-100);padding:7px 12px;border-radius:8px;font-size:12px;width:220px;}
+.search-input:focus{outline:none;border-color:var(--fire-600);}
+.search-input::placeholder{color:var(--navy-600);}
+
+/* ── Address history banner ── */
+.history-banner{background:var(--navy-800);border:1px solid var(--gold-600);border-left:3px solid var(--gold-500);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:var(--slate-300);display:none;}
+.history-banner.show{display:block;}
+.history-banner b{color:var(--slate-100);}
+
+/* ── Sibling inspections (detail modal) ── */
+.sibling-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.sibling-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--navy-800);border:1px solid var(--navy-700);border-radius:8px;cursor:pointer;font-size:12px;}
+.sibling-item:hover{border-color:var(--navy-600);background:var(--navy-700);}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .form-group.span2{grid-column:span 1;}
+  .ci-row{flex-direction:column;}
+  .ci-toggle{margin-top:8px;}
+}
+</style>
+</head>
+<body>
+<div id="mfdAuthGate"></div>
+<div id="mfdAppContent" style="display:none;">
+
+<!-- ══════════════════════════════════════════
+     SHARED TOP HEADER
+══════════════════════════════════════════ -->
+<header class="mfd-top-header">
+  <div class="mfd-header-inner">
+    <svg class="mfd-header-shield" viewBox="0 0 64 74" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 2 L60 14 L60 36 C60 54 32 72 32 72 C32 72 4 54 4 36 L4 14 Z"
+            fill="rgba(220,38,38,0.15)" stroke="rgba(220,38,38,0.5)" stroke-width="1.5"/>
+      <path d="M32 56 C24 52 20 44 24 36 C26 40 30 38 29 32 C33 36 35 30 32 24 C38 28 42 36 40 44 C44 40 44 34 42 30 C48 36 50 46 44 54 C42 58 36 60 32 56Z"
+            fill="rgba(248,113,113,0.85)"/>
+    </svg>
+    <div class="mfd-header-text-block">
+      <div class="dept">Mantua Township</div>
+      <div class="title">🔥 Fire Department</div>
+      <div class="subtitle">Rental Inspections</div>
+    </div>
+    <a href="index.html" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;background:rgba(255,255,255,0.05);border:1px solid var(--navy-700);color:var(--slate-400);font-size:12px;font-weight:600;text-decoration:none;transition:all .2s;flex-shrink:0;"
+       onmouseover="this.style.color='#f1f5f9';this.style.background='rgba(255,255,255,0.09)'"
+       onmouseout="this.style.color='';this.style.background='rgba(255,255,255,0.05)'">
+      ← Back to Hub
+    </a>
+  </div>
+</header>
+
+<!-- Primary navigation -->
+<div class="mfd-tab-bar">
+  <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+    <span class="icon">📊</span> Dashboard
+  </div>
+  <div class="nav-item" onclick="showPage('inspections')" id="nav-inspections">
+    <span class="icon">🏠</span> Inspections
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="mfd-toolbar-strip">
+  <div class="mfd-toolbar-group">
+    <span class="mfd-toolbar-label">Quick Actions</span>
+    <div class="nav-item" onclick="openInspectionModal()">
+      <span class="icon">➕</span> Log Inspection
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div class="topbar-sub" id="page-sub">Overview of rental inspections</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-primary btn-sm" onclick="openInspectionModal()">➕ Log Inspection</button>
+    </div>
+  </div>
+
+  <!-- ──────── DASHBOARD ──────── -->
+  <div class="page active" id="page-dashboard">
+    <div class="stat-grid" style="margin-top:8px;">
+      <div class="stat-card blue">
+        <div class="stat-label">Total Inspections</div>
+        <div class="stat-value blue" id="stat-total">0</div>
+        <div class="stat-sub" id="stat-total-sub">0 properties inspected</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Pass Rate</div>
+        <div class="stat-value green" id="stat-passrate">0%</div>
+        <div class="stat-sub" id="stat-passrate-sub">0 passed</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Not Passed</div>
+        <div class="stat-value red" id="stat-failed">0</div>
+        <div class="stat-sub">Needs follow-up</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-label">This Month</div>
+        <div class="stat-value gold" id="stat-month">0</div>
+        <div class="stat-sub">Inspections logged</div>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <div>
+        <div class="section-title">Recent Inspections</div>
+        <div class="section-sub">Latest 8 logged</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="showPage('inspections')">View All →</button>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Address</th>
+            <th>Owner</th>
+            <th>Result</th>
+            <th>Inspector</th>
+          </tr>
+        </thead>
+        <tbody id="recent-tbody">
+          <tr><td colspan="5"><div class="empty-state"><div class="es-icon">🏠</div><div class="es-title">No inspections yet</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ──────── INSPECTIONS ──────── -->
+  <div class="page" id="page-inspections">
+    <div class="history-banner" id="history-banner"></div>
+    <div class="tbl-wrap" style="margin-top:8px;">
+      <div class="tbl-toolbar">
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="setResultFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="setResultFilter('pass',this)">✅ Pass</button>
+          <button class="filter-btn" onclick="setResultFilter('fail',this)">❌ Not Passed</button>
+        </div>
+        <input class="search-input" type="text" placeholder="Search address or owner…" id="insp-search" oninput="renderInspections()">
+        <button class="btn btn-primary btn-sm" onclick="openInspectionModal()">➕ Log Inspection</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortInsp('date')">Date ⇅</th>
+            <th onclick="sortInsp('address')">Address ⇅</th>
+            <th onclick="sortInsp('owner')">Owner ⇅</th>
+            <th>Bedrooms</th>
+            <th onclick="sortInsp('result')">Result ⇅</th>
+            <th>Inspector</th>
+          </tr>
+        </thead>
+        <tbody id="insp-tbody">
+          <tr><td colspan="6"><div class="empty-state"><div class="es-icon">🏠</div><div class="es-title">No inspections yet</div><div class="es-sub">Log your first rental inspection to get started</div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LOG / EDIT INSPECTION MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="inspection-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="insp-modal-title">🏠 Log Inspection</div>
+      <button class="modal-close" onclick="closeModal('inspection-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group span2">
+          <label class="label">Owner of Rental *</label>
+          <input class="input" id="if-owner" placeholder="Owner name">
+        </div>
+        <div class="form-group span2">
+          <label class="label">Address of Rental *</label>
+          <input class="input" id="if-address" placeholder="Street address">
+        </div>
+        <div class="form-group">
+          <label class="label">Phone Number</label>
+          <input class="input" id="if-phone" placeholder="(xxx) xxx-xxxx">
+        </div>
+        <div class="form-group">
+          <label class="label">Number of Bedrooms</label>
+          <input class="input" type="number" min="0" id="if-bedrooms" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="label">Date of Inspection *</label>
+          <input class="input" type="date" id="if-date">
+        </div>
+      </div>
+
+      <div style="margin-top:20px;">
+        <label class="label">Inspection Checklist</label>
+        <div class="checklist-wrap" id="checklist-form-rows"></div>
+      </div>
+
+      <div class="form-grid" style="margin-top:16px;">
+        <div class="form-group span2">
+          <label class="label">Notes</label>
+          <textarea class="input" id="if-notes" rows="3" placeholder="Additional notes…" style="resize:vertical;"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="label">Inspection By</label>
+          <input class="input" id="if-inspector" placeholder="Inspector name">
+        </div>
+        <div class="form-group">
+          <label class="label">Title / Badge #</label>
+          <input class="input" id="if-title" placeholder="Title or badge #">
+        </div>
+        <div class="form-group">
+          <label class="label">Result *</label>
+          <select class="input" id="if-result">
+            <option value="">— Select —</option>
+            <option value="pass">✅ Pass</option>
+            <option value="fail">❌ Not Passed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="label">Result Date</label>
+          <input class="input" type="date" id="if-resultdate">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('inspection-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInspection()">💾 Save Inspection</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     DETAIL / VIEW MODAL
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-header">
+      <div class="modal-title">🏠 Inspection Detail</div>
+      <button class="modal-close" onclick="closeModal('detail-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="detail-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" id="detail-delete-btn">🗑 Delete</button>
+      <button class="btn btn-ghost" id="detail-edit-btn">✏️ Edit</button>
+      <button class="btn btn-primary" onclick="closeModal('detail-modal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  DATA MODEL
+// ══════════════════════════════════════════
+// The checklist mirrors the Town of Mantua paper form
+// ("Mantua Fire Department — Rental Inspection"). Items 1–4 and 13 carry
+// a specific count/measurement on the paper form (sq ft, # of alarms,
+// type of heater); the rest are plain yes/no. Item 4 carries the same
+// legal caveat printed on the paper form about Utah Code § 10-8-53.5 —
+// kept here verbatim since it directly affects how an inspector should
+// weigh that item against a rental owner, not as legal advice from
+// this app.
+const CHECKLIST_ITEMS = [
+  { id:'sleepingArea',    num:1,  label:"Sleeping area(s) meet the minimum 100 sq. ft. of floor space required by Town ordinance.", noteLabel:'Measured sq. ft.', notePlaceholder:'e.g. 120' },
+  { id:'smokeAlarms',     num:2,  label:"Working smoke alarms are installed in every bedroom, in the hallway outside each sleeping area, and on every additional level of the home.", noteLabel:'# of alarms', notePlaceholder:'e.g. 4' },
+  { id:'fireExtinguishers', num:3, label:"Portable fire extinguisher(s) are in the home and easy to reach.", noteLabel:'# of extinguishers', notePlaceholder:'e.g. 1' },
+  { id:'coAlarms',         num:4, label:"Working carbon monoxide alarms are installed outside each bedroom and on every level of the home.", noteLabel:'# of alarms', notePlaceholder:'e.g. 3',
+    legalNote:"Under Utah Code § 10-8-53.5, a town may enforce a carbon monoxide alarm requirement only against the occupant of the dwelling, not against the property owner, except when tied to a new-construction building permit. Confirm with the town attorney before treating this item as grounds to fail a rental inspection against an owner." },
+  { id:'doorsWindows',     num:5,  label:"All doors and windows that lead outside are able to be opened." },
+  { id:'floorPlan',        num:6,  label:"Floor plan of the home is posted, showing all escape routes and exits." },
+  { id:'emergencyContact', num:7,  label:"Emergency contact information for the rental is posted." },
+  { id:'knowAddress',      num:8,  label:"Occupants know the address of the rental." },
+  { id:'pathwaysClear',    num:9,  label:"All pathways are free and clear of tripping hazards." },
+  { id:'outletsFree',      num:10, label:"Electrical outlets are free of multiple cords and adaptors." },
+  { id:'stovetopClear',    num:11, label:"Stovetop is clear of nearby items that can catch fire (curtains, towels, etc.)." },
+  { id:'addressVisible',   num:12, label:'Address is visible from the street, with numbers at least 4" in height.' },
+  { id:'noCombustibles',   num:13, label:"No combustibles are stored near heating equipment.", noteLabel:'Type of heater', notePlaceholder:'e.g. Gas furnace' },
+];
+
+const STORAGE_KEY = 'mfd_rental_inspections_v1';
+let inspections = [];
+let editingInspectionId = null;
+let resultFilter = 'all';
+let inspSort = { col:'date', dir:-1 };
+
+// ──── Persistence ────
+function save(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(inspections)); }catch(e){}
+}
+function load(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw){ try{ inspections = JSON.parse(raw) || []; }catch(e){ inspections = []; } }
+  else{ inspections = []; }
+}
+
+// ──── Access control ────
+// Logging a new inspection is everyday work, open to any signed-in account.
+// Editing or deleting an existing record requires an Admin account, since
+// it's the official record of a completed inspection — same pattern as
+// Budget and Time Card.
+function requireUnlock(action){
+  if(window.MFD_AUTH && window.MFD_AUTH.role === 'admin'){ action(); return; }
+  alert('Only Admin accounts can make this change. Ask your department Admin to make this change, or to upgrade your account.');
+}
+
+// ══════════════════════════════════════════
+//  NAV & PAGES
+// ══════════════════════════════════════════
+const PAGE_META = {
+  dashboard:{title:'Dashboard', sub:'Overview of rental inspections'},
+  inspections:{title:'Inspections', sub:'All logged rental inspections'},
+};
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.mfd-tab-bar .nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('nav-'+id)?.classList.add('active');
+  document.getElementById('page-title').textContent = PAGE_META[id].title;
+  document.getElementById('page-sub').textContent   = PAGE_META[id].sub;
+  if(id==='dashboard') renderDashboard();
+  if(id==='inspections') renderInspections();
+}
+function refreshAll(){
+  const activePage = document.querySelector('.page.active')?.id.replace('page-','');
+  if(activePage==='inspections') renderInspections();
+  renderDashboard();
+}
+
+// ══════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════
+function renderDashboard(){
+  const total = inspections.length;
+  const passed = inspections.filter(i=>i.result==='pass').length;
+  const failed = inspections.filter(i=>i.result==='fail').length;
+  const uniqueAddrs = new Set(inspections.map(i=>normalizeAddr(i.address))).size;
+  const now = new Date();
+  const thisMonth = inspections.filter(i=>{
+    if(!i.inspectionDate) return false;
+    const d = new Date(i.inspectionDate+'T00:00:00');
+    return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+  }).length;
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-total-sub').textContent = uniqueAddrs + ' propert' + (uniqueAddrs===1?'y':'ies') + ' inspected';
+  document.getElementById('stat-passrate').textContent = total ? Math.round(passed/total*100)+'%' : '0%';
+  document.getElementById('stat-passrate-sub').textContent = passed + ' passed';
+  document.getElementById('stat-failed').textContent = failed;
+  document.getElementById('stat-month').textContent = thisMonth;
+
+  const recent = [...inspections].sort((a,b)=> (b.inspectionDate||'').localeCompare(a.inspectionDate||'')).slice(0,8);
+  document.getElementById('recent-tbody').innerHTML = recent.length ? recent.map(i=>`
+    <tr onclick="openDetail('${i.id}')">
+      <td style="white-space:nowrap;font-size:12px;color:var(--slate-400);">${fmtDate(i.inspectionDate)}</td>
+      <td class="td-addr">${escHtml(i.address)}</td>
+      <td style="color:var(--slate-300);">${escHtml(i.owner)}</td>
+      <td>${resultBadge(i.result)}</td>
+      <td style="color:var(--slate-400);">${escHtml(i.inspectorName||'—')}</td>
+    </tr>`).join('')
+    : `<tr><td colspan="5"><div class="empty-state"><div class="es-icon">🏠</div><div class="es-title">No inspections yet</div></div></td></tr>`;
+}
+
+// ══════════════════════════════════════════
+//  INSPECTIONS LIST
+// ══════════════════════════════════════════
+function setResultFilter(f, btn){
+  resultFilter = f;
+  document.querySelectorAll('#page-inspections .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderInspections();
+}
+function sortInsp(col){
+  if(inspSort.col===col) inspSort.dir *= -1; else { inspSort.col=col; inspSort.dir=1; }
+  renderInspections();
+}
+function normalizeAddr(a){ return String(a||'').trim().toLowerCase().replace(/\s+/g,' '); }
+
+function renderInspections(){
+  const q = (document.getElementById('insp-search').value||'').trim().toLowerCase();
+  let rows = inspections.filter(i=>{
+    if(resultFilter!=='all' && i.result!==resultFilter) return false;
+    if(q && !(String(i.address||'').toLowerCase().includes(q) || String(i.owner||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+  rows.sort((a,b)=>{
+    let av=a[inspSort.col]||'', bv=b[inspSort.col]||'';
+    return String(av).localeCompare(String(bv)) * inspSort.dir;
+  });
+
+  // Address-history banner: when a search narrows things down to inspections
+  // sharing one address, summarize that property's pass/fail history right
+  // above the table (date + result for each), so it doesn't have to be
+  // pieced together from the table rows below.
+  const banner = document.getElementById('history-banner');
+  const addrsInResults = new Set(rows.map(r=>normalizeAddr(r.address)));
+  if(q && addrsInResults.size===1 && rows.length){
+    const sorted = [...rows].sort((a,b)=> (b.inspectionDate||'').localeCompare(a.inspectionDate||''));
+    const passCount = sorted.filter(r=>r.result==='pass').length;
+    const failCount = sorted.filter(r=>r.result==='fail').length;
+    banner.innerHTML = `<b>${escHtml(sorted[0].address)}</b> — ${sorted.length} inspection${sorted.length===1?'':'s'} on record `
+      + `(${passCount} pass, ${failCount} not passed):<br>`
+      + sorted.map(r=>`${fmtDate(r.inspectionDate)} — ${r.result==='pass'?'✅ Pass':r.result==='fail'?'❌ Not Passed':'—'}`).join(' &nbsp;·&nbsp; ');
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+    banner.innerHTML = '';
+  }
+
+  document.getElementById('insp-tbody').innerHTML = rows.length ? rows.map(i=>`
+    <tr onclick="openDetail('${i.id}')">
+      <td style="white-space:nowrap;font-size:12px;color:var(--slate-400);">${fmtDate(i.inspectionDate)}</td>
+      <td class="td-addr">${escHtml(i.address)}${i.phone ? `<div class="td-sub">${escHtml(i.phone)}</div>` : ''}</td>
+      <td style="color:var(--slate-300);">${escHtml(i.owner)}</td>
+      <td style="color:var(--slate-400);">${i.bedrooms!==undefined && i.bedrooms!=='' ? escHtml(i.bedrooms) : '—'}</td>
+      <td>${resultBadge(i.result)}</td>
+      <td style="color:var(--slate-400);">${escHtml(i.inspectorName||'—')}</td>
+    </tr>`).join('')
+    : `<tr><td colspan="6"><div class="empty-state"><div class="es-icon">🔎</div><div class="es-title">No matching inspections</div><div class="es-sub">Try a different search or filter</div></div></td></tr>`;
+}
+
+function resultBadge(r){
+  if(r==='pass') return `<span class="badge badge-pass">✅ Pass</span>`;
+  if(r==='fail') return `<span class="badge badge-fail">❌ Not Passed</span>`;
+  return `<span class="badge badge-pending">—</span>`;
+}
+
+// ══════════════════════════════════════════
+//  LOG / EDIT INSPECTION MODAL
+// ══════════════════════════════════════════
+function renderChecklistFormRows(existing){
+  const wrap = document.getElementById('checklist-form-rows');
+  wrap.innerHTML = CHECKLIST_ITEMS.map(item=>{
+    const cur = (existing && existing.checklist && existing.checklist[item.id]) || {answer:'', note:''};
+    return `
+    <div class="ci-row" data-item="${item.id}" data-answer="${cur.answer||''}">
+      <div class="ci-num">${item.num}</div>
+      <div class="ci-main">
+        <div class="ci-label">${escHtml(item.label)}</div>
+        ${item.legalNote ? `<div class="ci-legal">⚖️ ${escHtml(item.legalNote)}</div>` : ''}
+        ${item.noteLabel ? `<input class="input ci-note-input" placeholder="${escHtml(item.noteLabel)}${item.notePlaceholder?' — e.g. '+escHtml(item.notePlaceholder.replace(/^e\.g\.\s*/,'')):''}" value="${escHtml(cur.note||'')}">` : ''}
+      </div>
+      <div class="ci-toggle">
+        <button type="button" class="ci-btn yes${cur.answer==='yes'?' active':''}" onclick="setChecklistAnswer(this,'yes')">Yes</button>
+        <button type="button" class="ci-btn no${cur.answer==='no'?' active':''}" onclick="setChecklistAnswer(this,'no')">No</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function setChecklistAnswer(btn, val){
+  const row = btn.closest('.ci-row');
+  row.dataset.answer = val;
+  row.querySelectorAll('.ci-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function readChecklistFromForm(){
+  const out = {};
+  document.querySelectorAll('#checklist-form-rows .ci-row').forEach(row=>{
+    const id = row.dataset.item;
+    const noteInput = row.querySelector('.ci-note-input');
+    out[id] = { answer: row.dataset.answer || '', note: noteInput ? noteInput.value.trim() : '' };
+  });
+  return out;
+}
+
+function openInspectionModal(id=null){
+  editingInspectionId = id;
+  document.getElementById('insp-modal-title').textContent = id ? '✏️ Edit Inspection' : '🏠 Log Inspection';
+  const rec = id ? inspections.find(x=>x.id===id) : null;
+  document.getElementById('if-owner').value      = rec ? rec.owner : '';
+  document.getElementById('if-address').value    = rec ? rec.address : '';
+  document.getElementById('if-phone').value      = rec ? (rec.phone||'') : '';
+  document.getElementById('if-bedrooms').value   = rec ? (rec.bedrooms!==undefined?rec.bedrooms:'') : '';
+  document.getElementById('if-date').value       = rec ? rec.inspectionDate : new Date().toISOString().slice(0,10);
+  document.getElementById('if-notes').value      = rec ? (rec.notes||'') : '';
+  document.getElementById('if-inspector').value  = rec ? (rec.inspectorName||'') : (window.MFD_AUTH ? window.MFD_AUTH.name : '');
+  document.getElementById('if-title').value      = rec ? (rec.inspectorTitle||'') : '';
+  document.getElementById('if-result').value     = rec ? (rec.result||'') : '';
+  document.getElementById('if-resultdate').value = rec ? (rec.resultDate||'') : '';
+  renderChecklistFormRows(rec);
+  document.getElementById('inspection-modal').classList.add('open');
+}
+function saveInspection(){
+  const owner   = document.getElementById('if-owner').value.trim();
+  const address = document.getElementById('if-address').value.trim();
+  const date    = document.getElementById('if-date').value;
+  const result  = document.getElementById('if-result').value;
+  if(!owner || !address || !date || !result){
+    toast('Please fill in Owner, Address, Date, and Result','error'); return;
+  }
+  const existing = editingInspectionId ? inspections.find(x=>x.id===editingInspectionId) : null;
+  const obj = {
+    id: editingInspectionId || uid(),
+    owner, address,
+    phone: document.getElementById('if-phone').value.trim(),
+    bedrooms: document.getElementById('if-bedrooms').value.trim(),
+    inspectionDate: date,
+    checklist: readChecklistFromForm(),
+    notes: document.getElementById('if-notes').value.trim(),
+    inspectorName: document.getElementById('if-inspector').value.trim(),
+    inspectorTitle: document.getElementById('if-title').value.trim(),
+    result,
+    resultDate: document.getElementById('if-resultdate').value || date,
+    createdAt: existing ? existing.createdAt : new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  if(editingInspectionId){
+    const idx = inspections.findIndex(x=>x.id===editingInspectionId);
+    if(idx!==-1) inspections[idx] = obj;
+    toast('Inspection updated','success');
+  } else {
+    inspections.push(obj);
+    toast('Inspection logged','success');
+  }
+  save(); closeModal('inspection-modal'); refreshAll();
+}
+function deleteInspection(id){
+  requireUnlock(()=>{
+    if(!confirm('Delete this inspection record? This cannot be undone.')) return;
+    inspections = inspections.filter(x=>x.id!==id);
+    save(); toast('Inspection deleted','info'); refreshAll();
+  });
+}
+
+// ══════════════════════════════════════════
+//  DETAIL MODAL
+// ══════════════════════════════════════════
+function openDetail(id){
+  const rec = inspections.find(x=>x.id===id); if(!rec) return;
+  const checklistHtml = CHECKLIST_ITEMS.map(item=>{
+    const cur = (rec.checklist && rec.checklist[item.id]) || {};
+    const ansBadge = cur.answer==='yes' ? `<span class="badge badge-yes">Yes</span>`
+                    : cur.answer==='no'  ? `<span class="badge badge-no">No</span>`
+                    : `<span class="badge badge-unset">—</span>`;
+    return `<div class="ci-view-row">
+      <div class="ci-view-label">${item.num}. ${escHtml(item.label)}${cur.note ? `<div class="ci-view-note">${escHtml(item.noteLabel||'Note')}: ${escHtml(cur.note)}</div>` : ''}</div>
+      <div class="ci-view-right">${ansBadge}</div>
+    </div>`;
+  }).join('');
+
+  const siblings = inspections.filter(x=>x.id!==rec.id && normalizeAddr(x.address)===normalizeAddr(rec.address))
+    .sort((a,b)=> (b.inspectionDate||'').localeCompare(a.inspectionDate||''));
+
+  document.getElementById('detail-modal-body').innerHTML = `
+    <div class="form-grid" style="margin-bottom:16px;">
+      ${dRow('Owner', escHtml(rec.owner))}
+      ${dRow('Address', `<span style="font-weight:700;color:var(--slate-100);">${escHtml(rec.address)}</span>`)}
+      ${dRow('Phone', escHtml(rec.phone||'—'))}
+      ${dRow('Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—'))}
+      ${dRow('Date of Inspection', fmtDate(rec.inspectionDate))}
+      ${dRow('Result', resultBadge(rec.result) + (rec.resultDate ? ` <span style="font-size:11px;color:var(--navy-500);">(${fmtDate(rec.resultDate)})</span>` : ''))}
+      ${dRow('Inspection By', escHtml(rec.inspectorName||'—'))}
+      ${dRow('Title / Badge #', escHtml(rec.inspectorTitle||'—'))}
+    </div>
+    <label class="label">Checklist</label>
+    <div class="checklist-wrap" style="margin-top:6px;">${checklistHtml}</div>
+    ${rec.notes ? `<div style="margin-top:16px;"><label class="label">Notes</label><div style="background:var(--navy-800);border:1px solid var(--navy-700);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--slate-300);margin-top:4px;">${escHtml(rec.notes)}</div></div>` : ''}
+    <div style="margin-top:16px;font-size:10px;color:var(--navy-600);">
+      Created: ${rec.createdAt ? new Date(rec.createdAt).toLocaleString() : '—'}
+      ${rec.updatedAt && rec.updatedAt!==rec.createdAt ? ' · Updated: '+new Date(rec.updatedAt).toLocaleString() : ''}
+    </div>
+    ${siblings.length ? `
+    <div style="margin-top:20px;">
+      <label class="label">Other Inspections at This Address (${siblings.length})</label>
+      <div class="sibling-list">
+        ${siblings.map(s=>`<div class="sibling-item" onclick="openDetail('${s.id}')">
+          <span>${fmtDate(s.inspectionDate)}</span>${resultBadge(s.result)}
+        </div>`).join('')}
+      </div>
+    </div>` : ''}
+  `;
+  // Editing an existing inspection is gated at the moment the edit form is
+  // opened (same pattern as Budget's "Set Budget Allocations"), so Personnel
+  // never even sees the pre-filled form for a record they can't save changes to.
+  document.getElementById('detail-edit-btn').onclick   = ()=>{ requireUnlock(()=>{ closeModal('detail-modal'); openInspectionModal(id); }); };
+  document.getElementById('detail-delete-btn').onclick = ()=>{ closeModal('detail-modal'); deleteInspection(id); };
+  document.getElementById('detail-modal').classList.add('open');
+}
+function dRow(label, val){
+  return `<div><label class="label">${label}</label><div style="margin-top:4px;font-size:13px;color:var(--slate-300);">${val}</div></div>`;
+}
+
+// ══════════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════════
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(s){
+  if(!s) return '—';
+  const [y,m,d] = s.split('-');
+  if(!y||!m||!d) return s;
+  return `${m}/${d}/${y}`;
+}
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function toast(msg, type='info'){
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icons = {success:'✅',error:'❌',info:'ℹ️'};
+  t.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(()=>t.remove(),400); }, 3200);
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', ()=>{
+  load();
+  renderDashboard();
+  renderInspections();
+  document.querySelectorAll('.modal-overlay').forEach(o=>{
+    o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
+  });
+});
+</script>
+</div>
+<script src="mfd-sync.js"></script>
+<script src="mfdauth.js"></script>
+</body>
+</html>

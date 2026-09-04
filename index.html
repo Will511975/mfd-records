@@ -384,6 +384,21 @@
       <span class="card-arrow">›</span>
     </a>
 
+    <!-- Rental Inspections -->
+    <a class="card" href="MFD_RentalInspections.html">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <div class="card-body">
+        <div class="card-title">Rental Inspections</div>
+        <div class="card-subtitle">MFD_RentalInspections.html — Town Rental Fire &amp; Safety Checklist</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+
   </div>
 
 </main>
@@ -468,6 +483,14 @@ document.getElementById('btnBackupAll').addEventListener('click', ()=>{
     const fy = key.replace('mfd_budget_', '');
     if(raw) downloads.push({ filename:'MFD_Budget-'+fy+'-'+stamp4+'.json', data: JSON.parse(raw) });
   });
+
+  // Rental Inspections — one flat list, same shape as it's stored in
+  // localStorage (an array of inspection records), so the backup file
+  // restores with no reshaping needed.
+  const rentalInspections = localStorage.getItem('mfd_rental_inspections_v1');
+  if(rentalInspections){
+    downloads.push({ filename:'MFD_RentalInspections-'+stamp+'.json', data: JSON.parse(rentalInspections) });
+  }
 
   const statusEl = document.getElementById('backupStatus');
   if(downloads.length === 0){
@@ -650,6 +673,15 @@ function handleRestoreFiles(fileList){
       // oldest mantua-timecards.json.
       if(/^(?:MFD_)?Timecards-\d{6}\.json$/i.test(name) || /^mantua_fd_data_\d{4}-\d{2}-\d{2}\.json$/i.test(name) || name === 'mantua-timecards.json'){
         plan.push({ key:'mantua_fd_timecards_v1', value:r.parsed, label:'timecards' });
+        return;
+      }
+
+      // Rental Inspections — MFD_RentalInspections-YYMMDD.json (Backup All).
+      // Detected by content (an array of records that each carry a
+      // "checklist" and "result" field, the shape unique to this module)
+      // rather than filename alone, so a renamed file still restores.
+      if(Array.isArray(r.parsed) && (r.parsed.length === 0 ? /^MFD_RentalInspections-\d{6}\.json$/i.test(name) : (r.parsed[0] && typeof r.parsed[0] === 'object' && 'checklist' in r.parsed[0] && 'result' in r.parsed[0]))){
+        plan.push({ key:'mfd_rental_inspections_v1', value:r.parsed, label:'rental inspections' });
         return;
       }
       unrecognized.push(name);
