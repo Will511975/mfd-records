@@ -69,19 +69,21 @@ input,select,textarea{font-family:inherit;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
 /* ── Stat Cards ── */
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px;}
 .stat-card{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;}
 .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
 .stat-card.red::before{background:linear-gradient(90deg,var(--fire-700),var(--fire-500));}
 .stat-card.gold::before{background:linear-gradient(90deg,var(--gold-600),var(--gold-400));}
 .stat-card.green::before{background:linear-gradient(90deg,#15803d,var(--green-500));}
 .stat-card.blue::before{background:linear-gradient(90deg,#1d4ed8,var(--blue-400));}
+.stat-card.orange::before{background:linear-gradient(90deg,#c2410c,#fb923c);}
 .stat-label{font-size:11px;font-weight:700;color:var(--navy-500);text-transform:uppercase;letter-spacing:.07em;}
 .stat-value{font-size:26px;font-weight:900;margin-top:6px;font-variant-numeric:tabular-nums;}
 .stat-value.red{color:var(--fire-400);}
 .stat-value.gold{color:var(--gold-400);}
 .stat-value.green{color:var(--green-400);}
 .stat-value.blue{color:var(--blue-400);}
+.stat-value.orange{color:#fb923c;}
 .stat-sub{font-size:11px;color:var(--navy-500);margin-top:4px;}
 
 /* ── Section headers ── */
@@ -110,6 +112,7 @@ tbody td{padding:11px 14px;vertical-align:middle;}
 .badge-yes{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.3);}
 .badge-no{background:rgba(239,68,68,.12);color:var(--fire-400);border:1px solid rgba(239,68,68,.3);}
 .badge-unset{background:rgba(100,116,139,.12);color:var(--slate-400);border:1px solid rgba(100,116,139,.3);}
+.badge-na{background:rgba(100,116,139,.12);color:var(--slate-400);border:1px dashed rgba(100,116,139,.4);}
 
 /* ── Buttons ── */
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .2s;}
@@ -156,7 +159,10 @@ select.input option{background:var(--navy-800);}
 .ci-btn{padding:5px 13px;border-radius:6px;font-size:11px;font-weight:800;cursor:pointer;border:1px solid var(--navy-700);background:var(--navy-800);color:var(--slate-400);transition:all .15s;text-transform:uppercase;letter-spacing:.04em;}
 .ci-btn.yes.active{background:rgba(34,197,94,.18);color:#4ade80;border-color:rgba(34,197,94,.5);}
 .ci-btn.no.active{background:rgba(239,68,68,.18);color:var(--fire-400);border-color:rgba(239,68,68,.5);}
+.ci-btn.na.active{background:rgba(100,116,139,.28);color:var(--slate-200);border-color:rgba(100,116,139,.6);}
 .ci-btn:hover{border-color:var(--navy-600);}
+.ci-cat-header{padding:9px 14px;background:rgba(220,38,38,.08);font-size:10.5px;font-weight:800;color:var(--fire-400);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.05);}
+.ci-kitchen-tag{display:inline-block;font-size:9.5px;font-weight:700;color:var(--gold-400);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:1px 7px;margin-left:6px;text-transform:none;letter-spacing:0;vertical-align:middle;}
 
 /* ── Checklist rows (detail / read-only view) ── */
 .ci-view-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);}
@@ -165,6 +171,7 @@ select.input option{background:var(--navy-800);}
 .ci-view-label{font-size:12px;color:var(--slate-300);flex:1;}
 .ci-view-note{font-size:11px;color:var(--navy-500);margin-top:2px;}
 .ci-view-right{flex-shrink:0;text-align:right;}
+.ci-view-cat-header{padding:9px 14px;background:rgba(220,38,38,.08);font-size:10px;font-weight:800;color:var(--fire-400);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.05);}
 
 /* ── Toast ── */
 .toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
@@ -199,6 +206,9 @@ select.input option{background:var(--navy-800);}
 .sibling-item:hover{border-color:var(--navy-600);background:var(--navy-700);}
 
 /* ── Responsive ── */
+@media(max-width:1100px){
+  .stat-grid{grid-template-columns:1fr 1fr 1fr;}
+}
 @media(max-width:900px){
   .stat-grid{grid-template-columns:1fr 1fr;}
   .form-grid{grid-template-columns:1fr;}
@@ -293,6 +303,11 @@ select.input option{background:var(--navy-800);}
         <div class="stat-value gold" id="stat-month">0</div>
         <div class="stat-sub">Inspections logged</div>
       </div>
+      <div class="stat-card orange">
+        <div class="stat-label" title="1 year after each property's most recent inspection — a department scheduling reminder, not a state or county mandate">🔔 Reinspections Due</div>
+        <div class="stat-value orange" id="stat-reinspect">0</div>
+        <div class="stat-sub" id="stat-reinspect-sub">Department 1-yr policy</div>
+      </div>
     </div>
 
     <div class="section-header">
@@ -329,6 +344,7 @@ select.input option{background:var(--navy-800);}
           <button class="filter-btn active" onclick="setResultFilter('all',this)">All</button>
           <button class="filter-btn" onclick="setResultFilter('pass',this)">✅ Pass</button>
           <button class="filter-btn" onclick="setResultFilter('fail',this)">❌ Not Passed</button>
+          <button class="filter-btn" onclick="setResultFilter('reinspect',this)" title="Properties whose most recent inspection is due or overdue for a 1-year reinspection">🔔 Needs Reinspection</button>
         </div>
         <input class="search-input" type="text" placeholder="Search address or owner…" id="insp-search" oninput="renderInspections()">
         <button class="btn btn-primary btn-sm" onclick="openInspectionModal()">➕ Log Inspection</button>
@@ -337,15 +353,17 @@ select.input option{background:var(--navy-800);}
         <thead>
           <tr>
             <th onclick="sortInsp('date')">Date ⇅</th>
+            <th>Type</th>
             <th onclick="sortInsp('address')">Address ⇅</th>
             <th onclick="sortInsp('owner')">Owner ⇅</th>
             <th>Bedrooms</th>
             <th onclick="sortInsp('result')">Result ⇅</th>
             <th>Inspector</th>
+            <th title="1-year reinspection status for the most recent inspection at each address">Reinspection</th>
           </tr>
         </thead>
         <tbody id="insp-tbody">
-          <tr><td colspan="6"><div class="empty-state"><div class="es-icon">🏠</div><div class="es-title">No inspections yet</div><div class="es-sub">Log your first rental inspection to get started</div></div></td></tr>
+          <tr><td colspan="8"><div class="empty-state"><div class="es-icon">🏠</div><div class="es-title">No inspections yet</div><div class="es-sub">Log your first rental inspection to get started</div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -364,20 +382,39 @@ select.input option{background:var(--navy-800);}
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group span2">
-          <label class="label">Owner of Rental *</label>
+          <label class="label">Inspection Type *</label>
+          <select class="input" id="if-type" onchange="onInspectionTypeChange()">
+            <option value="rental">🏠 Rental</option>
+            <option value="business">🏢 Business</option>
+          </select>
+        </div>
+        <div class="form-group span2" id="fg-bizname" style="display:none;">
+          <label class="label">Business Name *</label>
+          <input class="input" id="if-bizname" placeholder="Business name">
+        </div>
+        <div class="form-group span2">
+          <label class="label" id="if-owner-label">Owner of Rental *</label>
           <input class="input" id="if-owner" placeholder="Owner name">
         </div>
         <div class="form-group span2">
-          <label class="label">Address of Rental *</label>
+          <label class="label" id="if-address-label">Address of Rental *</label>
           <input class="input" id="if-address" placeholder="Street address">
         </div>
         <div class="form-group">
           <label class="label">Phone Number</label>
           <input class="input" id="if-phone" placeholder="(xxx) xxx-xxxx">
         </div>
-        <div class="form-group">
+        <div class="form-group" id="fg-bedrooms">
           <label class="label">Number of Bedrooms</label>
           <input class="input" type="number" min="0" id="if-bedrooms" placeholder="0">
+        </div>
+        <div class="form-group" id="fg-occupancy" style="display:none;">
+          <label class="label">Occupancy Type</label>
+          <input class="input" id="if-occupancy" placeholder="e.g. Retail, Office, Restaurant">
+        </div>
+        <div class="form-group" id="fg-occupantload" style="display:none;">
+          <label class="label">Occupant Load</label>
+          <input class="input" type="number" min="0" id="if-occupantload" placeholder="0">
         </div>
         <div class="form-group">
           <label class="label">Date of Inspection *</label>
@@ -387,6 +424,7 @@ select.input option{background:var(--navy-800);}
 
       <div style="margin-top:20px;">
         <label class="label">Inspection Checklist</label>
+        <div class="ci-legal" style="margin-bottom:6px;font-style:normal;" id="checklist-na-note"></div>
         <div class="checklist-wrap" id="checklist-form-rows"></div>
       </div>
 
@@ -473,6 +511,65 @@ const CHECKLIST_ITEMS = [
   { id:'noCombustibles',   num:13, label:"No combustibles are stored near heating equipment.", noteLabel:'Type of heater', notePlaceholder:'e.g. Gas furnace' },
 ];
 
+// Business/Commercial checklist — general IFC/NFPA-style commercial occupancy
+// and commercial-kitchen inspection practice, NOT copied from an official
+// Town of Mantua business form (none has been provided yet, unlike the Rental
+// form above). Research into Utah/Box Elder County code turned up Utah's
+// statewide 2021 IFC adoption and no confirmed local exemption for any of
+// these items, so nothing here is auto-marked N/A — items are tagged
+// "🍳 Kitchen" only as a hint to the inspector, who marks them N/A themselves
+// when a business has no commercial kitchen (e.g. a retail shop or office).
+// Business/property info (name, owner, address, phone, date) is captured by
+// the form fields above, not repeated here as checklist rows.
+const BUSINESS_CHECKLIST = [
+  { cat:'Egress', items:[
+    { id:'biz_exitMarked',   label:'Exits marked and illuminated (battery backup working).' },
+    { id:'biz_exitUnlocked', label:'Exit doors unlocked & functional during business hours.' },
+    { id:'biz_aislesClear',  label:'Aisles and corridors clear of obstruction.' },
+    { id:'biz_doorSwing',    label:'Doors swing in direction of egress / panic hardware, where required.' },
+    { id:'biz_occLoadPosted',label:'Occupancy load posted (assembly-type spaces).' },
+  ]},
+  { cat:'Fire Extinguishers', items:[
+    { id:'biz_extPresent', label:'ABC extinguisher(s) present, correct rating for the space.' },
+    { id:'biz_extTag',     label:'Inspection tag current (within the last year).' },
+    { id:'biz_extMounted', label:'Mounted, visible, and not blocked.' },
+    { id:'biz_extClassK',  label:'Class K extinguisher near the cooking line, for grease fires.', kitchen:true },
+  ]},
+  { cat:'Fire Alarm & Sprinkler', items:[
+    { id:'biz_alarmWorks',  label:'Fire alarm system functioning and tested.' },
+    { id:'biz_sprinklerTag',label:'Sprinkler inspection tag current.' },
+    { id:'biz_sprinklerClr',label:'18" clearance below every sprinkler head.' },
+  ]},
+  { cat:'Electrical', items:[
+    { id:'biz_noExtCords', label:'No extension cords used as permanent wiring.' },
+    { id:'biz_panelsAccess',label:'Panels accessible and labeled.' },
+    { id:'biz_noExposedWiring', label:'No exposed or damaged wiring.' },
+  ]},
+  { cat:'Housekeeping & Storage', items:[
+    { id:'biz_storageClear',   label:'Storage not blocking exits, panels, or sprinklers.' },
+    { id:'biz_housekeeping',   label:'General housekeeping — no excessive combustible clutter.' },
+    { id:'biz_addressVisible', label:'Address is visible from the street.' },
+    { id:'biz_emergencyContact', label:'Emergency contact info posted.' },
+  ]},
+  { cat:'Commercial Kitchen (Restaurant Only)', items:[
+    { id:'biz_hoodExhaust', label:'Cooking hood & exhaust system cleaned on schedule, filters in place.', kitchen:true },
+    { id:'biz_suppression', label:'Wet-chemical suppression system over cooking line — tag current, nozzles unobstructed.', kitchen:true },
+    { id:'biz_gasShutoff',  label:'Gas shut-off valve accessible, labeled, and tied to the suppression system.', kitchen:true },
+    { id:'biz_cookClearance', label:'Clearance between cooking equipment and combustibles.', kitchen:true },
+    { id:'biz_lpStorage',   label:'LP/propane tanks stored properly (outside, if applicable).', kitchen:true },
+  ]},
+];
+// Flattened, numbered view of either checklist — used by both the log/edit
+// form and the read-only detail view so the two never drift apart.
+function getFlatItems(type){
+  if(type === 'business'){
+    const out = []; let n = 0;
+    BUSINESS_CHECKLIST.forEach(sec=>{ sec.items.forEach(it=>{ n++; out.push(Object.assign({num:n, cat:sec.cat}, it)); }); });
+    return out;
+  }
+  return CHECKLIST_ITEMS;
+}
+
 const STORAGE_KEY = 'mfd_rental_inspections_v1';
 let inspections = [];
 let editingInspectionId = null;
@@ -544,11 +641,18 @@ function renderDashboard(){
   document.getElementById('stat-failed').textContent = failed;
   document.getElementById('stat-month').textContent = thisMonth;
 
+  const latestMap = latestByAddrMap();
+  const latestIds = new Set(Object.values(latestMap));
+  const dueRecs = inspections.filter(i=> latestIds.has(i.id) && ['overdue','soon'].includes(reinspectionStatus(i).state));
+  const overdueCount = dueRecs.filter(i=>reinspectionStatus(i).state==='overdue').length;
+  document.getElementById('stat-reinspect').textContent = dueRecs.length;
+  document.getElementById('stat-reinspect-sub').textContent = overdueCount ? overdueCount+' overdue' : 'Department 1-yr policy';
+
   const recent = [...inspections].sort((a,b)=> (b.inspectionDate||'').localeCompare(a.inspectionDate||'')).slice(0,8);
   document.getElementById('recent-tbody').innerHTML = recent.length ? recent.map(i=>`
     <tr onclick="openDetail('${i.id}')">
       <td style="white-space:nowrap;font-size:12px;color:var(--slate-400);">${fmtDate(i.inspectionDate)}</td>
-      <td class="td-addr">${escHtml(i.address)}</td>
+      <td class="td-addr">${i.inspectionType==='business'?'🏢 ':'🏠 '}${escHtml(i.inspectionType==='business' && i.businessName ? i.businessName : i.address)}</td>
       <td style="color:var(--slate-300);">${escHtml(i.owner)}</td>
       <td>${resultBadge(i.result)}</td>
       <td style="color:var(--slate-400);">${escHtml(i.inspectorName||'—')}</td>
@@ -571,11 +675,67 @@ function sortInsp(col){
 }
 function normalizeAddr(a){ return String(a||'').trim().toLowerCase().replace(/\s+/g,' '); }
 
+// ══════════════════════════════════════════
+//  REINSPECTION TRACKING
+// ══════════════════════════════════════════
+// A 1-year-from-last-inspection reminder. Utah's R710 rules mandate annual
+// *servicing* of specific equipment (extinguishers, sprinklers, alarms)
+// under NFPA standards, but no state or Box Elder County statute was found
+// mandating a general 1-year property reinspection — so this is presented
+// as a department scheduling policy/reminder, not a legal requirement.
+const REINSPECTION_DAYS = 365;
+const REINSPECTION_SOON_DAYS = 30;
+function addDays(dateStr, days){
+  if(!dateStr) return null;
+  const d = new Date(dateStr+'T00:00:00');
+  if(isNaN(d)) return null;
+  d.setDate(d.getDate()+days);
+  return d.toISOString().slice(0,10);
+}
+function reinspectionDueDate(rec){ return addDays(rec.inspectionDate, REINSPECTION_DAYS); }
+function reinspectionStatus(rec){
+  const due = reinspectionDueDate(rec);
+  if(!due) return { state:'none', due:null, daysLeft:null };
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dueDate = new Date(due+'T00:00:00');
+  const daysLeft = Math.round((dueDate-today)/86400000);
+  let state = 'ok';
+  if(daysLeft < 0) state = 'overdue';
+  else if(daysLeft <= REINSPECTION_SOON_DAYS) state = 'soon';
+  return { state, due, daysLeft };
+}
+// Only the most recent inspection at each address determines whether that
+// property currently needs a reinspection.
+function latestByAddrMap(){
+  const map = {};
+  inspections.forEach(i=>{
+    const key = normalizeAddr(i.address);
+    if(!map[key] || (i.inspectionDate||'') > (map[key].inspectionDate||'')) map[key] = i;
+  });
+  const idMap = {};
+  Object.keys(map).forEach(k=>{ idMap[k] = map[k].id; });
+  return idMap;
+}
+function reinspectionBadge(rec, latestMap){
+  const st = reinspectionStatus(rec);
+  if(!st.due) return `<span class="badge badge-pending">—</span>`;
+  const isLatest = latestMap[normalizeAddr(rec.address)] === rec.id;
+  if(!isLatest) return `<span class="badge badge-pending" title="Superseded by a later inspection at this address">${fmtDate(st.due)}</span>`;
+  if(st.state==='overdue') return `<span class="badge badge-fail">⚠ Overdue ${fmtDate(st.due)}</span>`;
+  if(st.state==='soon')    return `<span class="badge" style="background:rgba(245,158,11,.15);color:var(--gold-400);border:1px solid rgba(245,158,11,.3);">🔔 ${fmtDate(st.due)}</span>`;
+  return `<span class="badge badge-pass">✓ ${fmtDate(st.due)}</span>`;
+}
+
 function renderInspections(){
   const q = (document.getElementById('insp-search').value||'').trim().toLowerCase();
+  const latestMap = latestByAddrMap();
   let rows = inspections.filter(i=>{
-    if(resultFilter!=='all' && i.result!==resultFilter) return false;
-    if(q && !(String(i.address||'').toLowerCase().includes(q) || String(i.owner||'').toLowerCase().includes(q))) return false;
+    if(resultFilter==='pass' || resultFilter==='fail'){ if(i.result!==resultFilter) return false; }
+    if(resultFilter==='reinspect'){
+      if(latestMap[normalizeAddr(i.address)] !== i.id) return false;
+      if(!['overdue','soon'].includes(reinspectionStatus(i).state)) return false;
+    }
+    if(q && !(String(i.address||'').toLowerCase().includes(q) || String(i.owner||'').toLowerCase().includes(q) || String(i.businessName||'').toLowerCase().includes(q))) return false;
     return true;
   });
   rows.sort((a,b)=>{
@@ -605,13 +765,20 @@ function renderInspections(){
   document.getElementById('insp-tbody').innerHTML = rows.length ? rows.map(i=>`
     <tr onclick="openDetail('${i.id}')">
       <td style="white-space:nowrap;font-size:12px;color:var(--slate-400);">${fmtDate(i.inspectionDate)}</td>
-      <td class="td-addr">${escHtml(i.address)}${i.phone ? `<div class="td-sub">${escHtml(i.phone)}</div>` : ''}</td>
+      <td>${typeBadge(i.inspectionType)}</td>
+      <td class="td-addr">${escHtml(i.inspectionType==='business' && i.businessName ? i.businessName : i.address)}${i.inspectionType==='business' && i.businessName ? `<div class="td-sub">${escHtml(i.address)}</div>` : (i.phone ? `<div class="td-sub">${escHtml(i.phone)}</div>` : '')}</td>
       <td style="color:var(--slate-300);">${escHtml(i.owner)}</td>
-      <td style="color:var(--slate-400);">${i.bedrooms!==undefined && i.bedrooms!=='' ? escHtml(i.bedrooms) : '—'}</td>
+      <td style="color:var(--slate-400);">${i.inspectionType==='business' ? (i.occupantLoad!==undefined && i.occupantLoad!=='' ? escHtml(i.occupantLoad)+' occ.' : '—') : (i.bedrooms!==undefined && i.bedrooms!=='' ? escHtml(i.bedrooms) : '—')}</td>
       <td>${resultBadge(i.result)}</td>
       <td style="color:var(--slate-400);">${escHtml(i.inspectorName||'—')}</td>
+      <td>${reinspectionBadge(i, latestMap)}</td>
     </tr>`).join('')
-    : `<tr><td colspan="6"><div class="empty-state"><div class="es-icon">🔎</div><div class="es-title">No matching inspections</div><div class="es-sub">Try a different search or filter</div></div></td></tr>`;
+    : `<tr><td colspan="8"><div class="empty-state"><div class="es-icon">🔎</div><div class="es-title">No matching inspections</div><div class="es-sub">Try a different search or filter</div></div></td></tr>`;
+}
+function typeBadge(type){
+  return type==='business'
+    ? `<span class="badge" style="background:rgba(59,130,246,.15);color:var(--blue-400);border:1px solid rgba(59,130,246,.3);">🏢 Business</span>`
+    : `<span class="badge" style="background:rgba(100,116,139,.12);color:var(--slate-300);border:1px solid rgba(100,116,139,.3);">🏠 Rental</span>`;
 }
 
 function resultBadge(r){
@@ -623,24 +790,40 @@ function resultBadge(r){
 // ══════════════════════════════════════════
 //  LOG / EDIT INSPECTION MODAL
 // ══════════════════════════════════════════
-function renderChecklistFormRows(existing){
+function renderChecklistFormRows(existing, type){
+  type = type || 'rental';
   const wrap = document.getElementById('checklist-form-rows');
-  wrap.innerHTML = CHECKLIST_ITEMS.map(item=>{
-    const cur = (existing && existing.checklist && existing.checklist[item.id]) || {answer:'', note:''};
-    return `
+  const checklist = (existing && existing.checklist) || {};
+  const items = getFlatItems(type);
+  const allowNA = type === 'business';
+  const naNote = document.getElementById('checklist-na-note');
+  naNote.textContent = allowNA
+    ? '⚖️ N/A is an inspector judgment call for items that don\'t apply to this business (e.g. no commercial kitchen) — no Utah or Box Elder County exemption is auto-applied.'
+    : '';
+  let html = '';
+  let lastCat = null;
+  items.forEach(item=>{
+    if(allowNA && item.cat !== lastCat){
+      html += `<div class="ci-cat-header">${escHtml(item.cat)}</div>`;
+      lastCat = item.cat;
+    }
+    const cur = checklist[item.id] || {answer:'', note:''};
+    html += `
     <div class="ci-row" data-item="${item.id}" data-answer="${cur.answer||''}">
       <div class="ci-num">${item.num}</div>
       <div class="ci-main">
-        <div class="ci-label">${escHtml(item.label)}</div>
+        <div class="ci-label">${escHtml(item.label)}${item.kitchen ? '<span class="ci-kitchen-tag">🍳 Kitchen</span>' : ''}</div>
         ${item.legalNote ? `<div class="ci-legal">⚖️ ${escHtml(item.legalNote)}</div>` : ''}
         ${item.noteLabel ? `<input class="input ci-note-input" placeholder="${escHtml(item.noteLabel)}${item.notePlaceholder?' — e.g. '+escHtml(item.notePlaceholder.replace(/^e\.g\.\s*/,'')):''}" value="${escHtml(cur.note||'')}">` : ''}
       </div>
       <div class="ci-toggle">
         <button type="button" class="ci-btn yes${cur.answer==='yes'?' active':''}" onclick="setChecklistAnswer(this,'yes')">Yes</button>
         <button type="button" class="ci-btn no${cur.answer==='no'?' active':''}" onclick="setChecklistAnswer(this,'no')">No</button>
+        ${allowNA ? `<button type="button" class="ci-btn na${cur.answer==='na'?' active':''}" onclick="setChecklistAnswer(this,'na')">N/A</button>` : ''}
       </div>
     </div>`;
-  }).join('');
+  });
+  wrap.innerHTML = html;
 }
 function setChecklistAnswer(btn, val){
   const row = btn.closest('.ci-row');
@@ -658,37 +841,72 @@ function readChecklistFromForm(){
   return out;
 }
 
+function applyInspectionTypeUI(type){
+  const isBiz = type === 'business';
+  document.getElementById('fg-bizname').style.display      = isBiz ? '' : 'none';
+  document.getElementById('fg-occupancy').style.display    = isBiz ? '' : 'none';
+  document.getElementById('fg-occupantload').style.display = isBiz ? '' : 'none';
+  document.getElementById('fg-bedrooms').style.display      = isBiz ? 'none' : '';
+  document.getElementById('if-owner-label').textContent   = isBiz ? 'Owner / Manager *'   : 'Owner of Rental *';
+  document.getElementById('if-address-label').textContent = isBiz ? 'Business Address *'  : 'Address of Rental *';
+  document.getElementById('insp-modal-title').textContent = (editingInspectionId ? '✏️ Edit ' : '🏠 Log ') + (isBiz ? 'Business Inspection' : 'Rental Inspection');
+}
+function onInspectionTypeChange(){
+  const type = document.getElementById('if-type').value;
+  applyInspectionTypeUI(type);
+  // Switching type before saving starts that checklist fresh — the two
+  // checklists use different item ids, so there's nothing to carry over.
+  renderChecklistFormRows(null, type);
+}
 function openInspectionModal(id=null){
   editingInspectionId = id;
-  document.getElementById('insp-modal-title').textContent = id ? '✏️ Edit Inspection' : '🏠 Log Inspection';
   const rec = id ? inspections.find(x=>x.id===id) : null;
+  const type = rec ? (rec.inspectionType || 'rental') : 'rental';
+  const typeSelect = document.getElementById('if-type');
+  typeSelect.value = type;
+  // Type is locked once a record exists — the two checklists don't share
+  // item ids, so switching type on an existing record would silently drop
+  // its answers. Delete and re-log if the type was chosen wrong.
+  typeSelect.disabled = !!id;
+  typeSelect.title = id ? 'Inspection type can\'t be changed after logging — delete and re-log if this was set wrong.' : '';
   document.getElementById('if-owner').value      = rec ? rec.owner : '';
+  document.getElementById('if-bizname').value    = rec ? (rec.businessName||'') : '';
   document.getElementById('if-address').value    = rec ? rec.address : '';
   document.getElementById('if-phone').value      = rec ? (rec.phone||'') : '';
   document.getElementById('if-bedrooms').value   = rec ? (rec.bedrooms!==undefined?rec.bedrooms:'') : '';
+  document.getElementById('if-occupancy').value      = rec ? (rec.occupancyType||'') : '';
+  document.getElementById('if-occupantload').value   = rec ? (rec.occupantLoad!==undefined?rec.occupantLoad:'') : '';
   document.getElementById('if-date').value       = rec ? rec.inspectionDate : new Date().toISOString().slice(0,10);
   document.getElementById('if-notes').value      = rec ? (rec.notes||'') : '';
   document.getElementById('if-inspector').value  = rec ? (rec.inspectorName||'') : (window.MFD_AUTH ? window.MFD_AUTH.name : '');
   document.getElementById('if-title').value      = rec ? (rec.inspectorTitle||'') : '';
   document.getElementById('if-result').value     = rec ? (rec.result||'') : '';
   document.getElementById('if-resultdate').value = rec ? (rec.resultDate||'') : '';
-  renderChecklistFormRows(rec);
+  applyInspectionTypeUI(type);
+  renderChecklistFormRows(rec, type);
   document.getElementById('inspection-modal').classList.add('open');
 }
 function saveInspection(){
+  const type    = document.getElementById('if-type').value || 'rental';
+  const isBiz   = type === 'business';
   const owner   = document.getElementById('if-owner').value.trim();
+  const bizName = document.getElementById('if-bizname').value.trim();
   const address = document.getElementById('if-address').value.trim();
   const date    = document.getElementById('if-date').value;
   const result  = document.getElementById('if-result').value;
-  if(!owner || !address || !date || !result){
-    toast('Please fill in Owner, Address, Date, and Result','error'); return;
+  if(!owner || !address || !date || !result || (isBiz && !bizName)){
+    toast('Please fill in required fields: '+(isBiz?'Business Name, Owner/Manager, ':'Owner, ')+'Address, Date, and Result','error'); return;
   }
   const existing = editingInspectionId ? inspections.find(x=>x.id===editingInspectionId) : null;
   const obj = {
     id: editingInspectionId || uid(),
+    inspectionType: type,
     owner, address,
+    businessName:  isBiz ? bizName : '',
+    occupancyType: isBiz ? document.getElementById('if-occupancy').value.trim() : '',
+    occupantLoad:  isBiz ? document.getElementById('if-occupantload').value.trim() : '',
     phone: document.getElementById('if-phone').value.trim(),
-    bedrooms: document.getElementById('if-bedrooms').value.trim(),
+    bedrooms: isBiz ? '' : document.getElementById('if-bedrooms').value.trim(),
     inspectionDate: date,
     checklist: readChecklistFromForm(),
     notes: document.getElementById('if-notes').value.trim(),
@@ -722,13 +940,20 @@ function deleteInspection(id){
 // ══════════════════════════════════════════
 function openDetail(id){
   const rec = inspections.find(x=>x.id===id); if(!rec) return;
-  const checklistHtml = CHECKLIST_ITEMS.map(item=>{
+  const type = rec.inspectionType || 'rental';
+  const isBiz = type === 'business';
+  const items = getFlatItems(type);
+  let lastCat = null;
+  const checklistHtml = items.map(item=>{
     const cur = (rec.checklist && rec.checklist[item.id]) || {};
     const ansBadge = cur.answer==='yes' ? `<span class="badge badge-yes">Yes</span>`
                     : cur.answer==='no'  ? `<span class="badge badge-no">No</span>`
+                    : cur.answer==='na'  ? `<span class="badge badge-na">N/A</span>`
                     : `<span class="badge badge-unset">—</span>`;
-    return `<div class="ci-view-row">
-      <div class="ci-view-label">${item.num}. ${escHtml(item.label)}${cur.note ? `<div class="ci-view-note">${escHtml(item.noteLabel||'Note')}: ${escHtml(cur.note)}</div>` : ''}</div>
+    let catHeader = '';
+    if(isBiz && item.cat !== lastCat){ catHeader = `<div class="ci-view-cat-header">${escHtml(item.cat)}</div>`; lastCat = item.cat; }
+    return `${catHeader}<div class="ci-view-row">
+      <div class="ci-view-label">${item.num}. ${escHtml(item.label)}${item.kitchen ? '<span class="ci-kitchen-tag">🍳</span>' : ''}${cur.note ? `<div class="ci-view-note">${escHtml(item.noteLabel||'Note')}: ${escHtml(cur.note)}</div>` : ''}</div>
       <div class="ci-view-right">${ansBadge}</div>
     </div>`;
   }).join('');
@@ -736,13 +961,23 @@ function openDetail(id){
   const siblings = inspections.filter(x=>x.id!==rec.id && normalizeAddr(x.address)===normalizeAddr(rec.address))
     .sort((a,b)=> (b.inspectionDate||'').localeCompare(a.inspectionDate||''));
 
+  const reStatus = reinspectionStatus(rec);
+  const reHtml = !reStatus.due ? '—'
+    : reStatus.state==='overdue' ? `<span style="color:var(--fire-400);font-weight:700;">⚠ Overdue — ${fmtDate(reStatus.due)}</span>`
+    : reStatus.state==='soon'    ? `<span style="color:var(--gold-400);font-weight:700;">🔔 Due soon — ${fmtDate(reStatus.due)}</span>`
+    : `${fmtDate(reStatus.due)} <span style="font-size:11px;color:var(--navy-500);">(department 1-yr policy, not a legal mandate)</span>`;
+
   document.getElementById('detail-modal-body').innerHTML = `
     <div class="form-grid" style="margin-bottom:16px;">
-      ${dRow('Owner', escHtml(rec.owner))}
-      ${dRow('Address', `<span style="font-weight:700;color:var(--slate-100);">${escHtml(rec.address)}</span>`)}
+      <div><label class="label">Type</label><div style="margin-top:4px;">${typeBadge(type)}</div></div>
+      ${isBiz ? dRow('Business Name', escHtml(rec.businessName||'—')) : ''}
+      ${dRow(isBiz?'Owner / Manager':'Owner', escHtml(rec.owner))}
+      ${dRow(isBiz?'Business Address':'Address', `<span style="font-weight:700;color:var(--slate-100);">${escHtml(rec.address)}</span>`)}
       ${dRow('Phone', escHtml(rec.phone||'—'))}
-      ${dRow('Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—'))}
+      ${isBiz ? dRow('Occupancy Type', escHtml(rec.occupancyType||'—')) : dRow('Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—'))}
+      ${isBiz ? dRow('Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—')) : ''}
       ${dRow('Date of Inspection', fmtDate(rec.inspectionDate))}
+      ${dRow('Reinspection Due', reHtml)}
       ${dRow('Result', resultBadge(rec.result) + (rec.resultDate ? ` <span style="font-size:11px;color:var(--navy-500);">(${fmtDate(rec.resultDate)})</span>` : ''))}
       ${dRow('Inspection By', escHtml(rec.inspectorName||'—'))}
       ${dRow('Title / Badge #', escHtml(rec.inspectorTitle||'—'))}

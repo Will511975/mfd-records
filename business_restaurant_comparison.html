@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Business vs. Restaurant Inspection — Checklist Comparison</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --navy-950: #080e1e;
+  --navy-900: #0f172a;
+  --navy-800: #1e293b;
+  --navy-700: #334155;
+  --navy-600: #475569;
+  --navy-500: #64748b;
+  --fire-700: #b91c1c;
+  --fire-600: #dc2626;
+  --fire-500: #ef4444;
+  --fire-400: #f87171;
+  --gold-500: #f59e0b;
+  --gold-400: #fbbf24;
+  --green-500: #22c55e;
+  --green-400: #4ade80;
+  --slate-100: #f1f5f9;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--navy-900);color:var(--slate-100);min-height:100vh;padding:32px 24px 60px;}
+.wrap{max-width:980px;margin:0 auto;}
+
+header{display:flex;align-items:center;gap:14px;padding-bottom:20px;border-bottom:3px solid var(--fire-600);margin-bottom:24px;}
+.shield{flex-shrink:0;width:38px;height:44px;}
+.dept{font-size:11px;font-weight:700;color:var(--navy-500);text-transform:uppercase;letter-spacing:.08em;}
+.title{font-size:20px;font-weight:900;color:var(--slate-100);line-height:1.2;margin-top:2px;}
+.subtitle{font-size:12px;color:var(--fire-500);font-weight:600;margin-top:3px;}
+
+.intro{font-size:13px;color:var(--slate-400);line-height:1.6;margin-bottom:24px;max-width:720px;}
+.intro b{color:var(--slate-300);}
+
+.tbl-wrap{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:14px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.35);}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{background:var(--navy-950);padding:14px 16px;text-align:left;font-size:10.5px;font-weight:800;color:var(--navy-500);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--navy-700);}
+thead th.center{text-align:center;}
+.cat-row td{background:rgba(220,38,38,.08);padding:9px 16px;font-size:10.5px;font-weight:800;color:var(--fire-400);text-transform:uppercase;letter-spacing:.08em;border-top:1px solid var(--navy-700);border-bottom:1px solid var(--navy-700);}
+tbody tr.item-row{border-bottom:1px solid rgba(255,255,255,.05);}
+tbody tr.item-row:hover{background:rgba(255,255,255,.02);}
+tbody td{padding:11px 16px;vertical-align:top;}
+.td-item{color:var(--slate-200);line-height:1.45;}
+.td-item .sub{display:block;font-size:11px;color:var(--navy-500);margin-top:2px;}
+.check-cell{text-align:center;width:110px;}
+.dot{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:14px;font-weight:800;}
+.dot.yes{background:rgba(34,197,94,.15);color:var(--green-400);border:1px solid rgba(34,197,94,.35);}
+.dot.no{background:rgba(100,116,139,.1);color:var(--navy-600);border:1px solid rgba(100,116,139,.2);}
+
+.legend{display:flex;gap:22px;align-items:center;padding:14px 16px;border-top:1px solid var(--navy-700);background:var(--navy-950);font-size:11.5px;color:var(--navy-500);flex-wrap:wrap;}
+.legend span{display:inline-flex;align-items:center;gap:7px;}
+
+.footnote{font-size:11px;color:var(--navy-600);margin-top:18px;line-height:1.6;max-width:720px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg class="shield" viewBox="0 0 64 74" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 2 L60 14 L60 36 C60 54 32 72 32 72 C32 72 4 54 4 36 L4 14 Z"
+            fill="rgba(220,38,38,0.15)" stroke="rgba(220,38,38,0.5)" stroke-width="1.5"/>
+      <path d="M32 56 C24 52 20 44 24 36 C26 40 30 38 29 32 C33 36 35 30 32 24 C38 28 42 36 40 44 C44 40 44 34 42 30 C48 36 50 46 44 54 C42 58 36 60 32 56Z"
+            fill="rgba(248,113,113,0.85)"/>
+    </svg>
+    <div>
+      <div class="dept">Mantua Township · Fire Department</div>
+      <div class="title">Business vs. Restaurant Inspection</div>
+      <div class="subtitle">Checklist comparison — draft, for planning only</div>
+    </div>
+  </header>
+
+  <div class="intro">
+    A restaurant is a business plus a commercial kitchen, so the two checklists share almost everything —
+    a restaurant just adds the cooking-line items at the bottom. <b>Nothing here is an official Town of
+    Mantua form yet</b> — it's a general fire-inspection checklist to compare side by side while deciding what
+    to build. If an actual paper form exists (like the Rental one), that should replace this.
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Checklist Item</th>
+          <th class="center">Business</th>
+          <th class="center">Restaurant</th>
+        </tr>
+      </thead>
+      <tbody id="tbl-body"></tbody>
+    </table>
+    <div class="legend">
+      <span><span class="dot yes" style="width:18px;height:18px;font-size:11px;">✓</span> Included on that form</span>
+      <span><span class="dot no" style="width:18px;height:18px;font-size:11px;">—</span> Not applicable</span>
+    </div>
+  </div>
+
+  <div class="footnote">
+    Sources: general IFC/NFPA-style commercial occupancy and commercial-kitchen inspection practice — not
+    pulled from a specific Town of Mantua document. Verify against local ordinance before using as an
+    official form.
+  </div>
+</div>
+
+<script>
+const SECTIONS = [
+  { cat: 'Business / Property Info', items: [
+    { label: 'Business name, address, owner/manager, phone', both: true },
+    { label: 'Occupancy type & occupant load', both: true },
+    { label: 'Date of inspection / inspector name & title', both: true },
+  ]},
+  { cat: 'Egress', items: [
+    { label: 'Exits marked and illuminated', sub: 'battery backup working', both: true },
+    { label: 'Exit doors unlocked & functional during business hours', both: true },
+    { label: 'Aisles and corridors clear of obstruction', both: true },
+    { label: 'Doors swing in direction of egress / panic hardware', sub: 'where required', both: true },
+    { label: 'Occupancy load posted', sub: 'assembly-type spaces', both: true },
+  ]},
+  { cat: 'Fire Extinguishers', items: [
+    { label: 'ABC extinguisher(s) present, correct rating for the space', both: true },
+    { label: 'Inspection tag current (within the last year)', both: true },
+    { label: 'Mounted, visible, and not blocked', both: true },
+    { label: 'Class K extinguisher near the cooking line', sub: 'for grease fires', businessOnly: false, restaurantOnly: true },
+  ]},
+  { cat: 'Fire Alarm & Sprinkler', items: [
+    { label: 'Fire alarm system functioning and tested', both: true },
+    { label: 'Sprinkler inspection tag current', both: true },
+    { label: '18" clearance below every sprinkler head', both: true },
+  ]},
+  { cat: 'Electrical', items: [
+    { label: 'No extension cords used as permanent wiring', both: true },
+    { label: 'Panels accessible and labeled', both: true },
+    { label: 'No exposed or damaged wiring', both: true },
+  ]},
+  { cat: 'Housekeeping & Storage', items: [
+    { label: 'Storage not blocking exits, panels, or sprinklers', both: true },
+    { label: 'General housekeeping — no excessive combustible clutter', both: true },
+    { label: 'Address visible from the street', both: true },
+    { label: 'Emergency contact info posted', both: true },
+  ]},
+  { cat: 'Commercial Kitchen (Restaurant Only)', items: [
+    { label: 'Cooking hood & exhaust system', sub: 'cleaned on schedule, filters in place', restaurantOnly: true },
+    { label: 'Wet-chemical suppression system over cooking line', sub: 'inspection tag current, nozzles unobstructed', restaurantOnly: true },
+    { label: 'Gas shut-off valve accessible, labeled, tied to suppression system', restaurantOnly: true },
+    { label: 'Clearance between cooking equipment and combustibles', restaurantOnly: true },
+    { label: 'LP/propane tanks stored properly', sub: 'outside if applicable', restaurantOnly: true },
+  ]},
+];
+
+const tbody = document.getElementById('tbl-body');
+let html = '';
+SECTIONS.forEach(sec => {
+  html += `<tr class="cat-row"><td colspan="3">${sec.cat}</td></tr>`;
+  sec.items.forEach(item => {
+    const biz = item.both || item.businessOnly;
+    const rest = item.both || item.restaurantOnly;
+    html += `<tr class="item-row">
+      <td class="td-item">${item.label}${item.sub ? `<span class="sub">${item.sub}</span>` : ''}</td>
+      <td class="check-cell">${biz ? '<span class="dot yes">✓</span>' : '<span class="dot no">—</span>'}</td>
+      <td class="check-cell">${rest ? '<span class="dot yes">✓</span>' : '<span class="dot no">—</span>'}</td>
+    </tr>`;
+  });
+});
+tbody.innerHTML = html;
+</script>
+</body>
+</html>
