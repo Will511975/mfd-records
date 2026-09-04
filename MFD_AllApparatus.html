@@ -2696,15 +2696,17 @@ function viDraftHasProgress(){
   if(viData.draft.inspector.trim() || viData.draft.date.trim()) return true;
   return Object.values(viData.draft.items).some(it=> it.status !== null || it.notes.trim());
 }
+// Starting a new inspection is everyday work (same as Quick Shift Check and
+// Full Inspection, neither of which is Admin-gated) — it's not a structural
+// change, so it doesn't go behind requireUnlock. The confirm() below is the
+// actual safeguard against accidentally losing an unsaved draft.
 document.getElementById('btnNewInspection').addEventListener('click', ()=>{
-  requireUnlock(()=>{
-    if(viDraftHasProgress()){
-      if(!confirm("Start a new inspection? This clears the inspector name, date, and every item's status/notes on this form. If you haven't saved this one to history yet, that data will be lost.")) return;
-    }
-    viData.draft = viFreshDraft(viData.sections);
-    saveViData();
-    renderViAll();
-  });
+  if(viDraftHasProgress()){
+    if(!confirm("Start a new inspection? This clears the inspector name, date, and every item's status/notes on this form. If you haven't saved this one to history yet, that data will be lost.")) return;
+  }
+  viData.draft = viFreshDraft(viData.sections);
+  saveViData();
+  renderViAll();
 });
 
 /* ---------- History modal ---------- */
