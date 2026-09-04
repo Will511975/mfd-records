@@ -231,9 +231,13 @@ select.input option{background:var(--navy-800);}
   #print-report{display:block !important;background:#fff;color:#000;}
 }
 
-/* ── Print choice menu (Report vs. Certificate) ── */
+/* ── Print choice menu (Report vs. Certificate) ──
+   position:fixed (with top/left set by JS in togglePrintMenu, not CSS) so
+   the menu isn't clipped by ancestors with overflow:hidden — it's opened
+   from both the Inspections toolbar (inside .tbl-wrap) and the detail
+   modal footer (inside .modal), which both hide overflow. */
 .print-menu-wrap{position:relative;display:inline-block;}
-.print-menu{display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--navy-800);border:1px solid var(--navy-700);border-radius:8px;box-shadow:0 14px 34px rgba(0,0,0,.5);min-width:200px;z-index:60;overflow:hidden;}
+.print-menu{display:none;position:fixed;background:var(--navy-800);border:1px solid var(--navy-700);border-radius:8px;box-shadow:0 14px 34px rgba(0,0,0,.5);min-width:200px;z-index:2000;overflow:hidden;}
 .print-menu.open{display:block;}
 .print-menu-item{padding:10px 14px;font-size:12.5px;font-weight:600;color:var(--slate-300);cursor:pointer;display:flex;align-items:center;gap:9px;transition:background .12s;}
 .print-menu-item:hover{background:var(--navy-700);color:var(--slate-100);}
@@ -1057,12 +1061,35 @@ function togglePrintMenu(menuId, evt){
   const menu = document.getElementById(menuId);
   const wasOpen = menu.classList.contains('open');
   closeAllPrintMenus();
-  if(!wasOpen) menu.classList.add('open');
+  if(wasOpen) return;
+  const btn = evt && evt.currentTarget;
+  menu.classList.add('open');
+  if(btn){
+    // Position via JS (not CSS) since the menu is position:fixed — it's
+    // opened from inside containers with overflow:hidden (.tbl-wrap,
+    // .modal), so anchoring it with plain CSS top/right would get clipped.
+    const btnRect = btn.getBoundingClientRect();
+    const menuRect = menu.getBoundingClientRect();
+    let left = btnRect.right - menuRect.width;
+    left = Math.max(8, Math.min(left, window.innerWidth - menuRect.width - 8));
+    let top = btnRect.bottom + 6;
+    if(top + menuRect.height > window.innerHeight - 8) top = btnRect.top - menuRect.height - 6;
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+  }
 }
 function closeAllPrintMenus(){
   document.querySelectorAll('.print-menu.open').forEach(m=>m.classList.remove('open'));
 }
 document.addEventListener('click', closeAllPrintMenus);
+// Non-capturing: only closes on real page/window scroll. A capturing
+// listener here also catches scroll events from inside the detail modal's
+// own scrollable body (.modal-overlay{overflow-y:auto}) — and clicking the
+// footer's Print button when it's below the fold makes the browser
+// scroll-into-view it as part of that same click, which was closing the
+// menu the instant it opened.
+window.addEventListener('scroll', closeAllPrintMenus);
+window.addEventListener('resize', closeAllPrintMenus);
 
 // The bulk table report and the certificate both read best wide
 // (landscape); a single inspection's formal report reads best as a
