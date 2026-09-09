@@ -378,6 +378,10 @@ select.input option{background:var(--navy-800);}
           <div class="print-menu" id="bulk-print-menu">
             <div class="print-menu-item" onclick="closeAllPrintMenus(); printAllRecords();">📄 Print Report</div>
             <div class="print-menu-item" onclick="closeAllPrintMenus(); printAllCertificates();">🎖️ Print Certificates</div>
+            <div style="padding:8px 14px 4px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--slate-500);border-top:1px solid rgba(255,255,255,.06);">Blank Forms (for field use)</div>
+            <div class="print-menu-item" onclick="closeAllPrintMenus(); printBlankForm('rental');">🏠 Blank Rental Form</div>
+            <div class="print-menu-item" onclick="closeAllPrintMenus(); printBlankForm('business');">🏢 Blank Business Form</div>
+            <div class="print-menu-item" onclick="closeAllPrintMenus(); printBlankForm('preschool');">🧸 Blank Preschool/Day Care Form</div>
           </div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openInspectionModal()">➕ Log Inspection</button>
@@ -419,10 +423,11 @@ select.input option{background:var(--navy-800);}
           <select class="input" id="if-type" onchange="onInspectionTypeChange()">
             <option value="rental">🏠 Rental</option>
             <option value="business">🏢 Business</option>
+            <option value="preschool">🧸 Preschool / Day Care</option>
           </select>
         </div>
         <div class="form-group span2" id="fg-bizname" style="display:none;">
-          <label class="label">Business Name *</label>
+          <label class="label" id="if-bizname-label">Business Name *</label>
           <input class="input" id="if-bizname" placeholder="Business name">
         </div>
         <div class="form-group span2">
@@ -441,8 +446,16 @@ select.input option{background:var(--navy-800);}
           <label class="label">Number of Bedrooms</label>
           <input class="input" type="number" min="0" id="if-bedrooms" placeholder="0">
         </div>
+        <div class="form-group" id="fg-maxoccupancy">
+          <label class="label" title="Utah's adopted property maintenance code sets sleeping-room occupancy by floor area: 70 sq. ft. for 1 person, plus 50 sq. ft. for each additional occupant — the same standard behind item 1's 100 sq. ft. minimum for 2 occupants. Record the maximum the space supports.">Max Occupancy (per Utah law)</label>
+          <input class="input" type="number" min="0" id="if-maxoccupancy" placeholder="0">
+        </div>
+        <div class="form-group" id="fg-parking">
+          <label class="label">Number of Car Parking Spaces</label>
+          <input class="input" type="number" min="0" id="if-parking" placeholder="0">
+        </div>
         <div class="form-group" id="fg-occupancy" style="display:none;">
-          <label class="label">Occupancy Type</label>
+          <label class="label" id="if-occupancy-label">Occupancy Type</label>
           <input class="input" id="if-occupancy" placeholder="e.g. Retail, Office, Restaurant">
         </div>
         <div class="form-group" id="fg-occupantload" style="display:none;">
@@ -453,6 +466,9 @@ select.input option{background:var(--navy-800);}
           <label class="label">Date of Inspection *</label>
           <input class="input" type="date" id="if-date">
         </div>
+      </div>
+      <div style="margin-top:-10px;margin-bottom:16px;font-size:11px;color:var(--navy-500);" id="maxocc-hint">
+        Utah's adopted property maintenance code sets sleeping-room occupancy by floor area — 70 sq. ft. for 1 person, plus 50 sq. ft. for each additional occupant (the same standard behind item 1's 100 sq. ft. minimum for 2 occupants below). Record the maximum the space supports.
       </div>
 
       <div style="margin-top:20px;">
@@ -543,12 +559,11 @@ const CHECKLIST_ITEMS = [
   { id:'doorsWindows',     num:5,  label:"All doors and windows that lead outside are able to be opened." },
   { id:'floorPlan',        num:6,  label:"Floor plan of the home is posted, showing all escape routes and exits." },
   { id:'emergencyContact', num:7,  label:"Emergency contact information for the rental is posted." },
-  { id:'knowAddress',      num:8,  label:"Occupants know the address of the rental." },
-  { id:'pathwaysClear',    num:9,  label:"All pathways are free and clear of tripping hazards." },
-  { id:'outletsFree',      num:10, label:"Electrical outlets are free of multiple cords and adaptors." },
-  { id:'stovetopClear',    num:11, label:"Stovetop is clear of nearby items that can catch fire (curtains, towels, etc.)." },
-  { id:'addressVisible',   num:12, label:'Address is visible from the street, with numbers at least 4" in height.' },
-  { id:'noCombustibles',   num:13, label:"No combustibles are stored near heating equipment.", noteLabel:'Type of heater', notePlaceholder:'e.g. Gas furnace' },
+  { id:'pathwaysClear',    num:8, label:"All pathways are free and clear of tripping hazards." },
+  { id:'outletsFree',      num:9, label:"Electrical outlets are free of multiple cords and adaptors." },
+  { id:'stovetopClear',    num:10, label:"Stovetop is clear of nearby items that can catch fire (curtains, towels, etc.)." },
+  { id:'addressVisible',   num:11, label:'Address is visible from the street, with numbers at least 4" in height.' },
+  { id:'noCombustibles',   num:12, label:"No combustibles are stored near heating equipment.", noteLabel:'Type of heater', notePlaceholder:'e.g. Gas furnace' },
 ];
 
 // Business/Commercial checklist — general IFC/NFPA-style commercial occupancy
@@ -599,16 +614,86 @@ const BUSINESS_CHECKLIST = [
     { id:'biz_lpStorage',   label:'LP/propane tanks stored properly (outside, if applicable).', kitchen:true },
   ]},
 ];
-// Flattened, numbered view of either checklist — used by both the log/edit
-// form and the read-only detail view so the two never drift apart.
+
+// Preschool / Day Care checklist. Utah's own state-level child care licensing
+// checklist (childcarelicensing.utah.gov, rule R381-100) largely defers the
+// fire-specific items to "your local fire authority" — it only mandates the
+// program side: a written emergency/evacuation plan, quarterly fire drills
+// with records kept, and posted emergency numbers (R381-100-14). The
+// fire-safety items below fill that local-authority role, drawn from actual
+// fire-department daycare inspection checklists (Lenexa KS and the Louisiana
+// State Fire Marshal's Group E/I-4 daycare checklist) and scoped to what a
+// routine walkthrough actually checks, not full plan-review/construction
+// detail (fire-rated corridor separations, interior finish class, etc. are
+// plan-review items, not something reinspected every visit). Covers both a
+// small home-based day care and a standalone center. As with Business, N/A
+// is available per item rather than auto-marked, since the inspector is
+// better positioned than this form to know what's on site.
+const PRESCHOOL_CHECKLIST = [
+  { cat:'Egress & Exits', items:[
+    { id:'psc_exitMarked',   label:'Exits marked and illuminated (battery backup working).' },
+    { id:'psc_exitOpenable', label:'Exit doors and gates open from the inside without a key, tool, or special knowledge, at all times children are present.' },
+    { id:'psc_aislesClear',  label:'Aisles, hallways, and escape paths clear of obstruction.' },
+    { id:'psc_secondExit',   label:'A second way out exists from every space children are cared for in (a walk-out door, or an escape window at least 5.7 sq. ft. with a sill no higher than 44").' },
+    { id:'psc_bathroomLock', label:"Bathroom and closet doors a child could be behind can be opened by staff from the outside in an emergency." },
+  ]},
+  { cat:'Fire Extinguishers', items:[
+    { id:'psc_extPresent', label:'Fire extinguisher(s) present, minimum 2A:10B:C rated.' },
+    { id:'psc_extTag',     label:'Inspection tag current (within the last year).' },
+    { id:'psc_extMounted', label:'Mounted, visible, and not blocked.' },
+  ]},
+  { cat:'Smoke & CO Alarms', items:[
+    { id:'psc_smokeAlarms', label:'Working smoke alarms installed on every level and in every room used for napping or sleeping.' },
+    { id:'psc_coAlarms',    label:'Working carbon monoxide alarms installed on every level.' },
+    { id:'psc_fireAlarmSys',label:'Fire alarm system, where the facility has one, functioning and tested.' },
+  ]},
+  { cat:'Electrical', items:[
+    { id:'psc_outletCovers', label:'Electrical outlets in child-occupied areas have safety covers or are tamper-resistant.' },
+    { id:'psc_noExtCords',   label:'No extension cords used as permanent wiring.' },
+    { id:'psc_panelsAccess', label:'Breaker panel accessible and labeled; no open or missing knockouts.' },
+  ]},
+  { cat:'Heating & Hazard Protection', items:[
+    { id:'psc_heatBarrier',   label:'Space heaters, fireplaces, and other hot surfaces are barriered or out of reach of children under 6.' },
+    { id:'psc_heatClearance', label:'Combustibles kept at least 36" clear of heating equipment.' },
+    { id:'psc_chemStorage',   label:'Cleaning chemicals and other hazardous materials stored away from children and ignition sources.' },
+  ]},
+  { cat:'Emergency Planning', items:[
+    { id:'psc_evacPlan',   label:'Written evacuation/emergency plan posted, showing two ways out of each room.',
+      legalNote:"Utah child care licensing rule R381-100-14 requires this plan and a fire evacuation drill at least quarterly, with a written record of each drill (total evacuation time and any problems encountered) — this inspection confirms the fire-safety condition of the space and its exits, not the licensing paperwork itself, which DCFS/Office of Licensing reviews separately." },
+    { id:'psc_drillLog',        label:'Fire drill log up to date (quarterly drills conducted and documented, per R381-100-14).' },
+    { id:'psc_emergencyNumbers',label:'Emergency numbers (fire, police, poison control) posted at each phone.' },
+    { id:'psc_flashlight',      label:'Flashlight or emergency light accessible and working.' },
+  ]},
+  { cat:'Housekeeping & General', items:[
+    { id:'psc_addressVisible', label:'Address is visible from the street, with numbers at least 4" in height.' },
+    { id:'psc_housekeeping',   label:'General housekeeping — no excessive combustible clutter.' },
+  ]},
+];
+
+// Flattened, numbered view of whichever checklist applies — used by both the
+// log/edit form and the read-only detail view so the two never drift apart.
 function getFlatItems(type){
-  if(type === 'business'){
+  const sections = type === 'business' ? BUSINESS_CHECKLIST : type === 'preschool' ? PRESCHOOL_CHECKLIST : null;
+  if(sections){
     const out = []; let n = 0;
-    BUSINESS_CHECKLIST.forEach(sec=>{ sec.items.forEach(it=>{ n++; out.push(Object.assign({num:n, cat:sec.cat}, it)); }); });
+    sections.forEach(sec=>{ sec.items.forEach(it=>{ n++; out.push(Object.assign({num:n, cat:sec.cat}, it)); }); });
     return out;
   }
   return CHECKLIST_ITEMS;
 }
+
+// Per-type display info. Business and Preschool/Day Care share the same
+// "business-style" property fields (a name, an occupancy/license type, an
+// occupant load, no bedrooms) and the same categorized, N/A-capable
+// checklist shape — only Rental is laid out differently (bedrooms instead
+// of a name/occupancy, a flat checklist with no N/A). isBizLike() below is
+// that field-layout switch; TYPE_INFO is the copy that differs per type.
+function isBizLike(type){ return type === 'business' || type === 'preschool'; }
+const TYPE_INFO = {
+  rental:    { icon:'🏠', noun:'Rental',              badgeColor:'slate', ownerLabel:'Owner of Rental',   addressLabel:'Address of Rental',  nameLabel:'',              occLabel:'Occupancy Type',           occPlaceholder:'',                                        reportNoun:'Residential Rental',   certNoun:'the rental property' },
+  business:  { icon:'🏢', noun:'Business',            badgeColor:'blue',  ownerLabel:'Owner / Manager',   addressLabel:'Business Address',   nameLabel:'Business Name',ownerReq:'Owner/Manager, ', occLabel:'Occupancy Type',           occPlaceholder:'e.g. Retail, Office, Restaurant',         reportNoun:'Business',              certNoun:'the business named below' },
+  preschool: { icon:'🧸', noun:'Preschool / Day Care',badgeColor:'gold',  ownerLabel:'Director / Owner',  addressLabel:'Facility Address',   nameLabel:'Facility Name',ownerReq:'Director/Owner, ', occLabel:'License Type',             occPlaceholder:'e.g. Family Day Care, Day Care Center, Preschool', reportNoun:'Preschool / Day Care', certNoun:'the child care facility named below' },
+};
 
 const STORAGE_KEY = 'mfd_rental_inspections_v1';
 let inspections = [];
@@ -708,7 +793,7 @@ function renderDashboard(){
   document.getElementById('recent-tbody').innerHTML = recent.length ? recent.map(i=>`
     <tr onclick="openDetail('${i.id}')">
       <td style="white-space:nowrap;font-size:12px;color:var(--slate-400);">${fmtDate(i.inspectionDate)}</td>
-      <td class="td-addr">${i.inspectionType==='business'?'🏢 ':'🏠 '}${escHtml(i.inspectionType==='business' && i.businessName ? i.businessName : i.address)}</td>
+      <td class="td-addr">${(TYPE_INFO[i.inspectionType]||TYPE_INFO.rental).icon} ${escHtml(isBizLike(i.inspectionType) && i.businessName ? i.businessName : i.address)}</td>
       <td style="color:var(--slate-300);">${escHtml(i.owner)}</td>
       <td>${resultBadge(i.result)}</td>
       <td style="color:var(--slate-400);">${escHtml(i.inspectorName||'—')}</td>
@@ -822,19 +907,23 @@ function renderInspections(){
     <tr onclick="openDetail('${i.id}')">
       <td style="white-space:nowrap;font-size:12px;color:var(--slate-400);">${fmtDate(i.inspectionDate)}</td>
       <td>${typeBadge(i.inspectionType)}</td>
-      <td class="td-addr">${escHtml(i.inspectionType==='business' && i.businessName ? i.businessName : i.address)}${i.inspectionType==='business' && i.businessName ? `<div class="td-sub">${escHtml(i.address)}</div>` : (i.phone ? `<div class="td-sub">${escHtml(i.phone)}</div>` : '')}</td>
+      <td class="td-addr">${escHtml(isBizLike(i.inspectionType) && i.businessName ? i.businessName : i.address)}${isBizLike(i.inspectionType) && i.businessName ? `<div class="td-sub">${escHtml(i.address)}</div>` : (i.phone ? `<div class="td-sub">${escHtml(i.phone)}</div>` : '')}</td>
       <td style="color:var(--slate-300);">${escHtml(i.owner)}</td>
-      <td style="color:var(--slate-400);">${i.inspectionType==='business' ? (i.occupantLoad!==undefined && i.occupantLoad!=='' ? escHtml(i.occupantLoad)+' occ.' : '—') : (i.bedrooms!==undefined && i.bedrooms!=='' ? escHtml(i.bedrooms) : '—')}</td>
+      <td style="color:var(--slate-400);">${isBizLike(i.inspectionType) ? (i.occupantLoad!==undefined && i.occupantLoad!=='' ? escHtml(i.occupantLoad)+' occ.' : '—') : (i.bedrooms!==undefined && i.bedrooms!=='' ? escHtml(i.bedrooms) : '—')}</td>
       <td>${resultBadge(i.result)}</td>
       <td style="color:var(--slate-400);">${escHtml(i.inspectorName||'—')}</td>
       <td>${reinspectionBadge(i, latestMap)}</td>
     </tr>`).join('')
     : `<tr><td colspan="8"><div class="empty-state"><div class="es-icon">🔎</div><div class="es-title">No matching inspections</div><div class="es-sub">Try a different search or filter</div></div></td></tr>`;
 }
+const TYPE_BADGE_STYLE = {
+  blue:  'background:rgba(59,130,246,.15);color:var(--blue-400);border:1px solid rgba(59,130,246,.3);',
+  gold:  'background:rgba(245,158,11,.15);color:var(--gold-400);border:1px solid rgba(245,158,11,.3);',
+  slate: 'background:rgba(100,116,139,.12);color:var(--slate-300);border:1px solid rgba(100,116,139,.3);',
+};
 function typeBadge(type){
-  return type==='business'
-    ? `<span class="badge" style="background:rgba(59,130,246,.15);color:var(--blue-400);border:1px solid rgba(59,130,246,.3);">🏢 Business</span>`
-    : `<span class="badge" style="background:rgba(100,116,139,.12);color:var(--slate-300);border:1px solid rgba(100,116,139,.3);">🏠 Rental</span>`;
+  const info = TYPE_INFO[type] || TYPE_INFO.rental;
+  return `<span class="badge" style="${TYPE_BADGE_STYLE[info.badgeColor]}">${info.icon} ${info.noun}</span>`;
 }
 
 function resultBadge(r){
@@ -851,10 +940,10 @@ function renderChecklistFormRows(existing, type){
   const wrap = document.getElementById('checklist-form-rows');
   const checklist = (existing && existing.checklist) || {};
   const items = getFlatItems(type);
-  const allowNA = type === 'business';
+  const allowNA = isBizLike(type);
   const naNote = document.getElementById('checklist-na-note');
   naNote.textContent = allowNA
-    ? '⚖️ N/A is an inspector judgment call for items that don\'t apply to this business (e.g. no commercial kitchen) — no Utah or Box Elder County exemption is auto-applied.'
+    ? '⚖️ N/A is an inspector judgment call for items that don\'t apply here (e.g. no commercial kitchen, no fire alarm system on site) — no Utah or Box Elder County exemption is auto-applied.'
     : '';
   let html = '';
   let lastCat = null;
@@ -898,14 +987,21 @@ function readChecklistFromForm(){
 }
 
 function applyInspectionTypeUI(type){
-  const isBiz = type === 'business';
+  const isBiz = isBizLike(type);
+  const info = TYPE_INFO[type] || TYPE_INFO.rental;
   document.getElementById('fg-bizname').style.display      = isBiz ? '' : 'none';
   document.getElementById('fg-occupancy').style.display    = isBiz ? '' : 'none';
   document.getElementById('fg-occupantload').style.display = isBiz ? '' : 'none';
-  document.getElementById('fg-bedrooms').style.display      = isBiz ? 'none' : '';
-  document.getElementById('if-owner-label').textContent   = isBiz ? 'Owner / Manager *'   : 'Owner of Rental *';
-  document.getElementById('if-address-label').textContent = isBiz ? 'Business Address *'  : 'Address of Rental *';
-  document.getElementById('insp-modal-title').textContent = (editingInspectionId ? '✏️ Edit ' : '🏠 Log ') + (isBiz ? 'Business Inspection' : 'Rental Inspection');
+  document.getElementById('fg-bedrooms').style.display       = type === 'rental' ? '' : 'none';
+  document.getElementById('fg-maxoccupancy').style.display   = type === 'rental' ? '' : 'none';
+  document.getElementById('fg-parking').style.display        = type === 'rental' ? '' : 'none';
+  document.getElementById('maxocc-hint').style.display       = type === 'rental' ? '' : 'none';
+  document.getElementById('if-bizname-label').textContent = info.nameLabel + ' *';
+  document.getElementById('if-owner-label').textContent   = info.ownerLabel + ' *';
+  document.getElementById('if-address-label').textContent = info.addressLabel + ' *';
+  document.getElementById('if-occupancy-label').textContent = info.occLabel;
+  document.getElementById('if-occupancy').placeholder       = info.occPlaceholder;
+  document.getElementById('insp-modal-title').textContent = (editingInspectionId ? '✏️ Edit ' : '🏠 Log ') + info.noun + ' Inspection';
 }
 function onInspectionTypeChange(){
   const type = document.getElementById('if-type').value;
@@ -930,6 +1026,8 @@ function openInspectionModal(id=null){
   document.getElementById('if-address').value    = rec ? rec.address : '';
   document.getElementById('if-phone').value      = rec ? formatPhone(rec.phone||'') : '';
   document.getElementById('if-bedrooms').value   = rec ? (rec.bedrooms!==undefined?rec.bedrooms:'') : '';
+  document.getElementById('if-maxoccupancy').value = rec ? (rec.maxOccupancy!==undefined?rec.maxOccupancy:'') : '';
+  document.getElementById('if-parking').value       = rec ? (rec.parkingSpaces!==undefined?rec.parkingSpaces:'') : '';
   document.getElementById('if-occupancy').value      = rec ? (rec.occupancyType||'') : '';
   document.getElementById('if-occupantload').value   = rec ? (rec.occupantLoad!==undefined?rec.occupantLoad:'') : '';
   document.getElementById('if-date').value       = rec ? rec.inspectionDate : new Date().toISOString().slice(0,10);
@@ -944,14 +1042,15 @@ function openInspectionModal(id=null){
 }
 function saveInspection(){
   const type    = document.getElementById('if-type').value || 'rental';
-  const isBiz   = type === 'business';
+  const isBiz   = isBizLike(type);
+  const info    = TYPE_INFO[type] || TYPE_INFO.rental;
   const owner   = document.getElementById('if-owner').value.trim();
   const bizName = document.getElementById('if-bizname').value.trim();
   const address = document.getElementById('if-address').value.trim();
   const date    = document.getElementById('if-date').value;
   const result  = document.getElementById('if-result').value;
   if(!owner || !address || !date || !result || (isBiz && !bizName)){
-    toast('Please fill in required fields: '+(isBiz?'Business Name, Owner/Manager, ':'Owner, ')+'Address, Date, and Result','error'); return;
+    toast('Please fill in required fields: '+(isBiz?info.nameLabel+', '+info.ownerReq:'Owner, ')+'Address, Date, and Result','error'); return;
   }
   const existing = editingInspectionId ? inspections.find(x=>x.id===editingInspectionId) : null;
   const obj = {
@@ -962,7 +1061,9 @@ function saveInspection(){
     occupancyType: isBiz ? document.getElementById('if-occupancy').value.trim() : '',
     occupantLoad:  isBiz ? document.getElementById('if-occupantload').value.trim() : '',
     phone: document.getElementById('if-phone').value.trim(),
-    bedrooms: isBiz ? '' : document.getElementById('if-bedrooms').value.trim(),
+    bedrooms: type === 'rental' ? document.getElementById('if-bedrooms').value.trim() : '',
+    maxOccupancy: type === 'rental' ? document.getElementById('if-maxoccupancy').value.trim() : '',
+    parkingSpaces: type === 'rental' ? document.getElementById('if-parking').value.trim() : '',
     inspectionDate: date,
     checklist: readChecklistFromForm(),
     notes: document.getElementById('if-notes').value.trim(),
@@ -997,7 +1098,8 @@ function deleteInspection(id){
 function openDetail(id){
   const rec = inspections.find(x=>x.id===id); if(!rec) return;
   const type = rec.inspectionType || 'rental';
-  const isBiz = type === 'business';
+  const isBiz = isBizLike(type);
+  const info = TYPE_INFO[type] || TYPE_INFO.rental;
   const items = getFlatItems(type);
   let lastCat = null;
   const checklistHtml = items.map(item=>{
@@ -1026,11 +1128,14 @@ function openDetail(id){
   document.getElementById('detail-modal-body').innerHTML = `
     <div class="form-grid" style="margin-bottom:16px;">
       <div><label class="label">Type</label><div style="margin-top:4px;">${typeBadge(type)}</div></div>
-      ${isBiz ? dRow('Business Name', escHtml(rec.businessName||'—')) : ''}
-      ${dRow(isBiz?'Owner / Manager':'Owner', escHtml(rec.owner))}
-      ${dRow(isBiz?'Business Address':'Address', `<span style="font-weight:700;color:var(--slate-100);">${escHtml(rec.address)}</span>`)}
+      ${isBiz ? dRow(info.nameLabel, escHtml(rec.businessName||'—')) : ''}
+      ${dRow(isBiz?info.ownerLabel:'Owner', escHtml(rec.owner))}
+      ${dRow(isBiz?info.addressLabel:'Address', `<span style="font-weight:700;color:var(--slate-100);">${escHtml(rec.address)}</span>`)}
       ${dRow('Phone', escHtml(rec.phone||'—'))}
-      ${isBiz ? dRow('Occupancy Type', escHtml(rec.occupancyType||'—')) : dRow('Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—'))}
+      ${!isBiz ? dRow('Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—')) : ''}
+      ${!isBiz ? dRow('Max Occupancy (per Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—')) : ''}
+      ${!isBiz ? dRow('Car Parking Spaces', escHtml(rec.parkingSpaces!==undefined && rec.parkingSpaces!=='' ? rec.parkingSpaces : '—')) : ''}
+      ${isBiz ? dRow(info.occLabel, escHtml(rec.occupancyType||'—')) : ''}
       ${isBiz ? dRow('Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—')) : ''}
       ${dRow('Date of Inspection', fmtDate(rec.inspectionDate))}
       ${dRow('Reinspection Due', reHtml)}
@@ -1148,12 +1253,12 @@ function printAllRecords(){
       : st.state==='overdue' ? 'OVERDUE — '+fmtDate(st.due)
       : st.state==='soon' ? 'Due soon — '+fmtDate(st.due)
       : fmtDate(st.due);
-    const propLabel = r.inspectionType==='business' && r.businessName
+    const propLabel = isBizLike(r.inspectionType) && r.businessName
       ? `${escHtml(r.businessName)}<br><span style="color:#666;">${escHtml(r.address)}</span>`
       : escHtml(r.address);
     return `<tr>
       <td ${PRINT_TD}>${fmtDate(r.inspectionDate)}</td>
-      <td ${PRINT_TD}>${r.inspectionType==='business'?'Business':'Rental'}</td>
+      <td ${PRINT_TD}>${(TYPE_INFO[r.inspectionType]||TYPE_INFO.rental).noun}</td>
       <td ${PRINT_TD}>${propLabel}</td>
       <td ${PRINT_TD}>${escHtml(r.owner)}</td>
       <td ${PRINT_TD}>${r.result==='pass'?'Pass':r.result==='fail'?'Not Passed':'—'}</td>
@@ -1213,7 +1318,8 @@ function formalInfoRow(label1, val1, label2, val2){
 function printRecord(id){
   const rec = inspections.find(x=>x.id===id); if(!rec) return;
   const type = rec.inspectionType || 'rental';
-  const isBiz = type === 'business';
+  const isBiz = isBizLike(type);
+  const info = TYPE_INFO[type] || TYPE_INFO.rental;
   const items = getFlatItems(type);
   const checklist = rec.checklist || {};
   const st = reinspectionStatus(rec);
@@ -1236,17 +1342,18 @@ function printRecord(id){
         <div style="text-align:right;font-size:10px;color:#666;">Report No. ${certNumber(rec)}<br>Printed ${new Date().toLocaleString()}</div>
       </div>
       <div style="text-align:center;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:16px;">
-        ${isBiz ? 'Business' : 'Residential Rental'} Fire Safety Inspection Report
+        ${info.reportNoun} Fire Safety Inspection Report
       </div>
 
       <div style="border:1px solid #333;margin-bottom:16px;">
         <div style="background:#eee;padding:5px 8px;font-weight:800;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #333;">Property Information</div>
         <table style="width:100%;border-collapse:collapse;">
           ${isBiz
-            ? formalInfoRow('Business Name', escHtml(rec.businessName||'—'), 'Owner / Manager', escHtml(rec.owner))
+            ? formalInfoRow(info.nameLabel, escHtml(rec.businessName||'—'), info.ownerLabel, escHtml(rec.owner))
             : formalInfoRow('Owner', escHtml(rec.owner), 'Phone', escHtml(rec.phone||'—'))}
           ${isBiz ? formalInfoRow('Address', escHtml(rec.address), 'Phone', escHtml(rec.phone||'—')) : formalInfoRow('Address', escHtml(rec.address), 'Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—'))}
-          ${isBiz ? formalInfoRow('Occupancy Type', escHtml(rec.occupancyType||'—'), 'Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—')) : ''}
+          ${!isBiz ? formalInfoRow('Max Occupancy (Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—'), 'Car Parking Spaces', escHtml(rec.parkingSpaces!==undefined && rec.parkingSpaces!=='' ? rec.parkingSpaces : '—')) : ''}
+          ${isBiz ? formalInfoRow(info.occLabel, escHtml(rec.occupancyType||'—'), 'Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—')) : ''}
           ${formalInfoRow('Date of Inspection', fmtDate(rec.inspectionDate), 'Inspected By', escHtml(rec.inspectorName||'—')+(rec.inspectorTitle?', '+escHtml(rec.inspectorTitle):''))}
         </table>
       </div>
@@ -1297,6 +1404,127 @@ function printRecord(id){
   window.print();
 }
 
+// ── Blank printable forms (for field use — hand-filled on paper) ──
+// Same letterhead/section structure as printRecord's formal report, but
+// every value is replaced with a blank underlined write-in space and every
+// checklist result is an unmarked ☐/☐/☐ so an inspector can print one per
+// type ahead of a site visit and fill it out by hand, then transcribe it
+// into the app afterward.
+function blankLine(width){ return `<span style="display:inline-block;border-bottom:1px solid #333;min-width:${width||'70px'};min-height:14px;">&nbsp;</span>`; }
+function formalBlankInfoRow(label1, label2){
+  return `<tr>
+    <td style="width:17%;padding:7px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;color:#555;font-size:10px;text-transform:uppercase;letter-spacing:.03em;">${label1}</td>
+    <td style="width:33%;padding:7px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;">${blankLine('100%')}</td>
+    <td style="width:17%;padding:7px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;color:#555;font-size:10px;text-transform:uppercase;letter-spacing:.03em;">${label2||''}</td>
+    <td style="width:33%;padding:7px 8px;border-bottom:1px solid #ddd;">${label2 ? blankLine('100%') : ''}</td>
+  </tr>`;
+}
+function formalBlankChecklistRows(items, allowNA){
+  let lastCat = null;
+  return items.map(item=>{
+    let catRow = '';
+    if(allowNA && item.cat !== lastCat){
+      catRow = `<tr><td colspan="3" style="padding:5px 8px;background:#eee;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.04em;border:1px solid #999;">${escHtml(item.cat)}</td></tr>`;
+      lastCat = item.cat;
+    }
+    const marks = allowNA
+      ? `☐ Yes&nbsp;&nbsp;&nbsp;☐ No&nbsp;&nbsp;&nbsp;☐ N/A`
+      : `☐ Yes&nbsp;&nbsp;&nbsp;&nbsp;☐ No`;
+    return `${catRow}<tr>
+      <td style="border:1px solid #ccc;padding:6px;text-align:center;vertical-align:top;font-size:10.5px;">${item.num}</td>
+      <td style="border:1px solid #ccc;padding:6px;vertical-align:top;font-size:11px;">${escHtml(item.label)}${item.kitchen ? ' <span style="font-size:9px;color:#b45309;">(kitchen)</span>' : ''}<div style="font-size:9.5px;color:#666;margin-top:4px;">${escHtml(item.noteLabel||'Notes')}: ${blankLine('160px')}</div></td>
+      <td style="border:1px solid #ccc;padding:6px;text-align:center;vertical-align:top;white-space:nowrap;font-size:10.5px;">${marks}</td>
+    </tr>`;
+  }).join('');
+}
+function blankFormHtml(type){
+  const isBiz = isBizLike(type);
+  const info = TYPE_INFO[type] || TYPE_INFO.rental;
+  const items = getFlatItems(type);
+
+  return `
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#111;font-size:12px;line-height:1.5;">
+      <div style="display:flex;align-items:center;gap:14px;border-bottom:3px solid #b91c1c;padding-bottom:12px;margin-bottom:14px;">
+        <svg width="44" height="50" viewBox="0 0 64 74" style="flex-shrink:0;">
+          <path d="M32 2 L60 14 L60 36 C60 54 32 72 32 72 C32 72 4 54 4 36 L4 14 Z" fill="rgba(220,38,38,0.12)" stroke="#b91c1c" stroke-width="2"/>
+          <path d="M32 56 C24 52 20 44 24 36 C26 40 30 38 29 32 C33 36 35 30 32 24 C38 28 42 36 40 44 C44 40 44 34 42 30 C48 36 50 46 44 54 C42 58 36 60 32 56Z" fill="#b91c1c"/>
+        </svg>
+        <div style="flex:1;">
+          <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#666;">Town of Mantua &middot; Utah</div>
+          <div style="font-size:18px;font-weight:800;">Mantua Fire Department</div>
+        </div>
+        <div style="text-align:right;font-size:10px;color:#666;">Report No. ${blankLine('90px')}<br>Printed ${new Date().toLocaleString()}</div>
+      </div>
+      <div style="text-align:center;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;">
+        ${info.reportNoun} Fire Safety Inspection Report
+      </div>
+      <div style="text-align:center;font-size:10.5px;color:#b91c1c;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;">Blank Form &mdash; For Field Use</div>
+
+      <div style="border:1px solid #333;margin-bottom:16px;">
+        <div style="background:#eee;padding:5px 8px;font-weight:800;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid #333;">Property Information</div>
+        <table style="width:100%;border-collapse:collapse;">
+          ${isBiz
+            ? formalBlankInfoRow(info.nameLabel, info.ownerLabel)
+            : formalBlankInfoRow('Owner', 'Phone')}
+          ${isBiz ? formalBlankInfoRow('Address', 'Phone') : formalBlankInfoRow('Address', 'Bedrooms')}
+          ${!isBiz ? formalBlankInfoRow('Max Occupancy (Utah law)', 'Car Parking Spaces') : ''}
+          ${isBiz ? formalBlankInfoRow(info.occLabel, 'Occupant Load') : ''}
+          ${formalBlankInfoRow('Date of Inspection', 'Inspected By')}
+        </table>
+      </div>
+
+      <div style="font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Inspection Checklist</div>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #333;margin-bottom:16px;">
+        <thead><tr>
+          <th style="width:28px;border:1px solid #999;background:#eee;padding:5px 6px;font-size:10px;">#</th>
+          <th style="border:1px solid #999;background:#eee;padding:5px 6px;font-size:10px;text-align:left;">Item &amp; Notes</th>
+          <th style="width:150px;border:1px solid #999;background:#eee;padding:5px 6px;font-size:10px;">Result</th>
+        </tr></thead>
+        <tbody>${formalBlankChecklistRows(items, isBiz)}</tbody>
+      </table>
+
+      <div style="display:flex;gap:14px;margin-bottom:16px;">
+        <div style="flex:1;border:1px solid #333;padding:10px 12px;">
+          <div style="font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Inspection Result</div>
+          <div style="font-size:12.5px;">☐ Passed&nbsp;&nbsp;&nbsp;&nbsp;☐ Not Passed — Reinspection Required</div>
+          <div style="font-size:10px;color:#666;margin-top:8px;">Result date: ${blankLine('120px')}</div>
+        </div>
+        <div style="flex:1;border:1px solid #333;padding:10px 12px;">
+          <div style="font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Reinspection Due</div>
+          <div style="font-size:11.5px;">${blankLine('140px')}</div>
+          <div style="font-size:9px;color:#999;margin-top:8px;">Department 1-year scheduling policy, not a state or county legal mandate.</div>
+        </div>
+      </div>
+
+      <div style="font-weight:800;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px;">Notes</div>
+      <div style="border:1px solid #ccc;padding:10px;margin-bottom:16px;">
+        ${[0,1,2,3,4].map(()=>`<div style="border-bottom:1px solid #ccc;min-height:20px;">&nbsp;</div>`).join('')}
+      </div>
+
+      <div style="font-size:11px;color:#333;line-height:1.6;margin-top:6px;">
+        I certify that I conducted this fire safety inspection and that the findings recorded above accurately reflect the conditions observed at the time of inspection.
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:36px;margin-top:38px;">
+        <div style="flex:1;text-align:center;">
+          <div style="border-top:1px solid #333;padding-top:5px;font-size:10.5px;">&nbsp;<br><span style="color:#777;">Fire Inspector Signature</span></div>
+        </div>
+        <div style="flex:1;text-align:center;">
+          <div style="border-top:1px solid #333;padding-top:5px;font-size:10.5px;">&nbsp;<br><span style="color:#777;">Owner / Manager Signature (acknowledging receipt)</span></div>
+        </div>
+        <div style="flex:1;text-align:center;">
+          <div style="border-top:1px solid #333;padding-top:5px;font-size:10.5px;">&nbsp;<br><span style="color:#777;">Date</span></div>
+        </div>
+      </div>
+
+      <div style="font-size:9px;color:#999;margin-top:22px;">Blank field-use form &middot; Printed ${new Date().toLocaleString()} &middot; Transcribe into the app after the visit.</div>
+    </div>`;
+}
+function printBlankForm(type){
+  document.getElementById('print-report').innerHTML = blankFormHtml(type);
+  setPrintOrientation('portrait');
+  window.print();
+}
+
 // ── Certificate (decorative, one property per page) ──
 // Modeled after real municipal/small-town fire-department certification
 // forms and certificate-template conventions: a formal "this is to certify"
@@ -1310,7 +1538,8 @@ function certNumber(rec){
 }
 function certificateHtml(rec, pageBreak){
   const type = rec.inspectionType || 'rental';
-  const isBiz = type === 'business';
+  const isBiz = isBizLike(type);
+  const info = TYPE_INFO[type] || TYPE_INFO.rental;
   const passed = rec.result === 'pass';
   const st = reinspectionStatus(rec);
   return `
@@ -1329,7 +1558,7 @@ function certificateHtml(rec, pageBreak){
       <div style="font-size:29px;font-weight:700;margin:22px 0 4px;">Certificate of Fire Safety Inspection</div>
       <div style="width:120px;height:2px;background:#d97706;margin:8px auto 26px;"></div>
       <div style="font-size:13.5px;color:#333;line-height:1.9;max-width:520px;margin:0 auto 24px;">
-        This is to certify that ${isBiz ? `<b>${escHtml(rec.businessName||'the business named below')}</b>` : `the rental property`}
+        This is to certify that ${isBiz ? `<b>${escHtml(rec.businessName||info.certNoun)}</b>` : info.certNoun}
         located at<br><b>${escHtml(rec.address)}</b>${isBiz?'':`, owned by <b>${escHtml(rec.owner)}</b>,`}
         was inspected by the Mantua Fire Department on <b>${fmtDate(rec.inspectionDate)}</b>
         and ${passed
@@ -1342,7 +1571,7 @@ function certificateHtml(rec, pageBreak){
       </div>
       <table style="width:100%;max-width:480px;margin:0 auto 30px;font-size:11.5px;color:#444;border-collapse:collapse;">
         <tr><td style="padding:3px 8px;text-align:right;color:#888;width:50%;">Certificate No.</td><td style="padding:3px 8px;text-align:left;font-weight:700;">${certNumber(rec)}</td></tr>
-        <tr><td style="padding:3px 8px;text-align:right;color:#888;">Inspection Type</td><td style="padding:3px 8px;text-align:left;">${isBiz?'Business / Commercial':'Residential Rental'}</td></tr>
+        <tr><td style="padding:3px 8px;text-align:right;color:#888;">Inspection Type</td><td style="padding:3px 8px;text-align:left;">${info.reportNoun}</td></tr>
         ${st.due ? `<tr><td style="padding:3px 8px;text-align:right;color:#888;">Next Reinspection</td><td style="padding:3px 8px;text-align:left;">${fmtDate(st.due)} <span style="font-size:9.5px;color:#999;">(dept. 1-yr policy)</span></td></tr>` : ''}
       </table>
       <div style="display:flex;justify-content:space-between;max-width:480px;margin:0 auto;gap:40px;">
