@@ -417,6 +417,7 @@ select.input option{background:var(--navy-800);}
       <button class="modal-close" onclick="closeModal('inspection-modal')">✕</button>
     </div>
     <div class="modal-body">
+      <div id="reinspect-banner" style="display:none;background:rgba(217,119,6,.12);border:1px solid var(--gold-400);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:12.5px;color:var(--gold-400);line-height:1.5;"></div>
       <div class="form-grid">
         <div class="form-group span2">
           <label class="label">Inspection Type *</label>
@@ -530,6 +531,7 @@ select.input option{background:var(--navy-800);}
           <div class="print-menu-item" id="detail-print-cert-item">🎖️ Print Certificate</div>
         </div>
       </div>
+      <button class="btn btn-ghost" id="detail-reinspect-btn" style="display:none;">🔁 Reinspect</button>
       <button class="btn btn-ghost" id="detail-edit-btn">✏️ Edit</button>
       <button class="btn btn-primary" onclick="closeModal('detail-modal')">Close</button>
     </div>
@@ -688,6 +690,14 @@ function getFlatItems(type){
 // checklist shape — only Rental is laid out differently (bedrooms instead
 // of a name/occupancy, a flat checklist with no N/A). isBizLike() below is
 // that field-layout switch; TYPE_INFO is the copy that differs per type.
+// The actual figure behind "Max Occupancy (per Utah law)" — Utah has no
+// single statute stating a flat number; this is the floor-area formula
+// (from the IPMC-derived property maintenance code Utah municipalities,
+// including Mantua, have adopted under Title 15A) that also underlies
+// checklist item 1's pre-existing "100 sq. ft. minimum for 2 occupants"
+// language. Shown wherever the Max Occupancy value is displayed so the
+// basis for the number travels with it, not just in the entry form.
+const MAX_OCC_LAW_NOTE = "Utah's adopted property maintenance code sets sleeping-room occupancy by floor area: 70 sq. ft. for 1 occupant, plus 50 sq. ft. for each additional occupant. (Same standard as checklist item 1's 100 sq. ft. minimum for 2 occupants.)";
 function isBizLike(type){ return type === 'business' || type === 'preschool'; }
 const TYPE_INFO = {
   rental:    { icon:'🏠', noun:'Rental',              badgeColor:'slate', ownerLabel:'Owner of Rental',   addressLabel:'Address of Rental',  nameLabel:'',              occLabel:'Occupancy Type',           occPlaceholder:'',                                        reportNoun:'Residential Rental',   certNoun:'the rental property' },
@@ -698,6 +708,13 @@ const TYPE_INFO = {
 const STORAGE_KEY = 'mfd_rental_inspections_v1';
 let inspections = [];
 let editingInspectionId = null;
+// Set while the Log Inspection modal is open in "reinspect" mode: holds the
+// id of the Not-Passed record being followed up on. The form is prefilled
+// from that record (property info + checklist) but editingInspectionId
+// stays null, so Save files a brand-new record — the original failed
+// inspection is never overwritten — and the new record's reinspectOf field
+// links back to it.
+let reinspectSourceId = null;
 let resultFilter = 'all';
 let inspSort = { col:'date', dir:-1 };
 
@@ -1001,7 +1018,7 @@ function applyInspectionTypeUI(type){
   document.getElementById('if-address-label').textContent = info.addressLabel + ' *';
   document.getElementById('if-occupancy-label').textContent = info.occLabel;
   document.getElementById('if-occupancy').placeholder       = info.occPlaceholder;
-  document.getElementById('insp-modal-title').textContent = (editingInspectionId ? '✏️ Edit ' : '🏠 Log ') + info.noun + ' Inspection';
+  document.getElementById('insp-modal-title').textContent = (editingInspectionId ? '✏️ Edit ' : reinspectSourceId ? '🔁 Reinspect ' : '🏠 Log ') + info.noun + ' Inspection';
 }
 function onInspectionTypeChange(){
   const type = document.getElementById('if-type').value;
@@ -1010,17 +1027,20 @@ function onInspectionTypeChange(){
   // checklists use different item ids, so there's nothing to carry over.
   renderChecklistFormRows(null, type);
 }
-function openInspectionModal(id=null){
+function openInspectionModal(id=null, reinspectFromId=null){
   editingInspectionId = id;
-  const rec = id ? inspections.find(x=>x.id===id) : null;
+  reinspectSourceId = id ? null : reinspectFromId;
+  const rec = id ? inspections.find(x=>x.id===id) : (reinspectSourceId ? inspections.find(x=>x.id===reinspectSourceId) : null);
   const type = rec ? (rec.inspectionType || 'rental') : 'rental';
   const typeSelect = document.getElementById('if-type');
   typeSelect.value = type;
-  // Type is locked once a record exists — the two checklists don't share
-  // item ids, so switching type on an existing record would silently drop
-  // its answers. Delete and re-log if the type was chosen wrong.
-  typeSelect.disabled = !!id;
-  typeSelect.title = id ? 'Inspection type can\'t be changed after logging — delete and re-log if this was set wrong.' : '';
+  // Type is locked once a record exists, and while reinspecting — the two
+  // checklists don't share item ids, so switching type on an existing
+  // record (or on a reinspection prefilled from one) would silently drop
+  // its answers. Delete and re-log, or start a fresh Log Inspection, if
+  // the type needs to change.
+  typeSelect.disabled = !!id || !!reinspectSourceId;
+  typeSelect.title = (id || reinspectSourceId) ? 'Inspection type can\'t be changed here — delete and re-log if this was set wrong.' : '';
   document.getElementById('if-owner').value      = rec ? rec.owner : '';
   document.getElementById('if-bizname').value    = rec ? (rec.businessName||'') : '';
   document.getElementById('if-address').value    = rec ? rec.address : '';
@@ -1030,14 +1050,25 @@ function openInspectionModal(id=null){
   document.getElementById('if-parking').value       = rec ? (rec.parkingSpaces!==undefined?rec.parkingSpaces:'') : '';
   document.getElementById('if-occupancy').value      = rec ? (rec.occupancyType||'') : '';
   document.getElementById('if-occupantload').value   = rec ? (rec.occupantLoad!==undefined?rec.occupantLoad:'') : '';
-  document.getElementById('if-date').value       = rec ? rec.inspectionDate : new Date().toISOString().slice(0,10);
+  // Date and result always start fresh on a reinspection (today's date,
+  // no result yet) even though the rest of the form is prefilled — an
+  // inspector has to actually look at the property again and pick
+  // Pass/Not Passed, not inherit the old verdict.
+  document.getElementById('if-date').value       = id ? rec.inspectionDate : new Date().toISOString().slice(0,10);
   document.getElementById('if-notes').value      = rec ? (rec.notes||'') : '';
-  document.getElementById('if-inspector').value  = rec ? (rec.inspectorName||'') : (window.MFD_AUTH ? window.MFD_AUTH.name : '');
-  document.getElementById('if-title').value      = rec ? (rec.inspectorTitle||'') : '';
-  document.getElementById('if-result').value     = rec ? (rec.result||'') : '';
-  document.getElementById('if-resultdate').value = rec ? (rec.resultDate||'') : '';
+  document.getElementById('if-inspector').value  = id ? (rec.inspectorName||'') : (window.MFD_AUTH ? window.MFD_AUTH.name : '');
+  document.getElementById('if-title').value      = id ? (rec.inspectorTitle||'') : '';
+  document.getElementById('if-result').value     = id ? (rec.result||'') : '';
+  document.getElementById('if-resultdate').value = id ? (rec.resultDate||'') : '';
   applyInspectionTypeUI(type);
   renderChecklistFormRows(rec, type);
+  const banner = document.getElementById('reinspect-banner');
+  if(reinspectSourceId && rec){
+    banner.style.display = '';
+    banner.innerHTML = `🔁 Reinspection of the ${fmtDate(rec.inspectionDate)} inspection (❌ Not Passed). Property info and the checklist are carried over from that inspection — update whatever's changed, then set today's Result. Saving this files a <strong>new</strong> record; the original Not Passed inspection stays on file as-is.`;
+  } else {
+    banner.style.display = 'none';
+  }
   document.getElementById('inspection-modal').classList.add('open');
 }
 function saveInspection(){
@@ -1071,6 +1102,11 @@ function saveInspection(){
     inspectorTitle: document.getElementById('if-title').value.trim(),
     result,
     resultDate: document.getElementById('if-resultdate').value || date,
+    // Links this record back to the Not-Passed inspection it followed up
+    // on (set only when opened via the Reinspect button). Preserved across
+    // later edits of this same record; never set on the original record
+    // itself, since reinspecting doesn't touch that one.
+    reinspectOf: editingInspectionId ? (existing ? (existing.reinspectOf||'') : '') : (reinspectSourceId || ''),
     createdAt: existing ? existing.createdAt : new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -1080,8 +1116,9 @@ function saveInspection(){
     toast('Inspection updated','success');
   } else {
     inspections.push(obj);
-    toast('Inspection logged','success');
+    toast(reinspectSourceId ? 'Reinspection logged as a new record' : 'Inspection logged','success');
   }
+  reinspectSourceId = null;
   save(); closeModal('inspection-modal'); refreshAll();
 }
 function deleteInspection(id){
@@ -1119,6 +1156,13 @@ function openDetail(id){
   const siblings = inspections.filter(x=>x.id!==rec.id && normalizeAddr(x.address)===normalizeAddr(rec.address))
     .sort((a,b)=> (b.inspectionDate||'').localeCompare(a.inspectionDate||''));
 
+  // Reinspection chain: the record this one followed up on (if any), and
+  // any records that later followed up on this one (there can be more than
+  // one, if a reinspection also came back Not Passed).
+  const reinspectOfRec = rec.reinspectOf ? inspections.find(x=>x.id===rec.reinspectOf) : null;
+  const followUps = inspections.filter(x=>x.reinspectOf===rec.id)
+    .sort((a,b)=> (a.inspectionDate||'').localeCompare(b.inspectionDate||''));
+
   const reStatus = reinspectionStatus(rec);
   const reHtml = !reStatus.due ? '—'
     : reStatus.state==='overdue' ? `<span style="color:var(--fire-400);font-weight:700;">⚠ Overdue — ${fmtDate(reStatus.due)}</span>`
@@ -1126,6 +1170,8 @@ function openDetail(id){
     : `${fmtDate(reStatus.due)} <span style="font-size:11px;color:var(--navy-500);">(department 1-yr policy, not a legal mandate)</span>`;
 
   document.getElementById('detail-modal-body').innerHTML = `
+    ${reinspectOfRec ? `<div style="background:rgba(217,119,6,.12);border:1px solid var(--gold-400);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:12.5px;color:var(--gold-400);line-height:1.5;cursor:pointer;" onclick="openDetail('${reinspectOfRec.id}')">🔁 Reinspection of the ${fmtDate(reinspectOfRec.inspectionDate)} inspection (❌ Not Passed) — click to view the original</div>` : ''}
+    ${followUps.length ? `<div style="background:rgba(34,197,94,.10);border:1px solid var(--green-400,#22c55e);border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:12.5px;color:var(--slate-200);line-height:1.5;">✅ ${followUps.length>1?'Reinspected':'Reinspected'} on ${followUps.map(f=>`<span style="cursor:pointer;text-decoration:underline;" onclick="openDetail('${f.id}')">${fmtDate(f.inspectionDate)} (${f.result==='pass'?'Pass':f.result==='fail'?'Not Passed':'pending'})</span>`).join(', ')}</div>` : ''}
     <div class="form-grid" style="margin-bottom:16px;">
       <div><label class="label">Type</label><div style="margin-top:4px;">${typeBadge(type)}</div></div>
       ${isBiz ? dRow(info.nameLabel, escHtml(rec.businessName||'—')) : ''}
@@ -1133,7 +1179,7 @@ function openDetail(id){
       ${dRow(isBiz?info.addressLabel:'Address', `<span style="font-weight:700;color:var(--slate-100);">${escHtml(rec.address)}</span>`)}
       ${dRow('Phone', escHtml(rec.phone||'—'))}
       ${!isBiz ? dRow('Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—')) : ''}
-      ${!isBiz ? dRow('Max Occupancy (per Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—')) : ''}
+      ${!isBiz ? dRow('Max Occupancy (per Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—') + `<div class="ci-legal" style="margin-top:3px;">⚖️ ${escHtml(MAX_OCC_LAW_NOTE)}</div>`) : ''}
       ${!isBiz ? dRow('Car Parking Spaces', escHtml(rec.parkingSpaces!==undefined && rec.parkingSpaces!=='' ? rec.parkingSpaces : '—')) : ''}
       ${isBiz ? dRow(info.occLabel, escHtml(rec.occupancyType||'—')) : ''}
       ${isBiz ? dRow('Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—')) : ''}
@@ -1168,7 +1214,18 @@ function openDetail(id){
   document.getElementById('detail-print-btn').onclick  = (e)=>{ togglePrintMenu('detail-print-menu', e); };
   document.getElementById('detail-print-report-item').onclick = ()=>{ closeAllPrintMenus(); printRecord(id); };
   document.getElementById('detail-print-cert-item').onclick   = ()=>{ closeAllPrintMenus(); printCertificate(id); };
+  // Reinspect files a brand-new record (it's the same action as Log
+  // Inspection, just prefilled), so it's available to Personnel the same
+  // as Log Inspection is — no Admin unlock, unlike Edit/Delete which
+  // modify existing history.
+  const reinspectBtn = document.getElementById('detail-reinspect-btn');
+  reinspectBtn.style.display = rec.result === 'fail' ? '' : 'none';
+  reinspectBtn.onclick = ()=>{ reinspectInspection(id); };
   document.getElementById('detail-modal').classList.add('open');
+}
+function reinspectInspection(id){
+  closeModal('detail-modal');
+  openInspectionModal(null, id);
 }
 function dRow(label, val){
   return `<div><label class="label">${label}</label><div style="margin-top:4px;font-size:13px;color:var(--slate-300);">${val}</div></div>`;
@@ -1357,6 +1414,7 @@ function printRecord(id){
           ${formalInfoRow('Date of Inspection', fmtDate(rec.inspectionDate), 'Inspected By', escHtml(rec.inspectorName||'—')+(rec.inspectorTitle?', '+escHtml(rec.inspectorTitle):''))}
         </table>
       </div>
+      ${!isBiz ? `<div style="font-size:9.5px;color:#666;margin:-10px 0 14px;">⚖️ ${escHtml(MAX_OCC_LAW_NOTE)}</div>` : ''}
 
       <div style="font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Inspection Checklist</div>
       <table style="width:100%;border-collapse:collapse;border:1px solid #333;margin-bottom:16px;">
@@ -1472,6 +1530,7 @@ function blankFormHtml(type){
           ${formalBlankInfoRow('Date of Inspection', 'Inspected By')}
         </table>
       </div>
+      ${!isBiz ? `<div style="font-size:9.5px;color:#666;margin:-10px 0 14px;">⚖️ ${escHtml(MAX_OCC_LAW_NOTE)}</div>` : ''}
 
       <div style="font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Inspection Checklist</div>
       <table style="width:100%;border-collapse:collapse;border:1px solid #333;margin-bottom:16px;">
