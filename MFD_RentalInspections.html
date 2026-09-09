@@ -460,7 +460,7 @@ select.input option{background:var(--navy-800);}
           <input class="input" id="if-occupancy" placeholder="e.g. Retail, Office, Restaurant">
         </div>
         <div class="form-group" id="fg-occupantload" style="display:none;">
-          <label class="label">Occupant Load</label>
+          <label class="label" id="if-occupantload-label">Occupant Load</label>
           <input class="input" type="number" min="0" id="if-occupantload" placeholder="0">
         </div>
         <div class="form-group">
@@ -471,6 +471,7 @@ select.input option{background:var(--navy-800);}
       <div style="margin-top:-10px;margin-bottom:16px;font-size:11px;color:var(--navy-500);" id="maxocc-hint">
         Utah's adopted property maintenance code sets sleeping-room occupancy by floor area — 70 sq. ft. for 1 person, plus 50 sq. ft. for each additional occupant (the same standard behind item 1's 100 sq. ft. minimum for 2 occupants below). Record the maximum the space supports.
       </div>
+      <div style="margin-top:-10px;margin-bottom:16px;font-size:11px;color:var(--navy-500);" id="occload-hint"></div>
 
       <div style="margin-top:20px;">
         <label class="label">Inspection Checklist</label>
@@ -698,6 +699,18 @@ function getFlatItems(type){
 // language. Shown wherever the Max Occupancy value is displayed so the
 // basis for the number travels with it, not just in the entry form.
 const MAX_OCC_LAW_NOTE = "Utah's adopted property maintenance code sets sleeping-room occupancy by floor area: 70 sq. ft. for 1 occupant, plus 50 sq. ft. for each additional occupant. (Same standard as checklist item 1's 100 sq. ft. minimum for 2 occupants.)";
+// Business and Preschool/Day Care use a different part of Utah's adopted
+// construction code than a rental's sleeping-room occupancy — occupant
+// load for those is a building-code means-of-egress figure, not a
+// habitability one. Utah has adopted the 2021 International Building Code
+// under Title 15A (State Construction and Fire Codes Act); IBC Table
+// 1004.5 sets the floor-area factor used to compute occupant load, and it
+// differs by how the space is actually used, so each note below names the
+// specific factor the field-use category maps to rather than a single
+// number for every kind of business or facility.
+const BUSINESS_OCC_LAW_NOTE = "Utah's adopted 2021 International Building Code (Title 15A) sets occupant load by floor area — for general business-use space, the code factor is 150 gross sq. ft. per occupant (IBC Table 1004.5). Other uses within the same building (e.g. a public assembly or dining area) are computed under a different factor in the same table. Record the maximum the space supports under the applicable factor.";
+const PRESCHOOL_OCC_LAW_NOTE = "Utah's adopted 2021 International Building Code (Title 15A) sets occupant load by floor area — the code's day care factor is 35 net sq. ft. per occupant, or 20 net sq. ft. per occupant for space specifically arranged and used as a classroom (IBC Table 1004.5). Record the maximum the space supports under whichever factor applies to that room.";
+function occLawNote(type){ return type==='business' ? BUSINESS_OCC_LAW_NOTE : type==='preschool' ? PRESCHOOL_OCC_LAW_NOTE : MAX_OCC_LAW_NOTE; }
 function isBizLike(type){ return type === 'business' || type === 'preschool'; }
 const TYPE_INFO = {
   rental:    { icon:'🏠', noun:'Rental',              badgeColor:'slate', ownerLabel:'Owner of Rental',   addressLabel:'Address of Rental',  nameLabel:'',              occLabel:'Occupancy Type',           occPlaceholder:'',                                        reportNoun:'Residential Rental',   certNoun:'the rental property' },
@@ -1013,6 +1026,10 @@ function applyInspectionTypeUI(type){
   document.getElementById('fg-maxoccupancy').style.display   = type === 'rental' ? '' : 'none';
   document.getElementById('fg-parking').style.display        = type === 'rental' ? '' : 'none';
   document.getElementById('maxocc-hint').style.display       = type === 'rental' ? '' : 'none';
+  const occloadHint = document.getElementById('occload-hint');
+  occloadHint.style.display = isBiz ? '' : 'none';
+  occloadHint.textContent = isBiz ? occLawNote(type) : '';
+  document.getElementById('if-occupantload-label').title = isBiz ? occLawNote(type) : '';
   document.getElementById('if-bizname-label').textContent = info.nameLabel + ' *';
   document.getElementById('if-owner-label').textContent   = info.ownerLabel + ' *';
   document.getElementById('if-address-label').textContent = info.addressLabel + ' *';
@@ -1182,7 +1199,7 @@ function openDetail(id){
       ${!isBiz ? dRow('Max Occupancy (per Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—') + `<div class="ci-legal" style="margin-top:3px;">⚖️ ${escHtml(MAX_OCC_LAW_NOTE)}</div>`) : ''}
       ${!isBiz ? dRow('Car Parking Spaces', escHtml(rec.parkingSpaces!==undefined && rec.parkingSpaces!=='' ? rec.parkingSpaces : '—')) : ''}
       ${isBiz ? dRow(info.occLabel, escHtml(rec.occupancyType||'—')) : ''}
-      ${isBiz ? dRow('Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—')) : ''}
+      ${isBiz ? dRow('Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—') + `<div class="ci-legal" style="margin-top:3px;">⚖️ ${escHtml(occLawNote(type))}</div>`) : ''}
       ${dRow('Date of Inspection', fmtDate(rec.inspectionDate))}
       ${dRow('Reinspection Due', reHtml)}
       ${dRow('Result', resultBadge(rec.result) + (rec.resultDate ? ` <span style="font-size:11px;color:var(--navy-500);">(${fmtDate(rec.resultDate)})</span>` : ''))}
@@ -1414,7 +1431,7 @@ function printRecord(id){
           ${formalInfoRow('Date of Inspection', fmtDate(rec.inspectionDate), 'Inspected By', escHtml(rec.inspectorName||'—')+(rec.inspectorTitle?', '+escHtml(rec.inspectorTitle):''))}
         </table>
       </div>
-      ${!isBiz ? `<div style="font-size:9.5px;color:#666;margin:-10px 0 14px;">⚖️ ${escHtml(MAX_OCC_LAW_NOTE)}</div>` : ''}
+      <div style="font-size:9.5px;color:#666;margin:-10px 0 14px;">⚖️ ${escHtml(occLawNote(type))}</div>
 
       <div style="font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Inspection Checklist</div>
       <table style="width:100%;border-collapse:collapse;border:1px solid #333;margin-bottom:16px;">
@@ -1530,7 +1547,7 @@ function blankFormHtml(type){
           ${formalBlankInfoRow('Date of Inspection', 'Inspected By')}
         </table>
       </div>
-      ${!isBiz ? `<div style="font-size:9.5px;color:#666;margin:-10px 0 14px;">⚖️ ${escHtml(MAX_OCC_LAW_NOTE)}</div>` : ''}
+      <div style="font-size:9.5px;color:#666;margin:-10px 0 14px;">⚖️ ${escHtml(occLawNote(type))}</div>
 
       <div style="font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">Inspection Checklist</div>
       <table style="width:100%;border-collapse:collapse;border:1px solid #333;margin-bottom:16px;">
