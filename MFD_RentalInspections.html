@@ -989,11 +989,19 @@ function renderChecklistFormRows(existing, type){
       <div class="ci-main">
         <div class="ci-label">${escHtml(item.label)}${item.kitchen ? '<span class="ci-kitchen-tag">🍳 Kitchen</span>' : ''}</div>
         ${item.legalNote ? `<div class="ci-legal">⚖️ ${escHtml(item.legalNote)}</div>` : ''}
-        ${item.noteLabel ? `<input class="input ci-note-input" placeholder="${escHtml(item.noteLabel)}${item.notePlaceholder?' — e.g. '+escHtml(item.notePlaceholder.replace(/^e\.g\.\s*/,'')):''}" value="${escHtml(cur.note||'')}">` : ''}
+        ${item.noteLabel
+          ? `<input class="input ci-note-input" placeholder="${escHtml(item.noteLabel)}${item.notePlaceholder?' — e.g. '+escHtml(item.notePlaceholder.replace(/^e\.g\.\s*/,'')):''}" value="${escHtml(cur.note||'')}">`
+          // Items without a dedicated measurement field (e.g. "# of alarms")
+          // get a plain notes box instead — but only once the item is
+          // marked Not Passed, since there's nothing to explain on a Pass.
+          // setChecklistAnswer() shows/hides this as the Pass/Not Passed
+          // buttons are clicked; it starts visible here too when loading an
+          // existing Not-Passed answer (edit/reinspect prefill).
+          : `<textarea class="input ci-note-input ci-fail-note" rows="2" placeholder="What needs to be corrected?" style="display:${cur.answer==='no'?'':'none'};max-width:420px;resize:vertical;">${escHtml(cur.note||'')}</textarea>`}
       </div>
       <div class="ci-toggle">
-        <button type="button" class="ci-btn yes${cur.answer==='yes'?' active':''}" onclick="setChecklistAnswer(this,'yes')">Yes</button>
-        <button type="button" class="ci-btn no${cur.answer==='no'?' active':''}" onclick="setChecklistAnswer(this,'no')">No</button>
+        <button type="button" class="ci-btn yes${cur.answer==='yes'?' active':''}" onclick="setChecklistAnswer(this,'yes')">Pass</button>
+        <button type="button" class="ci-btn no${cur.answer==='no'?' active':''}" onclick="setChecklistAnswer(this,'no')">Not Passed</button>
         ${allowNA ? `<button type="button" class="ci-btn na${cur.answer==='na'?' active':''}" onclick="setChecklistAnswer(this,'na')">N/A</button>` : ''}
       </div>
     </div>`;
@@ -1005,6 +1013,15 @@ function setChecklistAnswer(btn, val){
   row.dataset.answer = val;
   row.querySelectorAll('.ci-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
+  // Items with no dedicated measurement field get a plain notes box that
+  // only shows once marked Not Passed (Pass needs no explanation) — clear
+  // it out when switching away from Not Passed so a stale note can't be
+  // saved silently hidden.
+  const failNote = row.querySelector('.ci-fail-note');
+  if(failNote){
+    failNote.style.display = val==='no' ? '' : 'none';
+    if(val!=='no') failNote.value = '';
+  }
 }
 function readChecklistFromForm(){
   const out = {};
@@ -1158,8 +1175,8 @@ function openDetail(id){
   let lastCat = null;
   const checklistHtml = items.map(item=>{
     const cur = (rec.checklist && rec.checklist[item.id]) || {};
-    const ansBadge = cur.answer==='yes' ? `<span class="badge badge-yes">Yes</span>`
-                    : cur.answer==='no'  ? `<span class="badge badge-no">No</span>`
+    const ansBadge = cur.answer==='yes' ? `<span class="badge badge-yes">Pass</span>`
+                    : cur.answer==='no'  ? `<span class="badge badge-no">Not Passed</span>`
                     : cur.answer==='na'  ? `<span class="badge badge-na">N/A</span>`
                     : `<span class="badge badge-unset">—</span>`;
     let catHeader = '';
@@ -1372,8 +1389,8 @@ function formalChecklistRows(items, checklist, allowNA){
       lastCat = item.cat;
     }
     const marks = allowNA
-      ? `${chk(cur.answer==='yes')} Yes&nbsp;&nbsp;&nbsp;${chk(cur.answer==='no')} No&nbsp;&nbsp;&nbsp;${chk(cur.answer==='na')} N/A`
-      : `${chk(cur.answer==='yes')} Yes&nbsp;&nbsp;&nbsp;&nbsp;${chk(cur.answer==='no')} No`;
+      ? `${chk(cur.answer==='yes')} Pass&nbsp;&nbsp;&nbsp;${chk(cur.answer==='no')} Not Passed&nbsp;&nbsp;&nbsp;${chk(cur.answer==='na')} N/A`
+      : `${chk(cur.answer==='yes')} Pass&nbsp;&nbsp;&nbsp;&nbsp;${chk(cur.answer==='no')} Not Passed`;
     return `${catRow}<tr>
       <td style="border:1px solid #ccc;padding:5px 6px;text-align:center;vertical-align:top;font-size:10.5px;">${item.num}</td>
       <td style="border:1px solid #ccc;padding:5px 6px;vertical-align:top;font-size:11px;">${escHtml(item.label)}${item.kitchen ? ' <span style="font-size:9px;color:#b45309;">(kitchen)</span>' : ''}${cur.note ? `<div style="font-size:9.5px;color:#666;margin-top:2px;">${escHtml(item.noteLabel||'Note')}: ${escHtml(cur.note)}</div>` : ''}</td>
@@ -1503,8 +1520,8 @@ function formalBlankChecklistRows(items, allowNA){
       lastCat = item.cat;
     }
     const marks = allowNA
-      ? `☐ Yes&nbsp;&nbsp;&nbsp;☐ No&nbsp;&nbsp;&nbsp;☐ N/A`
-      : `☐ Yes&nbsp;&nbsp;&nbsp;&nbsp;☐ No`;
+      ? `☐ Pass&nbsp;&nbsp;&nbsp;☐ Not Passed&nbsp;&nbsp;&nbsp;☐ N/A`
+      : `☐ Pass&nbsp;&nbsp;&nbsp;&nbsp;☐ Not Passed`;
     return `${catRow}<tr>
       <td style="border:1px solid #ccc;padding:6px;text-align:center;vertical-align:top;font-size:10.5px;">${item.num}</td>
       <td style="border:1px solid #ccc;padding:6px;vertical-align:top;font-size:11px;">${escHtml(item.label)}${item.kitchen ? ' <span style="font-size:9px;color:#b45309;">(kitchen)</span>' : ''}<div style="font-size:9.5px;color:#666;margin-top:4px;">${escHtml(item.noteLabel||'Notes')}: ${blankLine('160px')}</div></td>
