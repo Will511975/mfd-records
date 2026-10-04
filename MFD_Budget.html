@@ -466,31 +466,30 @@ select.input option{background:var(--navy-800);}
       </table>
     </div>
 
-    <!-- Grants received: adds up into the Grants budget line -->
+    <!-- Grants received: Expenses entered under the Grants category add up into the Grants budget line -->
     <div class="tbl-wrap" style="margin-top:20px;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 14px 4px;gap:10px;flex-wrap:wrap;">
         <div>
           <div style="font-size:14px;font-weight:800;color:var(--slate-100);">🏛️ Grants Received</div>
-          <div style="font-size:11px;color:var(--navy-500);margin-top:3px;">Each grant you log adds to the Grants budget line above (this fiscal year).</div>
+          <div style="font-size:11px;color:var(--navy-500);margin-top:3px;">Any Expense entered under the <strong>Grants</strong> category counts as money received and adds to the Grants budget line (this fiscal year). Click a row to edit or delete it.</div>
         </div>
-        <button class="btn btn-green btn-sm" onclick="openGrantModal()">➕ Add Grant</button>
+        <button class="btn btn-green btn-sm" onclick="openGrantEntry()">➕ Add Grant</button>
       </div>
       <table>
         <thead>
           <tr>
             <th>Date</th>
             <th>Grantor / Source</th>
-            <th>Notes</th>
+            <th>Description</th>
+            <th>Status</th>
             <th style="text-align:right;">Amount</th>
-            <th></th>
           </tr>
         </thead>
         <tbody id="grants-tbody"></tbody>
         <tfoot>
           <tr style="background:var(--navy-950);">
-            <td colspan="3" style="padding:10px 14px;font-size:12px;font-weight:800;color:var(--slate-300);">TOTAL GRANTS RECEIVED</td>
+            <td colspan="4" style="padding:10px 14px;font-size:12px;font-weight:800;color:var(--slate-300);">TOTAL GRANTS RECEIVED</td>
             <td class="td-amount income" id="grants-total" style="padding:10px 14px;text-align:right;font-weight:800;"></td>
-            <td></td>
           </tr>
         </tfoot>
       </table>
@@ -604,7 +603,7 @@ select.input option{background:var(--navy-800);}
         </div>
         <div class="form-group">
           <label class="label">Category *</label>
-          <select class="input" id="ef-category">
+          <select class="input" id="ef-category" onchange="onExpCategoryChange()">
             <option value="">— Select —</option>
             <option>Utilities</option>
             <option>Supplies & Materials</option>
@@ -621,6 +620,7 @@ select.input option{background:var(--navy-800);}
             <option>Fire Engine</option>
             <option>Fire - Other</option>
           </select>
+          <div id="ef-grant-hint" style="display:none;margin-top:5px;font-size:11px;color:var(--green-400);">🏛️ Grants are money <strong>received</strong>: this amount is added to the Grants budget line, not counted as spending. Enter the grantor as the Vendor / Source.</div>
         </div>
         <div class="form-group span2">
           <label class="label">Item / Description *</label>
@@ -698,42 +698,6 @@ select.input option{background:var(--navy-800);}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('budget-modal')">Cancel</button>
       <button class="btn btn-green" onclick="saveBudgetAllocations()">💾 Save Allocations</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════════════════════════════════════
-     GRANT MODAL
-══════════════════════════════════════════ -->
-<div class="modal-overlay" id="grant-modal">
-  <div class="modal" style="max-width:520px;">
-    <div class="modal-header">
-      <div class="modal-title">🏛️ <span id="grant-modal-title">Add Grant</span></div>
-      <button class="btn btn-danger btn-sm" onclick="closeModal('grant-modal')">✕ Close</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <div class="form-group">
-          <label class="label">Date Received *</label>
-          <input type="date" class="input" id="gf-date" />
-        </div>
-        <div class="form-group">
-          <label class="label">Amount ($) *</label>
-          <input type="number" class="input" id="gf-amount" placeholder="0.00" min="0" step="0.01" />
-        </div>
-        <div class="form-group span2">
-          <label class="label">Grantor / Source *</label>
-          <input type="text" class="input" id="gf-grantor" placeholder="e.g. State Fire Marshal's Office" />
-        </div>
-        <div class="form-group span2">
-          <label class="label">Notes</label>
-          <textarea class="input" id="gf-notes" rows="2" placeholder="Grant name, award number, restrictions…"></textarea>
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('grant-modal')">Cancel</button>
-      <button class="btn btn-green" onclick="saveGrant()">💾 Save Grant</button>
     </div>
   </div>
 </div>
@@ -835,7 +799,7 @@ const METHOD_BADGES = {
 };
 const STATUS_BADGES = {Approved:'badge-approved',Pending:'badge-pending',Submitted:'badge-submitted',Paid:'badge-paid',Rejected:'badge-rejected'};
 
-let db = { expenses:[], vendors:[], budgets:{}, grants:[], fiscalYear: currentFY() };
+let db = { expenses:[], vendors:[], budgets:{}, fiscalYear: currentFY() };
 let editingExpenseId = null;
 let editingVendorId  = null;
 let expFilter = 'all';
@@ -869,12 +833,11 @@ function loadFY(fy){
   else{ initDB(fy); }
   if(!db.vendors) db.vendors=[];
   if(!db.budgets) db.budgets={};
-  if(!db.grants) db.grants=[];
   // migrate old: load vendors from all FYs
   refreshAll();
 }
 function initDB(fy){
-  db = { expenses:[], vendors:[], budgets:{}, grants:[], fiscalYear:fy };
+  db = { expenses:[], vendors:[], budgets:{}, fiscalYear:fy };
 }
 
 // ══════════════════════════════════════════
@@ -940,11 +903,16 @@ function fyExpenses(){
   });
 }
 
-// Grants received are logged individually and add up automatically: the
-// Grants line's allocation is always the total of the grants logged for
-// this fiscal year (it is not typed in by hand).
+// An Expense entered under the Grants category is money RECEIVED (a grant),
+// not money spent. Those entries add up automatically into the Grants
+// allocation for the fiscal year and are left out of Spent / Pending /
+// report totals. (Rejected entries don't count.)
+function isGrantEntry(e){ return e.category==='Grants'; }
+function grantEntries(){
+  return fyExpenses().filter(e=>isGrantEntry(e) && e.status!=='Rejected');
+}
 function grantsTotal(){
-  return (db.grants||[]).reduce((s,g)=>s+Number(g.amount||0),0);
+  return grantEntries().reduce((s,e)=>s+Number(e.amount||0),0);
 }
 function allocFor(cat){
   return cat==='Grants' ? grantsTotal() : Number((db.budgets||{})[cat]||0);
@@ -954,9 +922,11 @@ function totalBudget(){
   return others + grantsTotal();
 }
 function catSpent(cat, exps){
+  if(cat==='Grants') return 0;   // grants are money in, not spending
   return exps.filter(e=>e.category===cat && e.status!=='Rejected').reduce((s,e)=>s+Number(e.amount||0),0);
 }
 function catPending(cat, exps){
+  if(cat==='Grants') return 0;
   return exps.filter(e=>e.category===cat && e.status==='Pending').reduce((s,e)=>s+Number(e.amount||0),0);
 }
 
@@ -966,19 +936,19 @@ function catPending(cat, exps){
 function renderDashboard(){
   const exps = fyExpenses();
   const budget = totalBudget();
-  const spent  = exps.filter(e=>e.status!=='Rejected').reduce((s,e)=>s+Number(e.amount||0),0);
-  const pending= exps.filter(e=>e.status==='Pending').reduce((s,e)=>s+Number(e.amount||0),0);
+  const spent  = exps.filter(e=>!isGrantEntry(e) && e.status!=='Rejected').reduce((s,e)=>s+Number(e.amount||0),0);
+  const pending= exps.filter(e=>!isGrantEntry(e) && e.status==='Pending').reduce((s,e)=>s+Number(e.amount||0),0);
   const remain = budget - spent;
   const pct    = budget>0 ? Math.min(100,(spent/budget)*100) : 0;
 
   document.getElementById('stat-budget').textContent    = fmt(budget);
   document.getElementById('stat-fy-label').textContent  = fyLabel(db.fiscalYear);
   document.getElementById('stat-spent').textContent     = fmt(spent);
-  document.getElementById('stat-spent-sub').textContent = exps.filter(e=>e.status!=='Rejected').length+' transactions';
+  document.getElementById('stat-spent-sub').textContent = exps.filter(e=>!isGrantEntry(e) && e.status!=='Rejected').length+' transactions';
   document.getElementById('stat-remaining').textContent = fmt(remain);
   document.getElementById('stat-remaining-sub').textContent = budget>0 ? Math.round(100-pct)+'% remaining' : '—';
   document.getElementById('stat-pending').textContent   = fmt(pending);
-  document.getElementById('stat-pending-sub').textContent = exps.filter(e=>e.status==='Pending').length+' items';
+  document.getElementById('stat-pending-sub').textContent = exps.filter(e=>!isGrantEntry(e) && e.status==='Pending').length+' items';
 
   const barColor = pct<70 ? 'linear-gradient(90deg,#15803d,#22c55e)'
                  : pct<90 ? 'linear-gradient(90deg,#b45309,#f59e0b)'
@@ -1011,7 +981,7 @@ function renderDashboard(){
         </div>
         <div class="cat-bar-outer"><div class="cat-bar-inner" style="width:${p.toFixed(1)}%;background:${col};"></div></div>
         <div class="cat-amounts">
-          <span>${fmt(sp)} spent</span><span>${fmt(alloc)} allocated</span>
+          ${cat==='Grants' ? `<span>${fmt(alloc)} received</span><span>adds to total budget</span>` : `<span>${fmt(sp)} spent</span><span>${fmt(alloc)} allocated</span>`}
         </div>
       </div>`;
     }).join('');
@@ -1030,7 +1000,7 @@ function renderDashboard(){
       <td style="padding:10px 14px;" class="td-vendor">${escHtml(e.vendor||'—')}</td>
       <td style="padding:10px 14px;">${methodBadge(e.method)}</td>
       <td style="padding:10px 14px;">${statusBadge(e.status)}</td>
-      <td style="padding:10px 14px;text-align:right;" class="td-amount expense">${fmt(e.amount)}</td>
+      <td style="padding:10px 14px;text-align:right;" class="td-amount ${isGrantEntry(e)?'income':'expense'}">${isGrantEntry(e)?'+':''}${fmt(e.amount)}</td>
     </tr>`).join('');
   }
 }
@@ -1076,7 +1046,7 @@ function renderExpenses(){
       <td style="padding:10px 14px;">${methodBadge(e.method)}</td>
       <td style="padding:10px 14px;font-size:12px;color:var(--slate-400);">${escHtml(e.requestor||'—')}</td>
       <td style="padding:10px 14px;">${statusBadge(e.status)}</td>
-      <td style="padding:10px 14px;text-align:right;" class="td-amount expense">${fmt(e.amount)}</td>
+      <td style="padding:10px 14px;text-align:right;" class="td-amount ${isGrantEntry(e)?'income':'expense'}">${isGrantEntry(e)?'+':''}${fmt(e.amount)}</td>
       <td style="padding:10px 14px;">
         <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();editExpense('${e.id}')">✏️</button>
         <button class="btn btn-danger btn-sm" style="margin-left:4px;" onclick="event.stopPropagation();deleteExpense('${e.id}')">🗑</button>
@@ -1147,7 +1117,7 @@ function renderVendors(){
     return;
   }
   tbody.innerHTML = vl.map(v=>{
-    const vExps = exps.filter(e=>e.vendor===v.name);
+    const vExps = exps.filter(e=>e.vendor===v.name && !isGrantEntry(e));
     const total = vExps.reduce((s,e)=>s+Number(e.amount||0),0);
     return `<tr>
       <td style="padding:10px 14px;font-weight:700;color:var(--slate-100);">${escHtml(v.name)}</td>
@@ -1169,7 +1139,7 @@ function renderVendors(){
 //  REPORTS
 // ══════════════════════════════════════════
 function renderReports(){
-  const exps = fyExpenses().filter(e=>e.status!=='Rejected');
+  const exps = fyExpenses().filter(e=>e.status!=='Rejected' && !isGrantEntry(e));
   const total= exps.reduce((s,e)=>s+Number(e.amount||0),0);
 
   // Monthly
@@ -1237,7 +1207,7 @@ function renderReports(){
         <td style="padding:10px 14px;font-weight:600;color:var(--slate-100);">${escHtml(e.item)}</td>
         <td style="padding:10px 14px;">${catBadge(e.category)}</td>
         <td style="padding:10px 14px;color:var(--slate-400);">${escHtml(e.vendor||'—')}</td>
-        <td style="padding:10px 14px;text-align:right;" class="td-amount expense">${fmt(e.amount)}</td>
+        <td style="padding:10px 14px;text-align:right;" class="td-amount ${isGrantEntry(e)?'income':'expense'}">${isGrantEntry(e)?'+':''}${fmt(e.amount)}</td>
       </tr>`).join('')
     : `<tr><td colspan="5"><div class="empty-state"><div class="es-icon">🏆</div><div class="es-title">No data</div></div></td></tr>`;
 }
@@ -1277,8 +1247,14 @@ function openExpenseModal(id=null){
     document.getElementById('ef-receipt').value   = '';
   }
   modal.classList.add('open');
+  onExpCategoryChange();
 }
 function saveExpense(){
+  // A Grants entry raises the budget, so (like setting allocations) it needs an Admin account.
+  if(document.getElementById('ef-category').value==='Grants' && !(window.MFD_AUTH && window.MFD_AUTH.role==='admin')){
+    alert('Only Admin accounts can add or change Grants entries, because they change the budget. Ask your department Admin.');
+    return;
+  }
   const date     = document.getElementById('ef-date').value;
   const category = document.getElementById('ef-category').value;
   const item     = document.getElementById('ef-item').value.trim();
@@ -1329,7 +1305,7 @@ function openDetail(id){
       ${dRow('Category', catBadge(e.category))}
       ${dRow('Item / Description', `<span style="font-weight:700;color:var(--slate-100);">${escHtml(e.item)}</span>`)}
       ${dRow('Vendor', escHtml(e.vendor||'—'))}
-      ${dRow('Amount', `<span style="font-size:18px;font-weight:900;color:var(--fire-400);">${fmt(e.amount)}</span>`)}
+      ${dRow(isGrantEntry(e)?'Amount (grant received)':'Amount', `<span style="font-size:18px;font-weight:900;color:var(${isGrantEntry(e)?'--green-400':'--fire-400'});">${isGrantEntry(e)?'+':''}${fmt(e.amount)}</span>`)}
       ${dRow('Payment Method', methodBadge(e.method))}
       ${dRow('Status', statusBadge(e.status))}
       ${dRow('PO / Ref #', escHtml(e.po||'—'))}
@@ -1362,7 +1338,7 @@ function openBudgetModal(){
         ${CATEGORIES.map(cat=> cat==='Grants' ? `
           <div class="form-group">
             <label class="label">${CAT_ICONS[cat]} ${cat} <span style="font-weight:400;color:var(--navy-500);">(automatic)</span></label>
-            <input type="text" class="input" id="ba-${cat}" value="${fmt(grantsTotal())}" disabled title="Adds up automatically from the Grants Received log on this page"/>
+            <input type="text" class="input" id="ba-${cat}" value="${fmt(grantsTotal())}" disabled title="Adds up automatically from Expenses entered under the Grants category"/>
           </div>` : `
           <div class="form-group">
             <label class="label">${CAT_ICONS[cat]} ${cat}</label>
@@ -1385,79 +1361,39 @@ function saveBudgetAllocations(){
 }
 
 // ══════════════════════════════════════════
-//  GRANTS RECEIVED
+//  GRANTS RECEIVED  (Expenses entered under the Grants category)
 // ══════════════════════════════════════════
-let editingGrantId = null;
-
-function fyGrantsSorted(){
-  return [...(db.grants||[])].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-}
 function renderGrants(){
   const tb = document.getElementById('grants-tbody');
   if(!tb) return;
-  const list = fyGrantsSorted();
+  const list = [...grantEntries()].sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   if(!list.length){
-    tb.innerHTML = `<tr><td colspan="5" style="padding:22px 14px;text-align:center;color:var(--navy-500);font-size:12px;">No grants logged for ${fyLabel(db.fiscalYear)} yet. Use “Add Grant” when one comes in and it will add to the Grants line automatically.</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="5" style="padding:22px 14px;text-align:center;color:var(--navy-500);font-size:12px;">No grants for ${fyLabel(db.fiscalYear)} yet. Use “Add Grant” (or log an Expense under the Grants category) and it will add to the Grants line automatically.</td></tr>`;
   } else {
-    tb.innerHTML = list.map(g=>`<tr>
-      <td style="padding:10px 14px;white-space:nowrap;font-size:12px;color:var(--slate-400);">${fmtDate(g.date)}</td>
-      <td style="padding:10px 14px;"><div class="td-item">${escHtml(g.grantor)}</div></td>
-      <td style="padding:10px 14px;font-size:12px;color:var(--slate-400);">${escHtml(g.notes||'')}</td>
-      <td style="padding:10px 14px;text-align:right;" class="td-amount income">${fmt(g.amount)}</td>
-      <td style="padding:10px 14px;text-align:right;white-space:nowrap;">
-        <button class="btn btn-ghost btn-sm" onclick="editGrant('${g.id}')">Edit</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteGrant('${g.id}')">Delete</button>
-      </td>
+    tb.innerHTML = list.map(e=>`<tr onclick="openDetail('${e.id}')" style="cursor:pointer;">
+      <td style="padding:10px 14px;white-space:nowrap;font-size:12px;color:var(--slate-400);">${fmtDate(e.date)}</td>
+      <td style="padding:10px 14px;" class="td-vendor">${escHtml(e.vendor||'—')}</td>
+      <td style="padding:10px 14px;"><div class="td-item">${escHtml(e.item)}</div></td>
+      <td style="padding:10px 14px;">${statusBadge(e.status)}</td>
+      <td style="padding:10px 14px;text-align:right;" class="td-amount income">+${fmt(e.amount)}</td>
     </tr>`).join('');
   }
   document.getElementById('grants-total').textContent = fmt(grantsTotal());
 }
-function openGrantModal(id=null){
-  // Logging a grant changes the budget, so it is an Admin action like setting allocations.
+// Shortcut: opens the normal expense form already set up as a grant.
+function openGrantEntry(){
   requireUnlock(()=>{
-    editingGrantId = id;
-    const g = id ? (db.grants||[]).find(x=>x.id===id) : null;
-    document.getElementById('grant-modal-title').textContent = g ? 'Edit Grant' : 'Add Grant';
-    document.getElementById('gf-date').value    = g ? g.date : new Date().toISOString().slice(0,10);
-    document.getElementById('gf-amount').value  = g ? g.amount : '';
-    document.getElementById('gf-grantor').value = g ? g.grantor : '';
-    document.getElementById('gf-notes').value   = g ? (g.notes||'') : '';
-    document.getElementById('grant-modal').classList.add('open');
+    openExpenseModal();
+    document.getElementById('ef-category').value = 'Grants';
+    document.getElementById('ef-method').value   = 'Grant Funded';
+    document.getElementById('ef-status').value   = 'Paid';
+    onExpCategoryChange();
   });
 }
-function editGrant(id){ openGrantModal(id); }
-function saveGrant(){
-  requireUnlock(()=>{
-    const date    = document.getElementById('gf-date').value;
-    const amount  = parseFloat(document.getElementById('gf-amount').value);
-    const grantor = document.getElementById('gf-grantor').value.trim();
-    const notes   = document.getElementById('gf-notes').value.trim();
-    if(!date){ alert('Enter the date the grant was received.'); return; }
-    if(!(amount>0)){ alert('Enter a grant amount greater than $0.'); return; }
-    if(!grantor){ alert('Enter the grantor / source.'); return; }
-    const fy = db.fiscalYear;
-    if(date < `${fy}-07-01` || date > `${fy+1}-06-30`){
-      alert(`That date is outside ${fyLabel(fy)} (Jul 1 – Jun 30). Switch the fiscal year at the top, or fix the date.`);
-      return;
-    }
-    if(!db.grants) db.grants=[];
-    const now = new Date().toISOString();
-    if(editingGrantId){
-      const g = db.grants.find(x=>x.id===editingGrantId);
-      if(g){ g.date=date; g.amount=amount; g.grantor=grantor; g.notes=notes; g.updatedAt=now; }
-    } else {
-      db.grants.push({id:uid(), date, amount, grantor, notes, createdAt:now, updatedAt:now});
-    }
-    editingGrantId = null;
-    save(); closeModal('grant-modal'); toast('Grant saved — Grants budget updated','success'); refreshAll();
-  });
-}
-function deleteGrant(id){
-  requireUnlock(()=>{
-    if(!confirm('Delete this grant? The Grants budget line will go down by this amount.')) return;
-    db.grants = (db.grants||[]).filter(g=>g.id!==id);
-    save(); toast('Grant deleted','info'); refreshAll();
-  });
+// Hint under the category dropdown when Grants is chosen.
+function onExpCategoryChange(){
+  const h = document.getElementById('ef-grant-hint');
+  if(h) h.style.display = document.getElementById('ef-category').value==='Grants' ? 'block' : 'none';
 }
 
 // ── Phone formatting (matches the Roster app's mask: live (xxx) xxx-xxxx) ──
