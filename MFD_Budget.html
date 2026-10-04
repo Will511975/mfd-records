@@ -406,6 +406,8 @@ select.input option{background:var(--navy-800);}
           <button class="filter-btn" onclick="setExpFilter('Wildland Supplies',this)">🌲 Wildland Supplies</button>
           <button class="filter-btn" onclick="setExpFilter('Wages',this)">💰 Wages</button>
           <button class="filter-btn" onclick="setExpFilter('Grants',this)">🏛️ Grants</button>
+          <button class="filter-btn" onclick="setExpFilter('Fire Engine',this)">🚒 Fire Engine</button>
+          <button class="filter-btn" onclick="setExpFilter('Fire - Other',this)">🧯 Fire - Other</button>
         </div>
         <input class="search-input" type="text" placeholder="Search expenses…" id="exp-search" oninput="renderExpenses()">
         <button class="btn btn-primary btn-sm" onclick="openExpenseModal()">➕ Add</button>
@@ -586,6 +588,8 @@ select.input option{background:var(--navy-800);}
             <option>Wildland Supplies</option>
             <option>Wages</option>
             <option>Grants</option>
+            <option>Fire Engine</option>
+            <option>Fire - Other</option>
           </select>
         </div>
         <div class="form-group span2">
@@ -691,6 +695,7 @@ select.input option{background:var(--navy-800);}
             <option>Phone & Radio</option><option>Fuel</option><option>Vehicle Maintenance</option>
             <option>Education</option><option>EMS Supplies</option><option>Fire Supplies</option>
             <option>Wildland Supplies</option><option>Wages</option><option>Grants</option>
+            <option>Fire Engine</option><option>Fire - Other</option>
           </select>
         </div>
         <div class="form-group">
@@ -748,13 +753,14 @@ select.input option{background:var(--navy-800);}
 // ══════════════════════════════════════════
 //  DATA MODEL
 // ══════════════════════════════════════════
-const CATEGORIES = ['Utilities','Supplies & Materials','Membership & Dues','Phone & Radio','Fuel','Vehicle Maintenance','Education','EMS Supplies','Fire Supplies','Wildland Supplies','Wages','Grants'];
-const CAT_ICONS  = {'Utilities':'💡','Supplies & Materials':'📦','Membership & Dues':'🏅','Phone & Radio':'📡','Fuel':'⛽','Vehicle Maintenance':'🔧','Education':'📚','EMS Supplies':'🚑','Fire Supplies':'🔥','Wildland Supplies':'🌲','Wages':'💰','Grants':'🏛️'};
+const CATEGORIES = ['Utilities','Supplies & Materials','Membership & Dues','Phone & Radio','Fuel','Vehicle Maintenance','Education','EMS Supplies','Fire Supplies','Wildland Supplies','Wages','Grants','Fire Engine','Fire - Other'];
+const CAT_ICONS  = {'Utilities':'💡','Supplies & Materials':'📦','Membership & Dues':'🏅','Phone & Radio':'📡','Fuel':'⛽','Vehicle Maintenance':'🔧','Education':'📚','EMS Supplies':'🚑','Fire Supplies':'🔥','Wildland Supplies':'🌲','Wages':'💰','Grants':'🏛️','Fire Engine':'🚒','Fire - Other':'🧯'};
 const CAT_COLORS = {
   'Utilities':'#f59e0b', 'Supplies & Materials':'#64748b', 'Membership & Dues':'#a855f7',
   'Phone & Radio':'#3b82f6', 'Fuel':'#f97316', 'Vehicle Maintenance':'#ef4444',
   'Education':'#14b8a6', 'EMS Supplies':'#10b981', 'Fire Supplies':'#dc2626',
-  'Wildland Supplies':'#65a30d', 'Wages':'#eab308', 'Grants':'#22c55e'
+  'Wildland Supplies':'#65a30d', 'Wages':'#eab308', 'Grants':'#22c55e',
+  'Fire Engine':'#b91c1c', 'Fire - Other':'#fb923c'
 };
 const METHOD_BADGES = {
   'Purchase Order':'badge-po','Credit Card':'badge-credit-card',
