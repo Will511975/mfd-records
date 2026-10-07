@@ -261,9 +261,18 @@
     <div class="backup-status" id="backupStatus"></div>
   </div>
 
+  <div class="backup-bar" style="border-left-color: var(--navy-600);">
+    <div class="backup-bar-text">
+      <div class="backup-title">Download Page Files</div>
+      <div class="backup-sub">Downloads a copy of every page and script that runs this site (.html and .js files). These are the program itself, not your saved data &mdash; use Backup All for the data.</div>
+    </div>
+    <button class="backup-btn" id="btnDownloadPages" data-mfd-locked="skip">&#11015; Download Pages (.html)</button>
+    <div class="backup-status" id="pagesStatus"></div>
+  </div>
+
   <div class="restore-bar">
     <div class="restore-title">Restore From Backup</div>
-    <div class="restore-sub">Drag one or more .json backup files here to load them back into this browser. The combined apparatus file and the combined Roster &amp; Time Card file are matched by their contents; every other module is matched by filename &mdash; use files straight from Backup All or a module's own Export button.</div>
+    <div class="restore-sub">Drag one or more .json backup files here to load them back into this browser. The combined apparatus file and the combined Roster &amp; Time Card file are matched by their contents; every other module is matched by filename &mdash; use files straight from Backup All or a module's own Export button. (Page files are not restored here &mdash; they are re-published through GitHub.)</div>
     <div class="dropzone" id="dropzone">
       <div>&#11014; <strong>Drag .json files here</strong>, or click to choose</div>
     </div>
@@ -397,6 +406,56 @@ document.getElementById('btnBackupAll').addEventListener('click', ()=>{
 
   statusEl.textContent = `Downloading ${downloads.length} file${downloads.length===1?'':'s'}: ` +
     downloads.map(d=>d.filename).join(', ');
+});
+
+/* ---------- Download Page Files ----------
+   Fetches each page/script of the site from the same place this page was
+   loaded from and saves it as a file, so a full copy of the program can be
+   kept alongside the data backups. Always asks the server for the current
+   version (no cache), so the copy matches what is live. */
+const PAGE_FILES = [
+  'index.html',
+  'MFD_Backup.html',
+  'MFD_RosterTimecards.html',
+  'MFD_Budget.html',
+  'MFD_AllApparatus.html',
+  'MFD_RentalInspections.html',
+  'mfd-sync.js',
+  'mfdauth.js',
+];
+document.getElementById('btnDownloadPages').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('pagesStatus');
+  statusEl.textContent = 'Collecting page files…';
+  const got = [];
+  const missing = [];
+  for(const name of PAGE_FILES){
+    try{
+      const res = await fetch(name + '?nocache=' + Date.now(), { cache:'no-store' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      got.push({ name, blob: await res.blob() });
+    }catch(err){
+      missing.push(name);
+    }
+  }
+  if(got.length === 0){
+    statusEl.textContent = "Couldn't read the page files. Open this page from the website (not from a saved copy on this computer) and try again.";
+    return;
+  }
+  // Stagger so browsers don't block a burst of simultaneous downloads.
+  got.forEach((f, i)=>{
+    setTimeout(()=>{
+      const url = URL.createObjectURL(f.blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = f.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, i * 300);
+  });
+  let msg = `Downloading ${got.length} file${got.length===1?'':'s'}: ` + got.map(f=>f.name).join(', ');
+  if(missing.length) msg += '\nCould not read: ' + missing.join(', ') + '.';
+  statusEl.textContent = msg;
 });
 
 /* ---------- Restore From Backup (drag & drop or click-to-choose) ----------
