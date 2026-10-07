@@ -382,6 +382,12 @@ document.getElementById('btnBackupAll').addEventListener('click', ()=>{
     downloads.push({ filename:'MFD_RentalInspections-'+stamp+'.json', data: JSON.parse(rentalInspections) });
   }
 
+  // Supply Locker — one object ({ lockers, history }) saved under a single key.
+  const supplyLocker = localStorage.getItem('mfd_supplylocker_v1');
+  if(supplyLocker){
+    downloads.push({ filename:'MFD_SupplyLocker-'+stamp+'.json', data: JSON.parse(supplyLocker) });
+  }
+
   const statusEl = document.getElementById('backupStatus');
   if(downloads.length === 0){
     statusEl.textContent = 'No saved data found in this browser yet — open a module and make a change first, then come back and back it up.';
@@ -420,6 +426,7 @@ const PAGE_FILES = [
   'MFD_Budget.html',
   'MFD_AllApparatus.html',
   'MFD_RentalInspections.html',
+  'MFD_SupplyLocker.html',
   'business_restaurant_comparison.html',
   'mfd-sync.js',
   'mfdauth.js',
@@ -614,6 +621,15 @@ function handleRestoreFiles(fileList){
       // oldest mantua-timecards.json.
       if(/^(?:MFD_)?Timecards-\d{6}\.json$/i.test(name) || /^mantua_fd_data_\d{4}-\d{2}-\d{2}\.json$/i.test(name) || name === 'mantua-timecards.json'){
         plan.push({ key:'mantua_fd_timecards_v1', value:r.parsed, label:'timecards' });
+        return;
+      }
+
+      // Supply Locker — MFD_SupplyLocker-YYMMDD.json (Backup All). Detected by
+      // content (an object with a "lockers" array whose entries carry "doors")
+      // rather than filename alone, so a renamed file still restores.
+      if(r.parsed && typeof r.parsed === 'object' && !Array.isArray(r.parsed) && Array.isArray(r.parsed.lockers) &&
+         r.parsed.lockers.every(l=> l && Array.isArray(l.doors))){
+        plan.push({ key:'mfd_supplylocker_v1', value:r.parsed, label:'supply locker' });
         return;
       }
 

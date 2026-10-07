@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MFD Supply Locker</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --navy-950:#080e1e;--navy-900:#0f172a;--navy-800:#1e293b;--navy-700:#334155;--navy-600:#475569;
+    --red-600:#dc2626;--red-500:#ef4444;--gold-500:#f59e0b;--gold-400:#fbbf24;
+    --ink-100:#f1f5f9;--ink-300:#cbd5e1;--ink-500:#94a3b8;--ok-500:#22c55e;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--navy-950);color:var(--ink-100);font-family:'Inter',system-ui,sans-serif;}
+  button{font-family:inherit;}
+
+
+  header{background:linear-gradient(180deg,var(--navy-900),var(--navy-950));border-bottom:3px solid var(--red-600);}
+  .header-inner{padding:14px 24px;display:flex;align-items:center;gap:14px;}
+  .header-shield{flex-shrink:0;width:38px;height:44px;}
+  .header-text-block{flex:1;}
+  .header-dept{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-500);}
+  .header-title{font-size:17px;font-weight:900;line-height:1.2;}
+  .header-subtitle{font-size:11px;color:var(--red-600);font-weight:600;margin-top:2px;}
+  .header-back{padding:6px 14px;border-radius:7px;background:rgba(255,255,255,.05);border:1px solid var(--navy-700);color:var(--ink-500);font-size:12px;font-weight:600;text-decoration:none;}
+
+  .tab-bar{display:flex;gap:4px;padding:0 24px;background:var(--navy-900);border-bottom:1px solid var(--navy-700);}
+  .tab-btn{background:none;border:none;border-bottom:3px solid transparent;color:var(--ink-500);font-size:13px;font-weight:700;padding:12px 16px;cursor:pointer;}
+  .tab-btn.active{color:var(--ink-100);border-bottom-color:var(--red-600);}
+
+  .stat-strip{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:14px 24px 0;}
+  .stat-chip{background:var(--navy-800);border:1px solid var(--navy-600);border-radius:6px;padding:8px 14px;min-width:88px;text-align:center;}
+  .stat-chip .num{font-size:22px;font-weight:800;color:var(--gold-500);line-height:1;}
+  .stat-chip .lbl{font-size:9px;letter-spacing:.1em;color:var(--ink-500);text-transform:uppercase;margin-top:3px;}
+  .stat-chip.ok .num{color:var(--ok-500);} .stat-chip.missing .num{color:var(--red-500);}
+  .last-insp{font-size:12px;color:var(--ink-500);margin-left:6px;}
+
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;padding:12px 24px;}
+  .util{background:var(--navy-800);color:var(--ink-300);border:1px solid var(--navy-600);border-radius:6px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;}
+  .util:hover{border-color:var(--gold-500);color:var(--gold-400);}
+  .util.accent{background:var(--red-600);border-color:var(--red-600);color:#fff;}
+  .util.danger{color:#f87171;}
+  .fill{flex:1;}
+
+  .wrap{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,1fr);gap:18px;padding:0 24px 40px;}
+  @media (max-width:860px){.wrap{grid-template-columns:1fr;}}
+
+  .diagram-pane,.panel{background:var(--navy-900);border:1px solid var(--navy-700);border-radius:10px;padding:16px;}
+  .diagram-caption{font-size:11px;color:var(--ink-500);margin-bottom:12px;}
+
+  /* Locker cabinets: 2 lockers, each with 2 doors, 3 shelves behind each door */
+  .lockers-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media (max-width:560px){.lockers-row{grid-template-columns:1fr;}}
+  .cabinet-label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-300);margin:0 0 8px;text-align:center;}
+  .cabinet{background:var(--navy-800);border:3px solid var(--navy-600);border-radius:8px 8px 4px 4px;padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;position:relative;}
+  .cabinet::after{content:"";position:absolute;left:-3px;right:-3px;bottom:-9px;height:6px;background:var(--navy-700);border-radius:0 0 4px 4px;}
+  .door{position:relative;height:340px;border-radius:4px;border:2px solid var(--navy-600);background:var(--navy-700);cursor:pointer;
+    display:flex;flex-direction:column;padding:8px 8px 8px;gap:6px;transition:.15s;}
+  .door:hover{border-color:var(--gold-500);transform:translateY(-1px);}
+  .door.selected{border-color:var(--ink-100);box-shadow:0 0 0 2px var(--red-600);}
+  .door.complete{border-color:rgba(34,197,94,.7);background:rgba(34,197,94,.13);}
+  .door.partial{border-color:rgba(245,158,11,.75);background:rgba(245,158,11,.11);}
+  .door.low{border-color:rgba(239,68,68,.8);background:rgba(239,68,68,.13);}
+  .door .dname{font-size:11px;font-weight:800;text-align:center;letter-spacing:.04em;}
+  .door .handle{position:absolute;top:50%;width:5px;height:46px;border-radius:3px;background:rgba(255,255,255,.35);transform:translateY(-50%);}
+  .door.left .handle{right:5px;} .door.right .handle{left:5px;}
+  .shelf{flex:1;border-radius:3px;background:rgba(0,0,0,.28);border-bottom:4px solid rgba(255,255,255,.2);
+    display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:10px;color:var(--ink-300);padding:2px 14px;text-align:center;line-height:1.35;}
+  .shelf b{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-500);}
+  .shelf .cnt{font-weight:700;color:var(--ink-100);}
+  .shelf.ok .cnt{color:var(--ok-500);} .shelf.part .cnt{color:var(--gold-400);} .shelf.low .cnt{color:var(--red-500);}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink-500);margin-top:20px;}
+  .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
+  .legend .l-ok::before{background:var(--ok-500);} .legend .l-part::before{background:var(--gold-500);} .legend .l-low::before{background:var(--red-500);}
+
+  /* Panel */
+  .panel-empty{text-align:center;color:var(--ink-500);font-size:13px;padding:50px 10px;line-height:1.6;}
+  .panel-empty .big{font-size:40px;display:block;margin-bottom:8px;}
+  .panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;}
+  .panel-head h2{margin:0;font-size:17px;font-weight:900;}
+  .panel-head .sub{font-size:11px;color:var(--ink-500);margin-top:2px;}
+  .pill{font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;background:var(--navy-800);border:1px solid var(--navy-600);white-space:nowrap;}
+  .section-label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-500);margin:16px 0 8px;}
+  .item-row{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--navy-800);border:1px solid var(--navy-700);border-radius:6px;margin-bottom:6px;font-size:13.5px;}
+  .item-row.missing{border-color:rgba(239,68,68,.55);}
+  .item-row input[type=checkbox]{width:17px;height:17px;accent-color:var(--ok-500);flex-shrink:0;}
+  .item-row .nm{flex:1;}
+  .item-row .qty{font-size:11px;font-weight:700;color:var(--ink-300);background:var(--navy-900);border:1px solid var(--navy-600);border-radius:5px;padding:2px 8px;}
+  .shelf-head{display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--navy-700);}
+  .shelf-head h3{margin:0;font-size:13px;font-weight:800;}
+  .shelf-head span{font-size:11px;color:var(--ink-500);font-weight:600;}
+  .container{background:var(--navy-800);border:1px solid var(--navy-700);border-left:4px solid var(--gold-500);border-radius:6px;padding:10px 12px;margin-bottom:8px;}
+  .container .ch{display:flex;justify-content:space-between;font-size:13.5px;font-weight:700;margin-bottom:6px;}
+  .container .ch span{font-size:11px;color:var(--ink-500);font-weight:600;}
+  .container .contents{font-size:12px;color:var(--ink-300);line-height:1.6;}
+  .add-row{display:flex;gap:6px;margin-top:8px;}
+  .add-row input{flex:1;background:var(--navy-800);border:1px solid var(--navy-600);border-radius:6px;color:var(--ink-100);padding:7px 10px;font-size:13px;}
+  .add-row button{background:var(--navy-700);color:var(--ink-100);border:1px solid var(--navy-600);border-radius:6px;padding:7px 14px;font-weight:700;cursor:pointer;}
+  .notes-block label{display:block;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-500);margin:16px 0 6px;}
+  .notes-block textarea{width:100%;min-height:64px;background:var(--navy-800);border:1px solid var(--navy-600);border-radius:6px;color:var(--ink-100);padding:8px 10px;font-family:inherit;font-size:13px;resize:vertical;}
+  .delete-btn{margin-top:14px;background:none;border:1px solid rgba(239,68,68,.5);color:#f87171;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;}
+
+  .saved-flag{position:fixed;right:18px;bottom:18px;background:var(--ok-500);color:#04210f;font-size:12px;font-weight:800;padding:6px 12px;border-radius:99px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:50;}
+  .saved-flag.show{opacity:1;}
+  .item-row .del{background:none;border:none;color:#f87171;font-size:16px;cursor:pointer;padding:0 4px;line-height:1;}
+  .item-row .qty-in{width:58px;background:var(--navy-900);border:1px solid var(--navy-600);border-radius:5px;color:var(--ink-100);padding:3px 6px;font-size:12px;font-weight:700;text-align:center;}
+  .container .cdel{background:none;border:none;color:#f87171;font-size:12px;cursor:pointer;margin-left:8px;}
+  .add-container-form{display:none;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .add-container-form.show{display:flex;}
+  .add-container-form input,.add-container-form select{background:var(--navy-800);border:1px solid var(--navy-600);border-radius:6px;color:var(--ink-100);padding:7px 10px;font-size:13px;}
+  .add-container-form input{flex:1;min-width:120px;}
+  .rename-btn{background:none;border:1px solid var(--navy-600);color:var(--ink-500);border-radius:6px;font-size:11px;font-weight:700;padding:3px 8px;cursor:pointer;margin-top:6px;}
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;z-index:100;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:var(--navy-900);border:1px solid var(--navy-600);border-radius:10px;max-width:640px;width:100%;padding:18px 20px;}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .modal-head h2{margin:0;font-size:16px;font-weight:900;}
+  .hist-rec{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:6px;padding:10px 12px;margin-bottom:8px;font-size:13px;}
+  .hist-rec .top{display:flex;justify-content:space-between;gap:10px;font-weight:700;}
+  .hist-rec .miss{font-size:12px;color:var(--ink-300);margin-top:6px;line-height:1.5;}
+  .print-only{display:none;}
+  @media print{
+    body{background:#fff;color:#000;}
+    .no-print{display:none !important;}
+    .print-only{display:block !important;font-family:Arial,sans-serif;color:#000;padding:10px;}
+    .print-only h1{font-size:20px;margin:0 0 2px;} .print-only .meta{font-size:12px;margin-bottom:14px;}
+    .print-only h2{font-size:14px;margin:14px 0 4px;border-bottom:2px solid #000;padding-bottom:2px;}
+    .print-only h3{font-size:12px;margin:8px 0 2px;}
+    .print-only table{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:4px;}
+    .print-only td,.print-only th{border:1px solid #000;padding:3px 6px;text-align:left;}
+  }
+</style>
+</head>
+<body>
+<div id="mfdAuthGate"></div>
+<div id="mfdAppContent" style="display:none;">
+
+<div class="no-print">
+<header>
+  <div class="header-inner">
+    <svg class="header-shield" viewBox="0 0 64 74" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 2 L60 14 L60 36 C60 54 32 72 32 72 C32 72 4 54 4 36 L4 14 Z" fill="rgba(220,38,38,0.15)" stroke="rgba(220,38,38,0.5)" stroke-width="1.5"/>
+      <path d="M32 56 C24 52 20 44 24 36 C26 40 30 38 29 32 C33 36 35 30 32 24 C38 28 42 36 40 44 C44 40 44 34 42 30 C48 36 50 46 44 54 C42 58 36 60 32 56Z" fill="rgba(248,113,113,0.85)"/>
+    </svg>
+    <div class="header-text-block">
+      <div class="header-dept">Mantua Township</div>
+      <div class="header-title">&#128452; Supply Locker</div>
+      <div class="header-subtitle">Locker Inventory</div>
+    </div>
+    <a href="index.html" class="header-back">&larr; Back to Hub</a>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active">&#128452; Lockers</button>
+</div>
+
+<div class="stat-strip">
+  <div class="stat-chip"><div class="num" id="sTotal">0</div><div class="lbl">Items</div></div>
+  <div class="stat-chip ok"><div class="num" id="sPresent">0</div><div class="lbl">Stocked</div></div>
+  <div class="stat-chip missing"><div class="num" id="sMissing">0</div><div class="lbl">Needed</div></div>
+  <div class="stat-chip"><div class="num" id="sPct">0%</div><div class="lbl">Complete</div></div>
+  <div class="last-insp" id="lastCheck">No checks recorded yet</div>
+</div>
+
+<div class="toolbar">
+  <button class="util accent" id="btnQuickCheck" data-mfd-locked="skip">&#128269; Quick Check</button>
+  <button class="util" id="btnHistory" data-mfd-locked="skip">&#128339; Check History</button>
+  <button class="util" id="btnPrint" data-mfd-locked="skip">&#128424; Print List</button>
+  <div class="fill"></div>
+  <button class="util danger" id="btnReset" data-mfd-verb="reset">&#8634; Reset to Defaults</button>
+</div>
+
+<div class="wrap">
+  <div class="diagram-pane">
+    <div class="diagram-caption">Two lockers &middot; each has two doors and three shelves behind each door &middot; click a door to open its shelves</div>
+    <div class="lockers-row" id="lockersRow"></div>
+    <div class="legend"><span class="l-ok">Fully stocked</span><span class="l-part">Partly stocked</span><span class="l-low">Needs restock</span></div>
+  </div>
+  <div class="panel">
+    <div class="panel-empty" id="panelEmpty"><span class="big">&#128452;</span>Select a locker door<br>to view and check what is on its shelves.</div>
+    <div id="panelContent" style="display:none;"></div>
+  </div>
+</div>
+</div>
+
+<div class="modal-overlay" id="historyModal">
+  <div class="modal">
+    <div class="modal-head"><h2>Check History</h2><button class="util" id="btnCloseHistory" data-mfd-locked="skip">Close</button></div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<div class="print-only" id="printArea"></div>
+<div class="saved-flag" id="savedFlag">&#10003; Saved</div>
+
+<script>
+/* ---------- Supply Locker ----------
+   Layout is fixed: 2 lockers x 2 doors x 3 shelves. Each shelf holds loose
+   items (name, quantity, stocked yes/no) and optional bags/kits/sets.
+   Saved in localStorage under "mfd_supplylocker_v1" - the "mfd_" prefix is
+   what makes mfd-sync.js mirror it to the shared database automatically. */
+const STORAGE_KEY = 'mfd_supplylocker_v1';
+const uid = ()=> Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+function defaultData(){
+  return {
+    version: 1,
+    lockers: [1,2].map(n=>({
+      id:'L'+n, name:'Locker '+n,
+      doors: ['Left Door','Right Door'].map((dn,di)=>({
+        id:'L'+n+'D'+(di+1), name:dn, notes:'',
+        shelves: [0,1,2].map(()=>({ items:[], containers:[] }))
+      }))
+    })),
+    history: []
+  };
+}
+/* Rebuilds anything missing or malformed (e.g. from an older/partial backup)
+   so the page can never crash on bad saved data. */
+function normalize(raw){
+  const base = defaultData();
+  if(!raw || typeof raw !== 'object') return base;
+  base.lockers.forEach((L,li)=>{
+    const rl = Array.isArray(raw.lockers) ? raw.lockers[li] : null;
+    if(!rl) return;
+    if(typeof rl.name === 'string' && rl.name.trim()) L.name = rl.name.trim();
+    L.doors.forEach((D,di)=>{
+      const rd = Array.isArray(rl.doors) ? rl.doors[di] : null;
+      if(!rd) return;
+      if(typeof rd.name === 'string' && rd.name.trim()) D.name = rd.name.trim();
+      if(typeof rd.notes === 'string') D.notes = rd.notes;
+      D.shelves.forEach((S,si)=>{
+        const rs = Array.isArray(rd.shelves) ? rd.shelves[si] : null;
+        if(!rs) return;
+        if(Array.isArray(rs.items)) S.items = rs.items.filter(i=>i && typeof i.name==='string').map(i=>({
+          id: i.id || uid(), name:i.name, qty: Math.max(0, parseInt(i.qty)||0), present: i.present ? 1 : 0 }));
+        if(Array.isArray(rs.containers)) S.containers = rs.containers.filter(c=>c && typeof c.name==='string').map(c=>({
+          id: c.id || uid(), name:c.name, type:['bag','kit','set'].includes(c.type)?c.type:'set', contents: String(c.contents||'') }));
+      });
+    });
+  });
+  if(Array.isArray(raw.history)) base.history = raw.history.slice(0,100);
+  return base;
+}
+function load(){
+  try{ const r = localStorage.getItem(STORAGE_KEY); if(r) return normalize(JSON.parse(r)); }
+  catch(e){ console.warn('Could not load supply locker data', e); }
+  return defaultData();
+}
+let data = load();
+function flashSaved(){
+  const f = document.getElementById('savedFlag'); f.classList.add('show');
+  clearTimeout(flashSaved._t); flashSaved._t = setTimeout(()=>f.classList.remove('show'), 1200);
+}
+function save(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); flashSaved(); }
+  catch(e){ console.warn('Could not save supply locker data', e); alert('Could not save - browser storage may be full or blocked.'); }
+}
+
+/* Structural changes (adding/removing items, bags/kits/sets, renaming, reset)
+   are Admin-only, same rule as the Apparatus Inventory. Ticking items stocked,
+   changing quantities, notes, checks and printing are open to any signed-in account. */
+function requireUnlock(action){
+  if(window.MFD_AUTH && window.MFD_AUTH.role === 'admin'){ action(); return; }
+  alert('Only Admin accounts can make this change. Ask your department Admin to make this change, or to upgrade your account.');
+}
+const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+let sel = null;   // {l, d} indices
+const row = document.getElementById('lockersRow');
+const panelEmpty = document.getElementById('panelEmpty');
+const panel = document.getElementById('panelContent');
+
+const cnt = items => ({ t:items.length, p:items.filter(i=>i.present).length });
+const cls = c => c.t===0 ? '' : c.p===c.t ? 'complete' : (c.p/c.t>=.5 ? 'partial' : 'low');
+const shelfCls = c => c.t===0 ? '' : c.p===c.t ? 'ok' : (c.p/c.t>=.5 ? 'part' : 'low');
+const doorItems = d => d.shelves.flatMap(s=>s.items);
+const allItems = ()=> data.lockers.flatMap(L=>L.doors.flatMap(doorItems));
+
+function renderRow(){
+  row.innerHTML = data.lockers.map((L,li)=>`
+    <div><div class="cabinet-label">${esc(L.name)}</div>
+    <div class="cabinet">${L.doors.map((D,di)=>{
+      const c = cnt(doorItems(D));
+      return `<div class="door ${di===0?'left':'right'} ${cls(c)} ${sel&&sel.l===li&&sel.d===di?'selected':''}" data-l="${li}" data-d="${di}">
+        <div class="dname">${esc(D.name)}</div>
+        ${D.shelves.map((S,si)=>{ const k=cnt(S.items); return `<div class="shelf ${shelfCls(k)}"><b>Shelf ${si+1}</b><span class="cnt">${k.t?k.p+' / '+k.t:'empty'}</span></div>`; }).join('')}
+        <div class="handle"></div></div>`;
+    }).join('')}</div></div>`).join('');
+  row.querySelectorAll('.door').forEach(el=> el.onclick = ()=>{ sel = { l:+el.dataset.l, d:+el.dataset.d }; renderAll(); });
+}
+function renderStats(){
+  const c = cnt(allItems());
+  document.getElementById('sTotal').textContent = c.t;
+  document.getElementById('sPresent').textContent = c.p;
+  document.getElementById('sMissing').textContent = c.t - c.p;
+  document.getElementById('sPct').textContent = (c.t ? Math.round(100*c.p/c.t) : 0) + '%';
+  const last = data.history[0];
+  document.getElementById('lastCheck').textContent = last
+    ? 'Last check: ' + new Date(last.date).toLocaleDateString() + ' by ' + last.by
+    : 'No checks recorded yet';
+}
+function renderPanel(){
+  if(!sel){ panelEmpty.style.display=''; panel.style.display='none'; return; }
+  const L = data.lockers[sel.l], D = L.doors[sel.d];
+  panelEmpty.style.display='none'; panel.style.display='';
+  const c = cnt(doorItems(D));
+  panel.innerHTML = `
+    <div class="panel-head">
+      <div><h2>${esc(L.name)} &mdash; ${esc(D.name)}</h2><div class="sub">3 shelves &middot; ${c.t} item${c.t===1?'':'s'}</div>
+        <button class="rename-btn" id="btnRename" data-mfd-verb="edit">&#9998; Rename</button></div>
+      <div class="pill">${c.p} / ${c.t} stocked</div>
+    </div>
+    ${D.shelves.map((S,si)=>{ const k=cnt(S.items); return `
+      <div class="shelf-head"><h3>Shelf ${si+1}${si===0?' (top)':si===2?' (bottom)':''}</h3><span>${k.p} / ${k.t} stocked</span></div>
+      ${S.items.length ? S.items.map((it,ii)=>`
+        <div class="item-row ${it.present?'':'missing'}">
+          <input type="checkbox" data-mfd-locked="skip" data-act="tick" data-s="${si}" data-i="${ii}" ${it.present?'checked':''} aria-label="Stocked">
+          <span class="nm">${esc(it.name)}</span>
+          <input type="number" min="0" class="qty-in" data-mfd-locked="skip" data-act="qty" data-s="${si}" data-i="${ii}" value="${it.qty}" aria-label="Quantity">
+          <button class="del" data-mfd-verb="delete" data-act="delitem" data-s="${si}" data-i="${ii}" title="Remove item">&times;</button>
+        </div>`).join('')
+        : '<div style="font-size:12px;color:var(--ink-500);">Nothing on this shelf yet.</div>'}
+      ${S.containers.map((x,ci)=>`<div class="container"><div class="ch"><div>${esc(x.name)}<button class="cdel" data-mfd-verb="delete" data-act="delcont" data-s="${si}" data-i="${ci}">remove</button></div><span>${esc(x.type)}</span></div><div class="contents">${esc(x.contents)}</div></div>`).join('')}
+      <div class="add-row"><input type="text" placeholder="Add item to Shelf ${si+1}&hellip;" id="newItem${si}"><button data-mfd-verb="add" data-act="additem" data-s="${si}">Add</button></div>`; }).join('')}
+    <div class="add-container-form" id="addContainerForm">
+      <input type="text" id="newContName" placeholder="e.g. ALS Trauma Bag&hellip;">
+      <select id="newContShelf"><option value="0">Shelf 1</option><option value="1">Shelf 2</option><option value="2">Shelf 3</option></select>
+      <select id="newContType"><option value="bag">Bag</option><option value="kit">Kit</option><option value="set">Set</option></select>
+      <input type="text" id="newContContents" placeholder="What's inside&hellip;">
+      <button class="util accent" data-mfd-verb="add" data-act="confirmcont">Add</button>
+    </div>
+    <button class="util" style="margin-top:12px;" data-mfd-verb="add" id="btnShowCont" data-act="showcont">+ Add Bag / Kit / Set</button>
+    <div class="notes-block"><label>Door notes</label><textarea id="doorNotes" data-mfd-locked="skip" placeholder="e.g. latch sticks, reorder gloves by Friday&hellip;">${esc(D.notes)}</textarea></div>`;
+}
+function renderAll(){ renderRow(); renderStats(); renderPanel(); }
+
+/* ---------- Panel interactions (event delegation) ---------- */
+panel.addEventListener('change', e=>{
+  const t = e.target; if(!sel) return;
+  const D = data.lockers[sel.l].doors[sel.d];
+  if(t.dataset.act === 'tick'){ D.shelves[+t.dataset.s].items[+t.dataset.i].present = t.checked ? 1 : 0; save(); renderAll(); }
+  else if(t.dataset.act === 'qty'){ D.shelves[+t.dataset.s].items[+t.dataset.i].qty = Math.max(0, parseInt(t.value)||0); save(); }
+  else if(t.id === 'doorNotes'){ D.notes = t.value; save(); }
+});
+panel.addEventListener('click', e=>{
+  const b = e.target.closest('[data-act], #btnRename'); if(!b || !sel) return;
+  const L = data.lockers[sel.l], D = L.doors[sel.d];
+  const act = b.dataset.act, s = +b.dataset.s, i = +b.dataset.i;
+  if(b.id === 'btnRename'){
+    requireUnlock(()=>{
+      const ln = prompt('Locker name:', L.name); if(ln && ln.trim()) L.name = ln.trim();
+      const dn = prompt('Door name:', D.name);   if(dn && dn.trim()) D.name = dn.trim();
+      save(); renderAll();
+    }); return;
+  }
+  if(act === 'additem') requireUnlock(()=>{
+    const inp = document.getElementById('newItem'+s); const name = inp.value.trim(); if(!name) return;
+    D.shelves[s].items.push({ id:uid(), name, qty:1, present:1 }); save(); renderAll();
+    const again = document.getElementById('newItem'+s); if(again) again.focus();
+  });
+  else if(act === 'delitem') requireUnlock(()=>{ D.shelves[s].items.splice(i,1); save(); renderAll(); });
+  else if(act === 'delcont') requireUnlock(()=>{ if(!confirm('Remove this bag / kit / set?')) return; D.shelves[s].containers.splice(i,1); save(); renderAll(); });
+  else if(act === 'showcont') requireUnlock(()=>{ document.getElementById('addContainerForm').classList.add('show'); b.style.display='none'; });
+  else if(act === 'confirmcont') requireUnlock(()=>{
+    const name = document.getElementById('newContName').value.trim(); if(!name) return;
+    D.shelves[+document.getElementById('newContShelf').value].containers.push({
+      id:uid(), name, type:document.getElementById('newContType').value, contents:document.getElementById('newContContents').value.trim() });
+    save(); renderAll();
+  });
+});
+panel.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && e.target.id && e.target.id.startsWith('newItem')){
+    const btn = e.target.parentElement.querySelector('[data-act="additem"]'); if(btn) btn.click();
+  }
+});
+
+/* ---------- Quick Check / History / Print / Reset ---------- */
+function missingList(){
+  const out = [];
+  data.lockers.forEach(L=>L.doors.forEach(D=>D.shelves.forEach((S,si)=>S.items.forEach(it=>{
+    if(!it.present) out.push({ locker:L.name, door:D.name, shelf:si+1, name:it.name, qty:it.qty });
+  }))));
+  return out;
+}
+document.getElementById('btnQuickCheck').addEventListener('click', ()=>{
+  const c = cnt(allItems());
+  if(!c.t){ alert('Add some items to the shelves first.'); return; }
+  const by = (window.MFD_AUTH && window.MFD_AUTH.name) || 'Unknown';
+  if(!confirm(`Record a check as ${by}?\n\n${c.p} of ${c.t} items are marked stocked right now.`)) return;
+  data.history.unshift({ id:uid(), date:new Date().toISOString(), by, total:c.t, present:c.p, missing:missingList() });
+  data.history = data.history.slice(0,100);
+  save(); renderStats();
+});
+function openHistory(){
+  const list = document.getElementById('historyList');
+  list.innerHTML = data.history.length ? data.history.map(r=>`
+    <div class="hist-rec"><div class="top"><span>${new Date(r.date).toLocaleString()} &middot; ${esc(r.by)}</span><span>${r.present} / ${r.total} stocked</span></div>
+    <div class="miss">${r.missing && r.missing.length
+      ? 'Needed: ' + r.missing.map(m=>`${esc(m.name)} (${esc(m.locker)}, ${esc(m.door)}, shelf ${m.shelf})`).join('; ')
+      : 'Everything was stocked.'}</div></div>`).join('')
+    : '<div style="font-size:13px;color:var(--ink-500);">No checks recorded yet. Use Quick Check to record one.</div>';
+  document.getElementById('historyModal').classList.add('show');
+}
+document.getElementById('btnHistory').addEventListener('click', openHistory);
+document.getElementById('btnCloseHistory').addEventListener('click', ()=>document.getElementById('historyModal').classList.remove('show'));
+document.getElementById('historyModal').addEventListener('click', e=>{ if(e.target.id==='historyModal') e.target.classList.remove('show'); });
+
+document.getElementById('btnPrint').addEventListener('click', ()=>{
+  const miss = missingList();
+  const c = cnt(allItems());
+  let h = `<h1>MFD Supply Locker &mdash; Restock List</h1><div class="meta">Printed ${new Date().toLocaleString()} &middot; ${c.p} of ${c.t} items stocked</div>`;
+  if(!miss.length) h += '<p>Nothing needs restocking.</p>';
+  data.lockers.forEach(L=>{
+    const m = miss.filter(x=>x.locker===L.name); if(!m.length) return;
+    h += `<h2>${esc(L.name)}</h2>`;
+    L.doors.forEach(D=>{
+      const dm = m.filter(x=>x.door===D.name); if(!dm.length) return;
+      h += `<h3>${esc(D.name)}</h3><table><tr><th>Shelf</th><th>Item</th><th>Qty</th></tr>` +
+        dm.map(x=>`<tr><td>${x.shelf}</td><td>${esc(x.name)}</td><td>${x.qty}</td></tr>`).join('') + '</table>';
+    });
+  });
+  document.getElementById('printArea').innerHTML = h;
+  window.print();
+});
+document.getElementById('btnReset').addEventListener('click', ()=> requireUnlock(()=>{
+  if(!confirm('Reset the Supply Locker? This clears every item, bag/kit/set, note and custom name. Check history is kept.')) return;
+  const keep = data.history; data = defaultData(); data.history = keep; sel = null; save(); renderAll();
+}));
+
+renderAll();
+</script>
+</div>
+<script src="mfd-sync.js"></script>
+<script src="mfdauth.js"></script>
+</body>
+</html>
