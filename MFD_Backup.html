@@ -400,7 +400,7 @@ document.getElementById('btnBackupAll').addEventListener('click', ()=>{
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(()=> URL.revokeObjectURL(url), 60000);   // keep the link alive until the browser has finished saving
     }, i * 300);
   });
 
@@ -445,14 +445,14 @@ document.getElementById('btnDownloadPages').addEventListener('click', async ()=>
   // Stagger so browsers don't block a burst of simultaneous downloads.
   got.forEach((f, i)=>{
     setTimeout(()=>{
-      const url = URL.createObjectURL(f.blob);
+      const url = URL.createObjectURL(new Blob([f.blob], { type:'application/octet-stream' }));
       const a = document.createElement('a');
       a.href = url; a.download = f.name;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, i * 300);
+      setTimeout(()=> URL.revokeObjectURL(url), 60000);   // keep the link alive until the browser has finished saving
+    }, i * 800);
   });
   let msg = `Downloading ${got.length} file${got.length===1?'':'s'}: ` + got.map(f=>f.name).join(', ');
   if(missing.length) msg += '\nCould not read: ' + missing.join(', ') + '.';
