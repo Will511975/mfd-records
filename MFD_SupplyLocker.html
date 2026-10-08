@@ -70,6 +70,12 @@
   .shelf b{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-500);}
   .shelf .cnt{font-weight:700;color:var(--ink-100);}
   .shelf.ok .cnt{color:var(--ok-500);} .shelf.part .cnt{color:var(--gold-400);} .shelf.low .cnt{color:var(--red-500);}
+  .shelf{cursor:pointer;transition:.12s;}
+  .shelf:hover{background:rgba(255,255,255,.08);}
+  .shelf.sel{outline:2px solid var(--gold-400);outline-offset:-2px;background:rgba(251,191,36,.12);}
+  .shelf-tabs{display:flex;gap:6px;margin:4px 0 6px;}
+  .shelf-tab{flex:1;background:var(--navy-800);border:1px solid var(--navy-600);color:var(--ink-300);border-radius:6px;padding:6px 8px;font-size:12px;font-weight:700;cursor:pointer;}
+  .shelf-tab.active{background:var(--red-600);border-color:var(--red-600);color:#fff;}
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink-500);margin-top:20px;}
   .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
   .legend .l-ok::before{background:var(--ok-500);} .legend .l-part::before{background:var(--gold-500);} .legend .l-low::before{background:var(--red-500);}
@@ -174,12 +180,12 @@
 
 <div class="wrap">
   <div class="diagram-pane">
-    <div class="diagram-caption">Two lockers &middot; each has two doors and three shelves behind each door &middot; click a door to open its shelves</div>
+    <div class="diagram-caption">Two lockers &middot; each has two doors and three shelves behind each door &middot; click a shelf to see only what is on that shelf</div>
     <div class="lockers-row" id="lockersRow"></div>
     <div class="legend"><span class="l-ok">Fully stocked</span><span class="l-part">Partly stocked</span><span class="l-low">Needs restock</span></div>
   </div>
   <div class="panel">
-    <div class="panel-empty" id="panelEmpty"><span class="big">&#128452;</span>Select a locker door<br>to view and check what is on its shelves.</div>
+    <div class="panel-empty" id="panelEmpty"><span class="big">&#128452;</span>Click a shelf on a locker<br>to see and check what is on that shelf.</div>
     <div id="panelContent" style="display:none;"></div>
   </div>
 </div>
@@ -268,7 +274,7 @@ function requireUnlock(action){
 }
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
-let sel = null;   // {l, d} indices
+let sel = null;   // {l, d, s} = locker, door and shelf indices (0-based)
 const row = document.getElementById('lockersRow');
 const panelEmpty = document.getElementById('panelEmpty');
 const panel = document.getElementById('panelContent');
@@ -286,10 +292,17 @@ function renderRow(){
       const c = cnt(doorItems(D));
       return `<div class="door ${di===0?'left':'right'} ${cls(c)} ${sel&&sel.l===li&&sel.d===di?'selected':''}" data-l="${li}" data-d="${di}">
         <div class="dname">${esc(D.name)}</div>
-        ${D.shelves.map((S,si)=>{ const k=cnt(S.items); return `<div class="shelf ${shelfCls(k)}"><b>Shelf ${si+1}</b><span class="cnt">${k.t?k.p+' / '+k.t:'empty'}</span></div>`; }).join('')}
+        ${D.shelves.map((S,si)=>{ const k=cnt(S.items); return `<div class="shelf ${shelfCls(k)} ${sel&&sel.l===li&&sel.d===di&&sel.s===si?'sel':''}" data-s="${si}" title="Open Shelf ${si+1}"><b>Shelf ${si+1}</b><span class="cnt">${k.t?k.p+' / '+k.t:'empty'}</span></div>`; }).join('')}
         <div class="handle"></div></div>`;
     }).join('')}</div></div>`).join('');
-  row.querySelectorAll('.door').forEach(el=> el.onclick = ()=>{ sel = { l:+el.dataset.l, d:+el.dataset.d }; renderAll(); });
+  /* Clicking a shelf opens just that shelf. Clicking elsewhere on a door (its
+     name or handle) opens the shelf you were last on in that door, or Shelf 1. */
+  row.querySelectorAll('.door').forEach(el=> el.onclick = e=>{
+    const l = +el.dataset.l, d = +el.dataset.d;
+    const sh = e.target.closest('.shelf');
+    const s = sh ? +sh.dataset.s : (sel && sel.l===l && sel.d===d ? sel.s : 0);
+    sel = { l, d, s }; renderAll();
+  });
 }
 function renderStats(){
   const c = cnt(allItems());
@@ -304,36 +317,38 @@ function renderStats(){
 }
 function renderPanel(){
   if(!sel){ panelEmpty.style.display=''; panel.style.display='none'; return; }
-  const L = data.lockers[sel.l], D = L.doors[sel.d];
+  const L = data.lockers[sel.l], D = L.doors[sel.d], si = sel.s, S = D.shelves[si];
   panelEmpty.style.display='none'; panel.style.display='';
-  const c = cnt(doorItems(D));
+  const k = cnt(S.items);
+  const shelfName = 'Shelf ' + (si+1) + (si===0?' (top)':si===2?' (bottom)':'');
   panel.innerHTML = `
     <div class="panel-head">
-      <div><h2>${esc(L.name)} &mdash; ${esc(D.name)}</h2><div class="sub">3 shelves &middot; ${c.t} item${c.t===1?'':'s'}</div>
+      <div><h2>${esc(L.name)} &mdash; ${esc(D.name)}</h2><div class="sub">${shelfName} &middot; ${k.t} item${k.t===1?'':'s'}</div>
         <button class="rename-btn" id="btnRename" data-mfd-verb="edit">&#9998; Rename</button></div>
-      <div class="pill">${c.p} / ${c.t} stocked</div>
+      <div class="pill">${k.p} / ${k.t} stocked</div>
     </div>
-    ${D.shelves.map((S,si)=>{ const k=cnt(S.items); return `
-      <div class="shelf-head"><h3>Shelf ${si+1}${si===0?' (top)':si===2?' (bottom)':''}</h3><span>${k.p} / ${k.t} stocked</span></div>
-      ${S.items.length ? S.items.map((it,ii)=>`
-        <div class="item-row ${it.present?'':'missing'}">
-          <input type="checkbox" data-mfd-locked="skip" data-act="tick" data-s="${si}" data-i="${ii}" ${it.present?'checked':''} aria-label="Stocked">
-          <span class="nm">${esc(it.name)}</span>
-          <input type="number" min="0" class="qty-in" data-mfd-locked="skip" data-act="qty" data-s="${si}" data-i="${ii}" value="${it.qty}" aria-label="Quantity">
-          <button class="del" data-mfd-verb="delete" data-act="delitem" data-s="${si}" data-i="${ii}" title="Remove item">&times;</button>
-        </div>`).join('')
-        : '<div style="font-size:12px;color:var(--ink-500);">Nothing on this shelf yet.</div>'}
-      ${S.containers.map((x,ci)=>`<div class="container"><div class="ch"><div>${esc(x.name)}<button class="cdel" data-mfd-verb="delete" data-act="delcont" data-s="${si}" data-i="${ci}">remove</button></div><span>${esc(x.type)}</span></div><div class="contents">${esc(x.contents)}</div></div>`).join('')}
-      <div class="add-row"><input type="text" placeholder="Add item to Shelf ${si+1}&hellip;" id="newItem${si}"><button data-mfd-verb="add" data-act="additem" data-s="${si}">Add</button></div>`; }).join('')}
+    <div class="shelf-tabs">${D.shelves.map((x,i)=>`<button class="shelf-tab ${i===si?'active':''}" data-mfd-locked="skip" data-act="pickshelf" data-s="${i}">Shelf ${i+1}</button>`).join('')}</div>
+    <div class="shelf-head"><h3>${shelfName}</h3><span>${k.p} / ${k.t} stocked</span></div>
+    ${S.items.length ? S.items.map((it,ii)=>`
+      <div class="item-row ${it.present?'':'missing'}">
+        <input type="checkbox" data-mfd-locked="skip" data-act="tick" data-s="${si}" data-i="${ii}" ${it.present?'checked':''} aria-label="Stocked">
+        <span class="nm">${esc(it.name)}</span>
+        <input type="number" min="0" class="qty-in" data-mfd-locked="skip" data-act="qty" data-s="${si}" data-i="${ii}" value="${it.qty}" aria-label="Quantity">
+        <button class="del" data-mfd-verb="delete" data-act="delitem" data-s="${si}" data-i="${ii}" title="Remove item">&times;</button>
+      </div>`).join('')
+      : '<div style="font-size:12px;color:var(--ink-500);">Nothing on this shelf yet.</div>'}
+    <div class="add-row"><input type="text" placeholder="Add item to Shelf ${si+1}&hellip;" id="newItem${si}"><button data-mfd-verb="add" data-act="additem" data-s="${si}">Add</button></div>
+    <div class="section-label">Bags / Kits / Sets on this shelf</div>
+    ${S.containers.length ? S.containers.map((x,ci)=>`<div class="container"><div class="ch"><div>${esc(x.name)}<button class="cdel" data-mfd-verb="delete" data-act="delcont" data-s="${si}" data-i="${ci}">remove</button></div><span>${esc(x.type)}</span></div><div class="contents">${esc(x.contents)}</div></div>`).join('')
+      : '<div style="font-size:12px;color:var(--ink-500);">None on this shelf.</div>'}
     <div class="add-container-form" id="addContainerForm">
       <input type="text" id="newContName" placeholder="e.g. ALS Trauma Bag&hellip;">
-      <select id="newContShelf"><option value="0">Shelf 1</option><option value="1">Shelf 2</option><option value="2">Shelf 3</option></select>
       <select id="newContType"><option value="bag">Bag</option><option value="kit">Kit</option><option value="set">Set</option></select>
       <input type="text" id="newContContents" placeholder="What's inside&hellip;">
       <button class="util accent" data-mfd-verb="add" data-act="confirmcont">Add</button>
     </div>
     <button class="util" style="margin-top:12px;" data-mfd-verb="add" id="btnShowCont" data-act="showcont">+ Add Bag / Kit / Set</button>
-    <div class="notes-block"><label>Door notes</label><textarea id="doorNotes" data-mfd-locked="skip" placeholder="e.g. latch sticks, reorder gloves by Friday&hellip;">${esc(D.notes)}</textarea></div>`;
+    <div class="notes-block"><label>Door notes (apply to the whole door)</label><textarea id="doorNotes" data-mfd-locked="skip" placeholder="e.g. latch sticks, reorder gloves by Friday&hellip;">${esc(D.notes)}</textarea></div>`;
 }
 function renderAll(){ renderRow(); renderStats(); renderPanel(); }
 
@@ -356,6 +371,7 @@ panel.addEventListener('click', e=>{
       save(); renderAll();
     }); return;
   }
+  if(act === 'pickshelf'){ sel.s = s; renderAll(); return; }
   if(act === 'additem') requireUnlock(()=>{
     const inp = document.getElementById('newItem'+s); const name = inp.value.trim(); if(!name) return;
     D.shelves[s].items.push({ id:uid(), name, qty:1, present:1 }); save(); renderAll();
@@ -366,7 +382,7 @@ panel.addEventListener('click', e=>{
   else if(act === 'showcont') requireUnlock(()=>{ document.getElementById('addContainerForm').classList.add('show'); b.style.display='none'; });
   else if(act === 'confirmcont') requireUnlock(()=>{
     const name = document.getElementById('newContName').value.trim(); if(!name) return;
-    D.shelves[+document.getElementById('newContShelf').value].containers.push({
+    D.shelves[sel.s].containers.push({
       id:uid(), name, type:document.getElementById('newContType').value, contents:document.getElementById('newContContents').value.trim() });
     save(); renderAll();
   });
