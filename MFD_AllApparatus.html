@@ -540,6 +540,30 @@
   .cabinet-category-head:first-of-type{margin-top:4px;}
   .cabinet-category-head .cat-count{color:var(--ink-500);font-weight:400;text-transform:none;letter-spacing:0;font-family:var(--font-body);}
   .cabinet-empty-filtered{color:var(--ink-500);font-size:13px;padding:14px 0;}
+  /* Supply Locker link chips, pick list and notices */
+  .sl-chip{flex-shrink:0;background:var(--navy-800);border:1px solid var(--navy-600);border-radius:999px;color:var(--ink-300);font-size:10.5px;font-weight:700;padding:2px 8px;cursor:pointer;font-family:var(--font-mono);}
+  .sl-chip.auto{border-style:dashed;color:var(--ink-500);}
+  .sl-chip.none{opacity:.55;border-style:dashed;padding:2px 7px;}
+  .sl-chip.stale{border-color:var(--red-600);color:var(--red-500);}
+  .sl-chip:hover{border-color:var(--gold-500);color:var(--gold-400);opacity:1;}
+  .ri-code{font-family:var(--font-mono);font-size:11px;color:var(--ink-300);text-decoration:none;border:1px solid var(--navy-600);border-radius:999px;padding:1px 8px;flex-shrink:0;}
+  .ri-code:hover{border-color:var(--gold-500);color:var(--gold-400);}
+  .cabinet-item-row .ci-sub{font-size:11.5px;color:var(--ink-500);margin-top:3px;}
+  .cabinet-item-row .ci-readonly{min-width:56px;text-align:center;padding:6px 8px;color:var(--ink-300);font-size:14px;}
+  .cabinet-migrate{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.5;color:var(--ink-300);}
+  .cabinet-migrate .util{margin-top:8px;display:block;}
+  .sl-list{max-height:46vh;overflow:auto;display:flex;flex-direction:column;gap:6px;}
+  .sl-pick{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;text-align:left;background:var(--navy-800);border:1px solid var(--navy-700);border-radius:8px;color:var(--ink-100);padding:9px 12px;cursor:pointer;font-family:inherit;}
+  .sl-pick:hover{border-color:var(--gold-500);}
+  .sl-pick.current{border-color:var(--ok-500);}
+  .sl-pick-code{font-family:var(--font-mono);font-size:11px;color:var(--ink-300);}
+  .sl-pick-name{font-size:14px;font-weight:700;}
+  .sl-pick-meta{flex-basis:100%;font-size:11.5px;color:var(--ink-500);}
+  .sl-empty{padding:14px;font-size:13px;color:var(--ink-500);line-height:1.5;}
+  .sl-empty a{color:var(--gold-400);}
+  body.print-resupply .cabinet-migrate{display:none !important;}
+  .header-link{padding:6px 14px;border-radius:7px;background:rgba(255,255,255,.05);border:1px solid var(--navy-700);color:var(--ink-300);font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;}
+  .header-link:hover{border-color:var(--gold-500);color:var(--gold-400);}
   .cabinet-item-row{
     display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:6px;
     background:var(--navy-800);border:1px solid var(--navy-700);margin-bottom:7px;flex-wrap:wrap;
@@ -637,6 +661,7 @@
       <div class="vehicle-switcher" id="vehicleSwitcher" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;"></div>
       <div class="header-subtitle">Compartment Inventory &amp; Vehicle Inspection</div>
     </div>
+    <a href="MFD_SupplyLocker.html" class="header-link" title="Open the Supply Locker inventory that stocks Resupply">🗄 Supply Locker</a>
     <a href="index.html" class="header-back">← Back to Hub</a>
   </div>
 </header>
@@ -779,12 +804,12 @@
   <div class="stat-strip in-page">
     <div class="stat-chip missing"><div class="num" id="resupplyStatTotal">0</div><div class="lbl">Vehicle Items Needed</div></div>
     <div class="stat-chip" id="resupplyStatVehiclesChip"><div class="num" id="resupplyStatVehicles">0</div><div class="lbl">Vehicles Affected</div></div>
-    <div class="stat-chip missing"><div class="num" id="cabinetStatLow">0</div><div class="lbl">Cabinet Low Stock</div></div>
+    <div class="stat-chip missing"><div class="num" id="cabinetStatLow">0</div><div class="lbl">Locker Low / Out</div></div>
     <div class="stat-chip" id="cabinetStatOrderedChip"><div class="num" id="cabinetStatOrdered">0</div><div class="lbl">On Order</div></div>
   </div>
 
   <div class="toolbar">
-    <div style="font-size:12.5px;color:var(--ink-500);">Resupply cabinet at the station: use it to restock what the trucks are missing, then reorder whatever the cabinet itself runs low on.</div>
+    <div style="font-size:12.5px;color:var(--ink-500);">Restock the trucks from the Supply Locker inventory, then reorder whatever the locker runs low on.</div>
     <div class="fill"></div>
     <button class="util" id="btnResupplyRefresh">↻ Refresh</button>
     <button class="util" id="btnResupplyPrint">🖨 Print List</button>
@@ -793,35 +818,51 @@
   <div class="resupply-page">
     <div class="resupply-section-head">
       <h2>🚒 Vehicles Needing Resupply</h2>
-      <p>Pulled live from every truck's own inventory. Checking an item off takes it from the cabinet (if the cabinet has a matching item) and marks it present again on that vehicle.</p>
+      <p>Pulled live from every truck's own inventory. Checking an item off takes it out of the Supply Locker's on-hand count (when the item is linked to a Supply Locker item) and marks it present again on that vehicle.</p>
     </div>
     <div id="resupplyVehiclesPage"></div>
 
     <div class="resupply-section-head resupply-section-head-spaced">
-      <h2>🗄 Cabinet Stock &amp; Reorders</h2>
-      <p>What the station keeps on hand to restock the trucks. Set a reorder point per item — anything below it is flagged for an order.</p>
+      <h2>🗄 Supply Locker Stock &amp; Reorders</h2>
+      <p>Live from the Supply Locker Item Database &mdash; the same quantities and reorder points you see there. Items that are low, out, on order, or missing on a truck are shown first.</p>
     </div>
+    <div class="cabinet-migrate" id="lockerMigrate" style="display:none;"></div>
     <div class="toolbar cabinet-toolbar">
-      <button class="util accent" id="btnShowAddCabinetItem">+ Add Cabinet Item</button>
+      <button class="util accent" id="btnShowAddLockerItem">+ Add Supply Locker Item</button>
+      <button class="util" onclick="location.href='MFD_SupplyLocker.html'">&#128452; Open Supply Locker</button>
+      <select id="lockerFilter" class="cabinet-search-input" style="width:auto;"><option value="attention">Needs attention</option><option value="all">All items</option></select>
       <div class="fill"></div>
-      <input type="text" id="cabinetSearch" class="cabinet-search-input" placeholder="🔍 Search cabinet stock…">
+      <input type="text" id="lockerSearch" class="cabinet-search-input" placeholder="🔍 Search Supply Locker…">
     </div>
-    <div class="add-cabinet-form" id="addCabinetForm">
-      <input type="text" id="newCabinetName" placeholder="Item name…">
-      <input type="text" id="newCabinetCategory" list="cabinetCategoryList" placeholder="Category (e.g. Medical, PPE)…" style="width:180px;">
-      <datalist id="cabinetCategoryList"></datalist>
-      <input type="number" id="newCabinetQty" min="0" placeholder="Qty on hand" style="width:120px;">
-      <input type="number" id="newCabinetPar" min="0" placeholder="Reorder point" style="width:130px;">
-      <button class="util accent" id="btnConfirmAddCabinetItem">Add</button>
-      <button class="util" id="btnCancelAddCabinetItem">Cancel</button>
+    <div class="add-cabinet-form" id="addLockerForm">
+      <input type="text" id="newLockerName" placeholder="Item name…">
+      <input type="number" id="newLockerQty" min="0" placeholder="Qty on hand" style="width:120px;">
+      <input type="number" id="newLockerPar" min="0" placeholder="Reorder point" style="width:130px;">
+      <button class="util accent" id="btnConfirmAddLockerItem">Add</button>
+      <button class="util" id="btnCancelAddLockerItem">Cancel</button>
     </div>
-    <div id="cabinetPage"></div>
+    <div id="lockerPage"></div>
   </div>
 </div><!-- /view-resupply -->
 
 <div id="viPrintWatermarkBottom"></div>
 
 <div class="saved-flag" id="savedFlag">✓ Saved</div>
+
+<div class="modal-overlay" id="slLinkModal">
+  <div class="modal-box modal-box-wide">
+    <h3>Link to Supply Locker item</h3>
+    <p id="slLinkFor" style="margin:0 0 10px;font-size:13px;color:var(--ink-300);"></p>
+    <input type="text" id="slLinkSearch" class="cabinet-search-input" style="width:100%;margin-bottom:10px;" placeholder="Search Item ID or name&hellip;" autocomplete="off">
+    <div id="slLinkList" class="sl-list"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+      <button class="util" id="slLinkAdd" title="Admin only: creates this item in the Supply Locker database with 0 on hand">+ Add as new Supply Locker item</button>
+      <button class="util" id="slLinkUnlink" style="display:none;">Remove link</button>
+      <div class="fill"></div>
+      <button class="util" id="slLinkClose">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal-overlay" id="inspectorModal">
   <div class="modal-box">
@@ -1680,11 +1721,18 @@ function renderPanel(){
     <div class="item-row ${it.present?'':'missing'}">
       <input type="checkbox" data-idx="${idx}" class="chk-present" ${it.present?'checked':''}>
       <div class="item-name">${escapeHtml(it.name)}</div>
+      ${slChipHtml(it, `data-sl-link="${idx}"`)}
       <input type="number" min="0" class="qty" data-idx="${idx}" value="${it.qty ?? 1}">
       <button class="del" data-idx="${idx}" title="Remove item">✕</button>
     </div>
   `).join('');
 
+  list.querySelectorAll('[data-sl-link]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const it = comp.items[+btn.getAttribute('data-sl-link')]; if(!it) return;
+      openLinkModal(it, ()=>{ saveData(); renderPanel(); });
+    });
+  });
   list.querySelectorAll('.chk-present').forEach(cb=>{
     cb.addEventListener('change', e=>{
       const idx = +e.target.getAttribute('data-idx');
@@ -1749,6 +1797,7 @@ function renderContainers(comp){
             <div class="item-row ${it.present?'':'missing'}">
               <input type="checkbox" data-cid="${ct.id}" data-idx="${idx}" class="ci-chk">
               <div class="item-name">${escapeHtml(it.name)}</div>
+              ${slChipHtml(it, `data-sl-clink="${ct.id}" data-idx="${idx}"`)}
               <input type="number" min="0" class="qty ci-qty" data-cid="${ct.id}" data-idx="${idx}" value="${it.qty ?? 1}">
               <button class="del ci-del" data-cid="${ct.id}" data-idx="${idx}" title="Remove item">✕</button>
             </div>
@@ -1762,6 +1811,13 @@ function renderContainers(comp){
     `;
   }).join('');
 
+  wrap.querySelectorAll('[data-sl-clink]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const it = (findContainer(comp, btn.getAttribute('data-sl-clink'))||{items:[]}).items[+btn.getAttribute('data-idx')]; if(!it) return;
+      openLinkModal(it, ()=>{ saveData(); renderPanel(); });
+    });
+  });
   // checkbox present state (set after innerHTML since attribute vs property)
   wrap.querySelectorAll('.ci-chk').forEach(cb=>{
     const cid = cb.getAttribute('data-cid'), idx = +cb.getAttribute('data-idx');
@@ -2784,54 +2840,101 @@ function switchTab(tab){
   if(tab === 'resupply') renderResupply();
 }
 
-/* ---------- Resupply Cabinet ----------
-   Two linked pieces, both fleet-wide (not scoped to whichever vehicle is
-   currently selected in the header switcher):
+/* ---------- Resupply, stocked from the Supply Locker ----------
+   The Resupply tab no longer keeps a stock list of its own. What the station has on hand comes from the
+   Supply Locker's Item Database (the page MFD_SupplyLocker.html, saved under the key below), so there is one
+   set of numbers everywhere.
 
-   1. "Vehicles Needing Resupply" walks every vehicle's own saved inventory
-      and lists everything marked missing. Checking an item off there pulls
-      it from the station's resupply cabinet (if the cabinet has a
-      matching item by name) and marks it present again on that vehicle —
-      so the two views can never drift apart.
-   2. "Cabinet Stock & Reorders" is the station's own spare-parts shelf: a
-      flat list of items with a quantity on hand and a reorder point.
-      Anything below its reorder point can be marked "Ordered" (with a
-      quantity) and later "Received", which adds that quantity back into
-      stock. This cabinet is its own thing, independent of any one vehicle,
-      so it gets its own fixed localStorage key rather than a per-vehicle
-      storageKey. */
-const CABINET_STORAGE_KEY = 'mantuaFD_resupplyCabinet';
-
-function defaultCabinetData(){ return { items: [] }; }
+   * A truck compartment item can be LINKED to a Supply Locker Item ID (item.slId, e.g. "SL-0007"). An item
+     with no link still matches a locker item whose name is exactly the same, so existing trucks work
+     right away; linking by ID keeps working when something is renamed.
+   * "Vehicles Needing Resupply" lists everything marked missing on every truck. Checking an item off marks it
+     present again on that truck AND takes that many out of the locker's On hand.
+   * "Supply Locker Stock & Reorders" shows the locker items that are low, out, on order, or missing on a
+     truck. Mark Ordered / Mark Received update the locker item's on-order quantity and On hand.
+   * Nothing here writes to storage while the page loads - only when somebody clicks something. */
+const LOCKER_KEY = 'mfd_supplylocker_v1';
+const CABINET_STORAGE_KEY = 'mantuaFD_resupplyCabinet';   // the OLD cabinet list - only read, for the one-time copy into the locker
 
 function loadCabinetData(){
   try{
     const raw = localStorage.getItem(CABINET_STORAGE_KEY);
-    if(raw) return JSON.parse(raw);
-  }catch(e){ console.warn('Could not load cabinet data', e); }
-  const fresh = defaultCabinetData();
-  try{ localStorage.setItem(CABINET_STORAGE_KEY, JSON.stringify(fresh)); }catch(e){ /* ignore */ }
-  return fresh;
-}
-function saveCabinetData(){
-  try{ localStorage.setItem(CABINET_STORAGE_KEY, JSON.stringify(cabinetData)); flashSaved(); }
-  catch(e){ console.warn('Could not save cabinet data', e); }
+    if(raw){ const d = JSON.parse(raw); if(d && Array.isArray(d.items)) return d; }
+  }catch(e){ console.warn('Could not read old cabinet list', e); }
+  return { items: [] };
 }
 let cabinetData = loadCabinetData();
-if(!Array.isArray(cabinetData.items)) cabinetData.items = [];
-
-function findCabinetItemByName(name){
-  const norm = (name||'').trim().toLowerCase();
-  if(!norm) return null;
-  return cabinetData.items.find(ci => ci.name.trim().toLowerCase() === norm) || null;
+function saveCabinetData(){
+  try{ localStorage.setItem(CABINET_STORAGE_KEY, JSON.stringify(cabinetData)); }
+  catch(e){ console.warn('Could not save cabinet marker', e); }
 }
-function uniqueCabinetId(base){
-  let id = base, n = 1;
-  while(cabinetData.items.some(ci=>ci.id===id)) id = base + '-' + (++n);
-  return id;
-}
-function cabinetItemIsLow(ci){ return ci.qtyOnHand < ci.parLevel; }
 
+/* ----- reading the Supply Locker ----- */
+let _lkRaw = null, _lkData = null;
+function lockerRead(){
+  let raw = null; try{ raw = localStorage.getItem(LOCKER_KEY); }catch(e){ /* ignore */ }
+  if(raw === _lkRaw) return _lkData;
+  _lkRaw = raw; _lkData = null;
+  if(raw){ try{ const d = JSON.parse(raw); if(d && Array.isArray(d.items)) _lkData = d; }catch(e){ /* ignore */ } }
+  return _lkData;
+}
+const SL_CODE = /^SL-\d+$/;
+function lockerItems(){
+  const d = lockerRead();
+  return d ? d.items.filter(i=> i && typeof i.code === 'string' && SL_CODE.test(i.code) && i.name) : [];
+}
+const lockerByCode = code => lockerItems().find(i=> i.code === code) || null;
+function lockerByName(name){
+  const n = String(name||'').trim().toLowerCase(); if(!n) return null;
+  return lockerItems().find(i=> String(i.name).trim().toLowerCase() === n) || null;
+}
+const lkQty = i => Math.max(0, parseInt(i.qty)||0);
+const lkReorder = i => Math.max(0, parseInt(i.reorder)||0);
+const lkOnOrder = i => Math.max(0, parseInt(i.onOrder)||0);
+const lkLow = i => lkReorder(i) > 0 && lkQty(i) <= lkReorder(i);
+function lockerLoc(it){
+  const d = lockerRead();
+  const l = it.loc;
+  if(!l || !d || !d.lockers || !d.lockers[l.l] || !d.lockers[l.l].doors[l.d]) return 'Not on a shelf';
+  return `${d.lockers[l.l].name} › ${d.lockers[l.l].doors[l.d].name} › Shelf ${l.s+1}`;
+}
+/* Which locker item does this truck item mean?  slId wins; otherwise an exact name match. */
+function vehicleItemLink(it){
+  if(it.slId){ const x = lockerByCode(it.slId); return x ? { item:x, how:'id' } : { item:null, how:'id', stale:true }; }
+  const x = lockerByName(it.name);
+  return x ? { item:x, how:'name' } : { item:null, how:null };
+}
+
+/* ----- writing the Supply Locker (always a fresh read-modify-write at the moment of the click) ----- */
+function lockerDefault(){
+  return { version:2, nextItemNum:1, items:[],
+    lockers:[1,2].map(n=>({ id:'L'+n, name:'Locker '+n,
+      doors:['Left Door','Right Door'].map((dn,di)=>({ id:'L'+n+'D'+(di+1), name:dn, notes:'', shelves:Array.from({length:4},()=>({ containers:[] })) })) })),
+    history:[] };
+}
+function lockerUpdate(fn){
+  let d = null, raw = null;
+  try{ raw = localStorage.getItem(LOCKER_KEY); if(raw) d = JSON.parse(raw); }catch(e){ d = null; }
+  if(raw && (!d || !Array.isArray(d.items))){
+    alert('The Supply Locker data is in an older format. Open the Supply Locker page once so it can update itself, then try again.');
+    return false;
+  }
+  if(!d) d = lockerDefault();
+  fn(d);
+  try{ localStorage.setItem(LOCKER_KEY, JSON.stringify(d)); flashSaved(); return true; }
+  catch(e){ alert('Could not save to the Supply Locker - browser storage may be full or blocked.'); return false; }
+}
+function newLockerItem(d, v){
+  let n = Math.max(1, parseInt(d.nextItemNum)||1), code;
+  do{ code = 'SL-' + String(n++).padStart(4,'0'); }while(d.items.some(i=> i && i.code === code));
+  d.nextItemNum = n;
+  const it = { id:'a' + Date.now().toString(36) + Math.random().toString(36).slice(2,7), code, name:String(v.name).trim(),
+    qty:Math.max(0, parseInt(v.qty)||0), present:1, reorder:Math.max(0, parseInt(v.reorder)||0), ordered:0,
+    onOrder:Math.max(0, parseInt(v.onOrder)||0), orderedOn:v.orderedOn||'', price:0, from:'', loc:null };
+  d.items.push(it); return it;
+}
+
+/* ----- truck data helpers ----- */
 function loadVehicleDataFor(vid){
   if(vid === currentVehicleId) return data;
   try{
@@ -2840,53 +2943,64 @@ function loadVehicleDataFor(vid){
   }catch(e){ console.warn('Could not load inventory for', vid, e); }
   return VEHICLES[vid].defaultCompartments();
 }
-
+function saveVehicleDataFor(vid, vdata){
+  if(vid === currentVehicleId){ saveData(); renderSvg(); renderPanel(); refreshStats(); return; }
+  try{ localStorage.setItem(VEHICLES[vid].storageKey, JSON.stringify(vdata)); }
+  catch(e){ console.warn('Could not save inventory for', vid, e); }
+}
 function collectFleetFlagged(){
   const out = [];
   VEHICLE_ORDER.forEach(vid=>{
     const vdata = loadVehicleDataFor(vid);
     (vdata.compartments||[]).forEach(c=>{
       (c.items||[]).forEach((it, idx)=>{
-        if(!it.present) out.push({ vehicleId:vid, compartmentId:c.id, compartment:c.label, containerId:null, container:null, itemIdx:idx, item:it.name, qty:it.qty });
+        if(!it.present) out.push({ vehicleId:vid, compartmentId:c.id, compartment:c.label, containerId:null, container:null, itemIdx:idx, item:it.name, slId:it.slId||'', qty:it.qty });
       });
       (c.containers||[]).forEach(ct=>{
         (ct.items||[]).forEach((it, idx)=>{
-          if(!it.present) out.push({ vehicleId:vid, compartmentId:c.id, compartment:c.label, containerId:ct.id, container:ct.name, itemIdx:idx, item:it.name, qty:it.qty });
+          if(!it.present) out.push({ vehicleId:vid, compartmentId:c.id, compartment:c.label, containerId:ct.id, container:ct.name, itemIdx:idx, item:it.name, slId:it.slId||'', qty:it.qty });
         });
       });
     });
   });
   return out;
 }
+// The saved truck item a flag (or a row on the Resupply tab) points at, plus a way to save it.
+function refForFlag(f){
+  const vdata = loadVehicleDataFor(f.vehicleId);
+  const comp = (vdata.compartments||[]).find(c=>c.id === f.compartmentId);
+  if(!comp) return null;
+  const arr = f.containerId ? ((comp.containers||[]).find(ct=>ct.id === f.containerId)||{}).items : comp.items;
+  if(!arr || !arr[f.itemIdx]) return null;
+  return { itemObj:arr[f.itemIdx], persist:()=> saveVehicleDataFor(f.vehicleId, vdata) };
+}
+function flagFromRow(row){
+  return {
+    vehicleId: row.getAttribute('data-vid'),
+    compartmentId: row.getAttribute('data-cid'),
+    containerId: row.getAttribute('data-ctid') || null,
+    itemIdx: +row.getAttribute('data-idx'),
+    item: row.getAttribute('data-item-name'),
+    slId: row.getAttribute('data-slid') || '',
+    qty: +row.getAttribute('data-item-qty') || 1,
+  };
+}
 
-// Pull `qtyNeeded` of a matching cabinet item out of stock (clamped at 0 —
-// taking more than the cabinet shows on hand still marks the vehicle item
-// present; the crew has physically done it either way, the bookkeeping just
-// can't go negative) and mark the vehicle item present again.
+// Mark the truck item present again and take that many out of the locker (clamped at 0 - the crew has
+// physically done it either way, the bookkeeping just can't go negative). Returns false if it could not be saved.
 function markResupplied(flag){
-  const vdata = loadVehicleDataFor(flag.vehicleId);
-  const comp = (vdata.compartments||[]).find(c=>c.id === flag.compartmentId);
-  if(!comp) return;
-  const itemsArr = flag.containerId
-    ? ((comp.containers||[]).find(ct=>ct.id === flag.containerId)||{}).items
-    : comp.items;
-  if(!itemsArr || !itemsArr[flag.itemIdx]) return;
-  itemsArr[flag.itemIdx].present = true;
-
-  if(flag.vehicleId === currentVehicleId){
-    // vdata *is* the live `data` object for the current vehicle — persist
-    // through the normal save path so the Inventory tab stays in sync.
-    saveData(); renderSvg(); renderPanel(); refreshStats();
-  } else {
-    try{ localStorage.setItem(VEHICLES[flag.vehicleId].storageKey, JSON.stringify(vdata)); }
-    catch(e){ console.warn('Could not save resupply update for', flag.vehicleId, e); }
+  const ref = refForFlag(flag); if(!ref) return false;
+  const link = vehicleItemLink({ name:flag.item, slId:flag.slId });
+  if(link.item){
+    const ok = lockerUpdate(d=>{
+      const x = d.items.find(i=> i && i.code === link.item.code);
+      if(x) x.qty = Math.max(0, (parseInt(x.qty)||0) - (flag.qty || 1));
+    });
+    if(!ok) return false;
   }
-
-  const cabItem = findCabinetItemByName(flag.item);
-  if(cabItem){
-    cabItem.qtyOnHand = Math.max(0, cabItem.qtyOnHand - (flag.qty || 1));
-    saveCabinetData();
-  }
+  ref.itemObj.present = true;
+  ref.persist();
+  return true;
 }
 
 function updateResupplyBadge(count){
@@ -2896,9 +3010,70 @@ function updateResupplyBadge(count){
   badge.style.display = n > 0 ? 'inline-block' : 'none';
 }
 
+/* ----- the link chip shown beside every truck item, and the "Link to Supply Locker item" pop-up ----- */
+function slChipHtml(it, attrs){
+  const L = vehicleItemLink(it);
+  if(L.item){
+    const what = L.how === 'id' ? 'Linked to' : 'Matched by name to';
+    return `<button class="sl-chip ${L.how==='id'?'':'auto'}" ${attrs} title="${what} Supply Locker item ${L.item.code} - ${escapeHtml(L.item.name)} (${lkQty(L.item)} on hand). Click to change.">&#128279; ${L.item.code}</button>`;
+  }
+  if(L.stale) return `<button class="sl-chip stale" ${attrs} title="This item was linked to ${escapeHtml(it.slId)}, which is not in the Supply Locker any more. Click to fix.">&#9888; ${escapeHtml(it.slId)}</button>`;
+  return `<button class="sl-chip none" ${attrs} title="Not linked to a Supply Locker item. Click to link it.">&#128279;</button>`;
+}
+let slCtx = null;   // { itemObj, onDone } for the pop-up that is open
+function openLinkModal(itemObj, onDone){
+  slCtx = { itemObj, onDone };
+  document.getElementById('slLinkFor').innerHTML = `Truck item: <b>${escapeHtml(itemObj.name)}</b>`;
+  document.getElementById('slLinkSearch').value = '';
+  document.getElementById('slLinkUnlink').style.display = itemObj.slId ? '' : 'none';
+  renderLinkList();
+  document.getElementById('slLinkModal').classList.add('show');
+  document.getElementById('slLinkSearch').focus();
+}
+function closeLinkModal(){ document.getElementById('slLinkModal').classList.remove('show'); slCtx = null; }
+function renderLinkList(){
+  const box = document.getElementById('slLinkList');
+  const all = lockerItems();
+  if(!all.length){ box.innerHTML = `<div class="sl-empty">The Supply Locker has no items yet. Add items on the <a href="MFD_SupplyLocker.html">Supply Locker</a> page (Item Database), or use the button below to add this item there.</div>`; return; }
+  const q = document.getElementById('slLinkSearch').value.trim().toLowerCase();
+  const nm = slCtx ? String(slCtx.itemObj.name||'').trim().toLowerCase() : '';
+  let list = all.filter(i=> !q || (i.code + ' ' + i.name).toLowerCase().includes(q));
+  // best guesses first: exact name, then names that contain / are contained in the truck item's name
+  const score = i=>{ const n = String(i.name).trim().toLowerCase(); return n===nm ? 0 : (nm && (n.includes(nm) || nm.includes(n))) ? 1 : 2; };
+  list = list.sort((a,b)=> score(a)-score(b) || a.name.localeCompare(b.name)).slice(0,60);
+  const cur = slCtx && slCtx.itemObj.slId;
+  box.innerHTML = list.length ? list.map(i=>`
+    <button class="sl-pick ${i.code===cur?'current':''}" data-code="${i.code}">
+      <span class="sl-pick-code">${i.code}</span><span class="sl-pick-name">${escapeHtml(i.name)}</span>
+      <span class="sl-pick-meta">${lkQty(i)} on hand &middot; ${escapeHtml(lockerLoc(i))}${score(i)===0?' &middot; <b>same name</b>':''}</span>
+    </button>`).join('') : `<div class="sl-empty">No Supply Locker item matches "${escapeHtml(q)}".</div>`;
+}
+document.getElementById('slLinkSearch').addEventListener('input', renderLinkList);
+document.getElementById('slLinkClose').addEventListener('click', closeLinkModal);
+document.getElementById('slLinkModal').addEventListener('click', e=>{ if(e.target.id === 'slLinkModal') closeLinkModal(); });
+document.getElementById('slLinkList').addEventListener('click', e=>{
+  const b = e.target.closest('.sl-pick'); if(!b || !slCtx) return;
+  const ctx = slCtx; ctx.itemObj.slId = b.dataset.code; closeLinkModal(); ctx.onDone();
+});
+document.getElementById('slLinkUnlink').addEventListener('click', ()=>{
+  if(!slCtx) return; const ctx = slCtx; delete ctx.itemObj.slId; closeLinkModal(); ctx.onDone();
+});
+document.getElementById('slLinkAdd').addEventListener('click', ()=>{
+  if(!slCtx) return;
+  requireUnlock(()=>{
+    const ctx = slCtx; const nm = String(ctx.itemObj.name||'').trim(); if(!nm) return;
+    let code = null;
+    const ok = lockerUpdate(d=>{ code = newLockerItem(d, { name:nm, qty:0, reorder:0 }).code; });
+    if(!ok) return;
+    ctx.itemObj.slId = code; closeLinkModal(); ctx.onDone();
+    alert(`Added "${nm}" to the Supply Locker as ${code} with 0 on hand. Set its quantity and reorder point on the Resupply tab or in the Supply Locker.`);
+  });
+});
+
 function renderResupply(){
+  cabinetData = loadCabinetData();
   renderResupplyVehicles();
-  renderCabinet();
+  renderLockerStock();
 }
 
 function renderResupplyVehicles(){
@@ -2939,18 +3114,21 @@ function renderResupplyVehicles(){
         ${Object.values(byCompt).map(group=>`
           <div class="resupply-compt-label">${escapeHtml(group.label)}</div>
           ${group.items.map(f=>{
-            const cabItem = findCabinetItemByName(f.item);
+            const L = vehicleItemLink({ name:f.item, slId:f.slId });
             const needed = f.qty ?? 1;
             let noteHtml;
-            if(!cabItem){
-              noteHtml = `<span class="ri-cabinet-note">no cabinet match</span><button class="ri-add-cabinet" data-add-name="${escapeHtml(f.item)}">+ Add to Cabinet</button>`;
-            } else if(cabItem.qtyOnHand >= needed){
-              noteHtml = `<span class="ri-cabinet-note match">cabinet: ${cabItem.qtyOnHand} on hand</span>`;
+            if(L.item){
+              const have = lkQty(L.item);
+              noteHtml = `<a class="ri-code" href="MFD_SupplyLocker.html?item=${L.item.code}" title="Open ${escapeHtml(L.item.name)} in the Supply Locker">${L.item.code}</a>` +
+                (have >= needed ? `<span class="ri-cabinet-note match">locker: ${have} on hand</span>` : `<span class="ri-cabinet-note short">locker: only ${have} on hand</span>`) +
+                (L.how === 'name' ? `<button class="ri-add-cabinet" data-row-link title="Matched by name - click to link it by Item ID">&#128279; Link</button>` : '');
+            } else if(L.stale){
+              noteHtml = `<span class="ri-cabinet-note short">link broken (${escapeHtml(f.slId)})</span><button class="ri-add-cabinet" data-row-link>&#128279; Fix link</button>`;
             } else {
-              noteHtml = `<span class="ri-cabinet-note short">cabinet: only ${cabItem.qtyOnHand} on hand</span>`;
+              noteHtml = `<span class="ri-cabinet-note">not in Supply Locker</span><button class="ri-add-cabinet" data-row-link>&#128279; Link</button>`;
             }
             return `
-            <div class="resupply-item-row" data-vid="${f.vehicleId}" data-cid="${f.compartmentId}" data-ctid="${f.containerId||''}" data-idx="${f.itemIdx}" data-item-name="${escapeHtml(f.item)}" data-item-qty="${needed}">
+            <div class="resupply-item-row" data-vid="${f.vehicleId}" data-cid="${f.compartmentId}" data-ctid="${f.containerId||''}" data-idx="${f.itemIdx}" data-item-name="${escapeHtml(f.item)}" data-slid="${escapeHtml(f.slId||'')}" data-item-qty="${needed}">
               <input type="checkbox" class="ri-chk">
               <div class="ri-name">${escapeHtml(f.item)}${f.container ? ` <span class="ri-loc">— ${escapeHtml(f.container)}</span>` : ''}</div>
               ${noteHtml}
@@ -2966,217 +3144,162 @@ function renderResupplyVehicles(){
     cb.addEventListener('change', e=>{
       if(!e.target.checked) return;
       const row = e.target.closest('.resupply-item-row');
-      markResupplied({
-        vehicleId: row.getAttribute('data-vid'),
-        compartmentId: row.getAttribute('data-cid'),
-        containerId: row.getAttribute('data-ctid') || null,
-        itemIdx: +row.getAttribute('data-idx'),
-        item: row.getAttribute('data-item-name'),
-        qty: +row.getAttribute('data-item-qty') || 1,
-      });
+      if(!markResupplied(flagFromRow(row))) e.target.checked = false;
       renderResupply();
     });
   });
-  wrap.querySelectorAll('.ri-add-cabinet').forEach(btn=>{
+  wrap.querySelectorAll('[data-row-link]').forEach(btn=>{
     btn.addEventListener('click', e=>{
       e.stopPropagation();
-      quickAddToCabinet(btn.getAttribute('data-add-name'));
+      const ref = refForFlag(flagFromRow(btn.closest('.resupply-item-row'))); if(!ref) return;
+      openLinkModal(ref.itemObj, ()=>{ ref.persist(); renderResupply(); });
     });
   });
 }
 
-/* ---------- Cabinet CRUD ---------- */
-document.getElementById('btnShowAddCabinetItem').addEventListener('click', ()=>{
-  requireUnlock(()=>{
-    document.getElementById('addCabinetForm').classList.add('show');
-    document.getElementById('newCabinetName').focus();
+/* ---------- Supply Locker stock & reorders (replaces the old separate cabinet list) ---------- */
+function truckNeedByCode(flagged){
+  const m = {};
+  flagged.forEach(f=>{
+    const L = vehicleItemLink({ name:f.item, slId:f.slId });
+    if(L.item) m[L.item.code] = (m[L.item.code]||0) + (f.qty ?? 1);
   });
-});
-document.getElementById('btnCancelAddCabinetItem').addEventListener('click', ()=>{
-  document.getElementById('addCabinetForm').classList.remove('show');
-  document.getElementById('newCabinetName').value='';
-  document.getElementById('newCabinetCategory').value='';
-  document.getElementById('newCabinetQty').value='';
-  document.getElementById('newCabinetPar').value='';
-});
-document.getElementById('btnConfirmAddCabinetItem').addEventListener('click', addCabinetItem);
-['newCabinetName','newCabinetCategory','newCabinetQty','newCabinetPar'].forEach(id=>{
-  document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addCabinetItem(); } });
-});
-function addCabinetItem(){
-  const nameInput = document.getElementById('newCabinetName');
-  const name = nameInput.value.trim();
-  if(!name){ nameInput.focus(); return; }
-  requireUnlock(()=>{
-    const category = document.getElementById('newCabinetCategory').value.trim();
-    const qtyOnHand = Math.max(0, parseInt(document.getElementById('newCabinetQty').value)||0);
-    const parLevel = Math.max(0, parseInt(document.getElementById('newCabinetPar').value)||0);
-    const id = uniqueCabinetId(slugify(name));
-    cabinetData.items.push({ id, name, category, qtyOnHand, parLevel, pendingOrder:null });
-    nameInput.value=''; document.getElementById('newCabinetCategory').value=''; document.getElementById('newCabinetQty').value=''; document.getElementById('newCabinetPar').value='';
-    document.getElementById('addCabinetForm').classList.remove('show');
-    saveCabinetData(); renderCabinet(); renderResupplyVehicles();
-  });
+  return m;
 }
-// Jump here from a "no cabinet match" row on the Vehicles Needing Resupply
-// list: opens the add-item form pre-filled with that item's name so all
-// that's left is picking a category and quantities.
-function quickAddToCabinet(name){
-  requireUnlock(()=>{
-    const form = document.getElementById('addCabinetForm');
-    form.classList.add('show');
-    document.getElementById('newCabinetName').value = name;
-    form.scrollIntoView({behavior:'smooth', block:'center'});
-    document.getElementById('newCabinetCategory').focus();
-  });
-}
-function deleteCabinetItem(id){
-  requireUnlock(()=>{
-    const ci = cabinetData.items.find(x=>x.id===id);
-    if(!ci) return;
-    if(!confirm(`Remove "${ci.name}" from the cabinet? This can't be undone.`)) return;
-    cabinetData.items = cabinetData.items.filter(x=>x.id!==id);
-    saveCabinetData(); renderCabinet(); renderResupplyVehicles();
-  });
-}
-function markCabinetOrdered(id){
-  const ci = cabinetData.items.find(x=>x.id===id);
-  if(!ci) return;
-  const suggested = Math.max(1, ci.parLevel - ci.qtyOnHand);
-  const input = prompt(`Quantity of "${ci.name}" to order?`, suggested);
-  if(input === null) return;
-  const qty = Math.max(1, parseInt(input)||0);
-  if(!qty) return;
-  ci.pendingOrder = { qty, orderedDate: new Date().toISOString() };
-  saveCabinetData(); renderCabinet();
-}
-function markCabinetReceived(id){
-  const ci = cabinetData.items.find(x=>x.id===id);
-  if(!ci || !ci.pendingOrder) return;
-  ci.qtyOnHand += ci.pendingOrder.qty;
-  ci.pendingOrder = null;
-  saveCabinetData(); renderCabinet(); renderResupplyVehicles();
-}
+function renderLockerStock(){
+  const wrap = document.getElementById('lockerPage');
+  const items = lockerItems();
+  const need = truckNeedByCode(collectFleetFlagged());
+  const lowOut = i => (lkLow(i) || lkQty(i) === 0);
 
-function renderCabinet(){
-  const wrap = document.getElementById('cabinetPage');
-  const items = cabinetData.items;
+  document.getElementById('cabinetStatLow').textContent = items.filter(i=> lowOut(i) && !lkOnOrder(i)).length;
+  document.getElementById('cabinetStatOrdered').textContent = items.filter(i=> lkOnOrder(i) > 0).length;
 
-  const lowCount = items.filter(ci=>cabinetItemIsLow(ci) && !ci.pendingOrder).length;
-  const onOrderCount = items.filter(ci=>ci.pendingOrder).length;
-  document.getElementById('cabinetStatLow').textContent = lowCount;
-  document.getElementById('cabinetStatOrdered').textContent = onOrderCount;
-
-  // Keep the category autocomplete current for the add-item form and the
-  // per-row category field, based on whatever categories are already in use.
-  const categoryListEl = document.getElementById('cabinetCategoryList');
-  const knownCategories = Array.from(new Set(items.map(ci=>(ci.category||'').trim()).filter(Boolean))).sort((a,b)=>a.localeCompare(b));
-  categoryListEl.innerHTML = knownCategories.map(c=>`<option value="${escapeHtml(c)}">`).join('');
+  // One-time copy of the old cabinet list, offered until somebody does it.
+  const old = cabinetData.items.filter(ci=> ci && ci.name);
+  const mig = document.getElementById('lockerMigrate');
+  if(old.length && !cabinetData.migratedAt){
+    mig.style.display = '';
+    mig.innerHTML = `<b>Your old cabinet list has ${old.length} item${old.length===1?'':'s'}.</b> Copy them into the Supply Locker database so the quantities and reorder points carry over (items that already exist there by name are skipped). Categories are not kept.
+      <button class="util accent" id="btnMigrateCabinet">Copy ${old.length} item${old.length===1?'':'s'} into Supply Locker</button>`;
+    document.getElementById('btnMigrateCabinet').addEventListener('click', migrateCabinet);
+  } else { mig.style.display = 'none'; mig.innerHTML = ''; }
 
   if(!items.length){
-    wrap.innerHTML = `<div class="resupply-empty" style="margin-top:20px;"><span class="big">🗄</span>Cabinet is empty — add what the station keeps on hand to restock the trucks.</div>`;
+    wrap.innerHTML = `<div class="resupply-empty" style="margin-top:20px;"><span class="big">🗄</span>The Supply Locker has no items yet. Add items in its <a href="MFD_SupplyLocker.html" style="color:var(--gold-400);">Item Database</a>${old.length && !cabinetData.migratedAt ? ', or copy the old cabinet list above' : ''}.</div>`;
     return;
   }
 
-  const searchTerm = (document.getElementById('cabinetSearch').value || '').trim().toLowerCase();
-  const filtered = searchTerm
-    ? items.filter(ci => ci.name.toLowerCase().includes(searchTerm) || (ci.category||'').toLowerCase().includes(searchTerm))
-    : items;
+  const mode = document.getElementById('lockerFilter').value;
+  const q = (document.getElementById('lockerSearch').value || '').trim().toLowerCase();
+  let list = items.filter(i=>{
+    if(mode !== 'all' && !(lowOut(i) || lkOnOrder(i) > 0 || need[i.code] > 0)) return false;
+    return !q || (i.code + ' ' + i.name + ' ' + (i.from||'')).toLowerCase().includes(q);
+  });
+  const rank = i => (lowOut(i) && !lkOnOrder(i)) ? 0 : (lkOnOrder(i) > 0 ? 1 : (need[i.code] > 0 ? 2 : 3));
+  list.sort((a,b)=> rank(a)-rank(b) || a.name.localeCompare(b.name));
 
-  if(!filtered.length){
-    wrap.innerHTML = `<div class="cabinet-empty-filtered">No cabinet items match "${escapeHtml(document.getElementById('cabinetSearch').value.trim())}".</div>`;
+  if(!list.length){
+    wrap.innerHTML = `<div class="cabinet-empty-filtered">${q ? `No Supply Locker items match "${escapeHtml(q)}".` : 'Nothing in the Supply Locker is low, out, on order, or missing on a truck. Choose "All items" to see everything.'}</div>`;
     return;
   }
-
-  // Group by category (blank -> "Uncategorized"), categories sorted
-  // alphabetically with Uncategorized always last; within a category,
-  // low-stock and on-order items float to the top so they're seen first.
-  const groups = {};
-  filtered.forEach(ci=>{
-    const cat = (ci.category||'').trim() || 'Uncategorized';
-    if(!groups[cat]) groups[cat] = [];
-    groups[cat].push(ci);
-  });
-  const catNames = Object.keys(groups).sort((a,b)=>{
-    if(a==='Uncategorized') return 1;
-    if(b==='Uncategorized') return -1;
-    return a.localeCompare(b);
-  });
-  const rank = ci => ci.pendingOrder ? 1 : (cabinetItemIsLow(ci) ? 0 : 2);
-  catNames.forEach(cat=> groups[cat].sort((a,b)=> rank(a)-rank(b) || a.name.localeCompare(b.name)));
-
-  wrap.innerHTML = catNames.map(cat=>{
-    const catItems = groups[cat];
-    const catLow = catItems.filter(ci=>cabinetItemIsLow(ci) && !ci.pendingOrder).length;
+  wrap.innerHTML = list.map(i=>{
+    const oo = lkOnOrder(i), low = lowOut(i);
+    const rowClass = oo ? 'on-order' : (low ? 'low' : '');
+    let statusHtml;
+    if(oo){
+      const d = i.orderedOn ? new Date(i.orderedOn) : null;
+      statusHtml = `<span class="ci-status on-order">📦 On order: ${oo}${d && !isNaN(d) ? ` (ordered ${d.toLocaleDateString()})` : ''}</span>
+        <button class="ci-action receive" data-receive="${i.code}">Mark Received</button>`;
+    } else if(low){
+      statusHtml = `<span class="ci-status low">⚠ ${lkQty(i)===0 ? 'Out of stock' : 'At / below reorder point'}</span>
+        <button class="ci-action order" data-order="${i.code}">Mark Ordered</button>`;
+    } else {
+      statusHtml = `<span class="ci-status ok">OK</span>`;
+    }
+    const subParts = [escapeHtml(lockerLoc(i))];
+    if(i.from) subParts.push('from ' + escapeHtml(i.from));
+    if(need[i.code]) subParts.push(`<b style="color:var(--gold-400)">trucks missing ${need[i.code]}</b>`);
+    const sub = subParts.join(' &middot; ');
     return `
-      <div class="cabinet-category-head">
-        <span>${escapeHtml(cat)}</span>
-        <span class="cat-count">${catItems.length} item${catItems.length===1?'':'s'}${catLow ? ` · ${catLow} low` : ''}</span>
-      </div>
-      ${catItems.map(ci=>{
-        const low = cabinetItemIsLow(ci);
-        const rowClass = ci.pendingOrder ? 'on-order' : (low ? 'low' : '');
-        let statusHtml;
-        if(ci.pendingOrder){
-          const d = new Date(ci.pendingOrder.orderedDate);
-          statusHtml = `<span class="ci-status on-order">📦 On order: ${ci.pendingOrder.qty} (ordered ${d.toLocaleDateString()})</span>
-            <button class="ci-action receive" data-receive="${ci.id}">Mark Received</button>`;
-        } else if(low){
-          statusHtml = `<span class="ci-status low">⚠ Below reorder point</span>
-            <button class="ci-action order" data-order="${ci.id}">Mark Ordered</button>`;
-        } else {
-          statusHtml = `<span class="ci-status ok">OK</span>`;
-        }
-        return `
-          <div class="cabinet-item-row ${rowClass}" data-cabinet-id="${ci.id}">
-            <div class="ci-name">${escapeHtml(ci.name)}</div>
-            <input type="text" class="ci-category" data-cat="${ci.id}" value="${escapeHtml(ci.category||'')}" placeholder="Category" list="cabinetCategoryList">
-            <div class="ci-field"><span class="ci-field-label">On Hand</span><input type="number" min="0" class="ci-qty" data-qty="${ci.id}" value="${ci.qtyOnHand}"></div>
-            <div class="ci-field"><span class="ci-field-label">Reorder At</span><input type="number" min="0" class="ci-par" data-par="${ci.id}" value="${ci.parLevel}"></div>
-            ${statusHtml}
-            <button class="ci-del" data-del="${ci.id}" title="Remove item">✕</button>
-          </div>
-        `;
-      }).join('')}
-    `;
+      <div class="cabinet-item-row ${rowClass}" data-code="${i.code}">
+        <div class="ci-name"><a class="ri-code" href="MFD_SupplyLocker.html?item=${i.code}" title="Open in the Supply Locker">${i.code}</a> ${escapeHtml(i.name)}<div class="ci-sub">${sub}</div></div>
+        <div class="ci-field"><span class="ci-field-label">On Hand</span><input type="number" min="0" class="ci-qty" data-qty="${i.code}" value="${lkQty(i)}"></div>
+        <div class="ci-field"><span class="ci-field-label">Reorder At</span><div class="ci-readonly">${lkReorder(i) || '&ndash;'}</div></div>
+        ${statusHtml}
+      </div>`;
   }).join('');
 
   wrap.querySelectorAll('.ci-qty').forEach(inp=>{
     inp.addEventListener('change', e=>{
-      const ci = cabinetData.items.find(x=>x.id===e.target.getAttribute('data-qty'));
-      if(!ci) return;
-      ci.qtyOnHand = Math.max(0, parseInt(e.target.value)||0);
-      saveCabinetData(); renderCabinet(); renderResupplyVehicles();
+      const code = e.target.getAttribute('data-qty'), n = Math.max(0, parseInt(e.target.value)||0);
+      if(lockerUpdate(d=>{ const x = d.items.find(i=> i && i.code === code); if(x) x.qty = n; })){ renderResupply(); }
     });
   });
-  wrap.querySelectorAll('.ci-par').forEach(inp=>{
-    inp.addEventListener('change', e=>{
-      const ci = cabinetData.items.find(x=>x.id===e.target.getAttribute('data-par'));
-      if(!ci) return;
-      ci.parLevel = Math.max(0, parseInt(e.target.value)||0);
-      saveCabinetData(); renderCabinet();
+  wrap.querySelectorAll('[data-order]').forEach(btn=> btn.addEventListener('click', ()=> lockerMarkOrdered(btn.getAttribute('data-order'))));
+  wrap.querySelectorAll('[data-receive]').forEach(btn=> btn.addEventListener('click', ()=> lockerMarkReceived(btn.getAttribute('data-receive'))));
+}
+function lockerMarkOrdered(code){
+  const it = lockerByCode(code); if(!it) return;
+  const suggested = (parseInt(it.ordered)||0) > 0 ? parseInt(it.ordered) : Math.max(1, lkReorder(it) - lkQty(it));
+  const input = prompt(`Quantity of "${it.name}" to order?`, suggested);
+  if(input === null) return;
+  const qty = Math.max(0, parseInt(input)||0);
+  if(!qty) return;
+  if(lockerUpdate(d=>{ const x = d.items.find(i=> i && i.code === code); if(x){ x.onOrder = qty; x.ordered = qty; x.orderedOn = new Date().toISOString(); } })) renderResupply();
+}
+function lockerMarkReceived(code){
+  const it = lockerByCode(code); if(!it || !lkOnOrder(it)) return;
+  if(lockerUpdate(d=>{ const x = d.items.find(i=> i && i.code === code); if(x){ x.qty = (parseInt(x.qty)||0) + (parseInt(x.onOrder)||0); x.onOrder = 0; } })) renderResupply();
+}
+function migrateCabinet(){
+  requireUnlock(()=>{
+    const old = cabinetData.items.filter(ci=> ci && ci.name); if(!old.length) return;
+    let added = 0, skipped = 0;
+    const ok = lockerUpdate(d=>{
+      old.forEach(ci=>{
+        const n = String(ci.name).trim().toLowerCase();
+        if(d.items.some(i=> i && String(i.name).trim().toLowerCase() === n)){ skipped++; return; }
+        newLockerItem(d, { name:ci.name, qty:ci.qtyOnHand, reorder:ci.parLevel,
+          onOrder: ci.pendingOrder ? ci.pendingOrder.qty : 0, orderedOn: ci.pendingOrder ? ci.pendingOrder.orderedDate : '' });
+        added++;
+      });
     });
-  });
-  wrap.querySelectorAll('.ci-category').forEach(inp=>{
-    inp.addEventListener('change', e=>{
-      const ci = cabinetData.items.find(x=>x.id===e.target.getAttribute('data-cat'));
-      if(!ci) return;
-      ci.category = e.target.value.trim();
-      saveCabinetData(); renderCabinet();
-    });
-  });
-  wrap.querySelectorAll('[data-order]').forEach(btn=>{
-    btn.addEventListener('click', e=> markCabinetOrdered(e.target.getAttribute('data-order')));
-  });
-  wrap.querySelectorAll('[data-receive]').forEach(btn=>{
-    btn.addEventListener('click', e=> markCabinetReceived(e.target.getAttribute('data-receive')));
-  });
-  wrap.querySelectorAll('[data-del]').forEach(btn=>{
-    btn.addEventListener('click', e=> deleteCabinetItem(e.target.getAttribute('data-del')));
+    if(!ok) return;
+    cabinetData.migratedAt = new Date().toISOString(); saveCabinetData();
+    renderResupply();
+    alert(`Copied ${added} item${added===1?'':'s'} into the Supply Locker${skipped ? ` (${skipped} already there by name, skipped)` : ''}.`);
   });
 }
 
-document.getElementById('cabinetSearch').addEventListener('input', renderCabinet);
+/* ---------- Add a Supply Locker item from here (Admin) ---------- */
+document.getElementById('btnShowAddLockerItem').addEventListener('click', ()=>{
+  requireUnlock(()=>{
+    document.getElementById('addLockerForm').classList.add('show');
+    document.getElementById('newLockerName').focus();
+  });
+});
+document.getElementById('btnCancelAddLockerItem').addEventListener('click', ()=>{
+  document.getElementById('addLockerForm').classList.remove('show');
+  ['newLockerName','newLockerQty','newLockerPar'].forEach(id=> document.getElementById(id).value = '');
+});
+document.getElementById('btnConfirmAddLockerItem').addEventListener('click', addLockerItem);
+['newLockerName','newLockerQty','newLockerPar'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addLockerItem(); } });
+});
+function addLockerItem(){
+  requireUnlock(()=>{
+    const name = document.getElementById('newLockerName').value.trim();
+    if(!name){ document.getElementById('newLockerName').focus(); return; }
+    const qty = document.getElementById('newLockerQty').value, par = document.getElementById('newLockerPar').value;
+    if(lockerByName(name) && !confirm(`"${name}" is already in the Supply Locker. Add another item with the same name?`)) return;
+    if(!lockerUpdate(d=>{ newLockerItem(d, { name, qty, reorder:par }); })) return;
+    document.getElementById('btnCancelAddLockerItem').click();
+    renderResupply();
+  });
+}
+document.getElementById('lockerSearch').addEventListener('input', renderLockerStock);
+document.getElementById('lockerFilter').addEventListener('change', renderLockerStock);
 document.getElementById('btnResupplyRefresh').addEventListener('click', renderResupply);
 document.getElementById('btnResupplyPrint').addEventListener('click', ()=>{
   renderResupply();
@@ -3188,7 +3311,7 @@ window.addEventListener('afterprint', ()=> document.body.classList.remove('print
 // next to a rig's tablet) both write to localStorage directly — pick up
 // those cross-tab changes if we're sitting on the Resupply tab right now.
 window.addEventListener('storage', e=>{
-  if(currentTab === 'resupply' && e.key && (/_inventory$/.test(e.key) || e.key === CABINET_STORAGE_KEY)) renderResupply();
+  if(currentTab === 'resupply' && e.key && (/_inventory$/.test(e.key) || e.key === LOCKER_KEY || e.key === CABINET_STORAGE_KEY)) renderResupply();
 });
 
 /* ---------- Roster-linked inspector name suggestions ----------
@@ -3289,6 +3412,11 @@ refreshStats();
 renderLastInspection();
 renderViAll();
 populateRosterNamesDatalist();
+// Links from the Supply Locker page open straight on a tab, e.g. MFD_AllApparatus.html?tab=resupply
+try{
+  const wantTab = new URLSearchParams(location.search).get('tab');
+  if(wantTab === 'resupply' || wantTab === 'vehicle' || wantTab === 'inventory') switchTab(wantTab);
+}catch(e){ /* ignore */ }
 </script>
 </div>
 <script src="mfd-sync.js"></script>

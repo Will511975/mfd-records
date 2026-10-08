@@ -241,6 +241,10 @@
   .inv-sqty span{min-width:30px;text-align:center;font-size:18px;font-weight:900;color:var(--gold-400);}
   .inv-sqty span.zero{color:var(--red-500);}
   .inv-list{display:flex;flex-direction:column;gap:6px;}
+  a.util{text-decoration:none;display:inline-block;}
+  .inv-trucks{font-size:12px;color:var(--gold-400);background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:6px 10px;}
+  .inv-trucks a{color:var(--gold-400);font-weight:700;}
+  .inv-recv{background:rgba(34,197,94,.12);border:1px solid var(--ok-500);color:var(--ok-500);border-radius:8px;padding:9px 12px;font-size:13px;font-weight:800;cursor:pointer;text-align:left;}
   .qr-id.shelfno{font-size:11pt;font-weight:800;color:#000;letter-spacing:.02em;}
   @media (max-width:560px){.inv-qtynum{font-size:44px;}.inv-steps button{font-size:15px;padding:11px 0;}}
 </style>
@@ -286,6 +290,7 @@
   <button class="util" id="btnHistory" data-mfd-locked="skip">&#128339; Check History</button>
   <button class="util" id="btnPrint" data-mfd-locked="skip">&#128424; Print List</button>
   <button class="util" id="btnCsv" data-mfd-locked="skip">&#11015; Export Items (.csv)</button>
+  <a class="util" href="MFD_AllApparatus.html?tab=resupply" data-mfd-locked="skip" title="See what the trucks are missing and restock them from this inventory">&#128658; Truck Resupply</a>
   <div class="fill"></div>
   <button class="util danger" id="btnReset" data-mfd-verb="reset">&#8634; Reset Lockers</button>
 </div>
@@ -428,6 +433,8 @@ function cleanItem(i, loc){
     present: i.present ? 1 : 0,
     reorder: Math.max(0, parseInt(i.reorder)||0),
     ordered: Math.max(0, parseInt(i.ordered)||0),
+    onOrder: Math.max(0, parseInt(i.onOrder)||0),          // quantity ordered and still waiting to arrive
+    orderedOn: typeof i.orderedOn === 'string' ? i.orderedOn : '',
     price: Math.max(0, Math.round((parseFloat(i.price)||0)*100)/100),
     from: String(i.from||'').trim(),
     loc: loc
@@ -611,11 +618,12 @@ function renderPanel(){
 /* ---------- Item Database tab ---------- */
 const dbBody = document.getElementById('dbBody'), dbSearch = document.getElementById('dbSearch'), dbFilter = document.getElementById('dbFilter');
 function statusOf(it){
-  if(it.qty === 0) return { cls:'st-need', txt:'Out (0)' };
-  if(it.loc && !it.present) return { cls:'st-need', txt:'Needed' };
-  if(lowFlag(it)) return { cls:'st-low', txt:'Low' };
-  if(!it.loc) return { cls:'st-none', txt:'Not on a shelf' };
-  return { cls:'st-ok', txt:'Stocked' };
+  const oo = it.onOrder > 0 ? ' \u00b7 On order ' + it.onOrder : '';
+  if(it.qty === 0) return { cls:'st-need', txt:'Out (0)' + oo };
+  if(it.loc && !it.present) return { cls:'st-need', txt:'Needed' + oo };
+  if(lowFlag(it)) return { cls:'st-low', txt:'Low' + oo };
+  if(!it.loc) return { cls:'st-none', txt:'Not on a shelf' + oo };
+  return { cls:'st-ok', txt:'Stocked' + oo };
 }
 function dbMatches(it){
   const f = dbFilter.value;
@@ -660,7 +668,7 @@ function locOptions(selected){
 }
 function openItemForm(id){
   editingId = id;
-  const it = id ? itemById(id) : { code:'', name:'', qty:0, present:1, reorder:0, ordered:0, price:0, from:'', loc:null };
+  const it = id ? itemById(id) : { code:'', name:'', qty:0, present:1, reorder:0, ordered:0, onOrder:0, price:0, from:'', loc:null };
   if(!it) return;
   const admin = isAdmin(), dis = admin ? '' : 'disabled';
   document.getElementById('itemModalTitle').textContent = id ? 'Item ' + it.code : 'Add Item to Database';
@@ -671,6 +679,7 @@ function openItemForm(id){
       <label>On hand<input type="number" min="0" id="ifQty" data-mfd-locked="skip" value="${it.qty}" ${dis}></label>
       <label>Reorder point<input type="number" min="0" id="ifReorder" data-mfd-locked="skip" value="${it.reorder}" ${dis}></label>
       <label>Quantity ordered<input type="number" min="0" id="ifOrdered" data-mfd-locked="skip" value="${it.ordered}" ${dis}></label>
+      <label>On order (not arrived yet)<input type="number" min="0" id="ifOnOrder" data-mfd-locked="skip" value="${it.onOrder||0}" ${dis}></label>
       <label>Price paid (each)<input type="number" min="0" step="0.01" id="ifPrice" data-mfd-locked="skip" value="${it.price}" ${dis}></label>
       <label class="wide">Ordered from<input type="text" id="ifFrom" data-mfd-locked="skip" value="${esc(it.from)}" placeholder="Vendor or store" ${dis}></label>
       <label class="wide">Location<select id="ifLoc" data-mfd-locked="skip" ${dis}>${locOptions(it.loc)}</select></label>
@@ -711,12 +720,13 @@ document.getElementById('itemForm').addEventListener('click', e=>{
       qty: Math.max(0, parseInt(document.getElementById('ifQty').value)||0),
       reorder: Math.max(0, parseInt(document.getElementById('ifReorder').value)||0),
       ordered: Math.max(0, parseInt(document.getElementById('ifOrdered').value)||0),
+      onOrder: Math.max(0, parseInt(document.getElementById('ifOnOrder').value)||0),
       price: Math.max(0, Math.round((parseFloat(document.getElementById('ifPrice').value)||0)*100)/100),
       from: document.getElementById('ifFrom').value.trim(),
       loc: parseLoc(document.getElementById('ifLoc').value)
     };
     if(editingId){ Object.assign(itemById(editingId), vals); }
-    else { data.items.push({ id:uid(), code:nextCode(), present:1, ...vals }); }
+    else { data.items.push({ id:uid(), code:nextCode(), present:1, orderedOn:'', ...vals }); }
     save(); closeItemForm(); renderAll();
   });
 });
@@ -798,7 +808,7 @@ panel.addEventListener('click', e=>{
   if(act === 'additem') requireUnlock(()=>{
     const inp = document.getElementById('newItem'); const name = inp.value.trim();
     if(!name){ alert('Type an item name first.'); inp.focus(); return; }
-    data.items.push({ id:uid(), code:nextCode(), name, qty:1, present:1, reorder:0, ordered:0, price:0, from:'', loc:{ l:sel.l, d:sel.d, s:sel.s } });
+    data.items.push({ id:uid(), code:nextCode(), name, qty:1, present:1, reorder:0, ordered:0, onOrder:0, orderedOn:'', price:0, from:'', loc:{ l:sel.l, d:sel.d, s:sel.s } });
     save(); renderAll();
     const again = document.getElementById('newItem'); if(again) again.focus();
   });
@@ -1063,6 +1073,26 @@ invResults.addEventListener('click', e=>{
 document.addEventListener('click', e=>{ if(!e.target.closest('.inv-look')) invResults.classList.remove('show'); });
 
 /* Bottom half: quick quantity / all item information */
+/* What the trucks are missing right now. Each truck's compartment items (saved by the Apparatus page) can be linked to an
+   Item ID here; an item with no link still counts if its name matches this item's name exactly. */
+const TRUCK_KEYS = [['mantuaFD_engine110_inventory','Engine 110'],['mantuaFD_rescue110_inventory','Rescue 110'],['mantuaFD_ambulance115_inventory','Ambulance 115'],
+                    ['mantuaFD_brush113_inventory','Brush Truck 113'],['mantuaFD_brush114_inventory','Brush Truck 114']];
+function truckNeeds(it){
+  const out = [], nm = String(it.name||'').trim().toLowerCase();
+  TRUCK_KEYS.forEach(([key,label])=>{
+    let d = null; try{ const raw = localStorage.getItem(key); if(raw) d = JSON.parse(raw); }catch(e){ d = null; }
+    if(!d) return;
+    let n = 0;
+    const chk = x=>{ if(x && !x.present && (x.slId ? x.slId === it.code : String(x.name||'').trim().toLowerCase() === nm)) n += (x.qty ?? 1); };
+    (d.compartments||[]).forEach(c=>{ (c.items||[]).forEach(chk); (c.containers||[]).forEach(ct=> (ct.items||[]).forEach(chk)); });
+    if(n) out.push({ label, n });
+  });
+  return out;
+}
+const trucksNote = it=>{
+  const t = truckNeeds(it); if(!t.length) return '';
+  return `<div class="inv-trucks">&#128658; Trucks are missing this: ${t.map(x=>esc(x.label)+' &times;'+x.n).join(', ')} &middot; <a href="MFD_AllApparatus.html?tab=resupply">Truck Resupply</a></div>`;
+};
 function renderShelfView(){
   const loc = inv.shelf, items = itemsAt(loc.l, loc.d, loc.s).sort((a,b)=>a.code.localeCompare(b.code)), k = cnt(items);
   invBottom.innerHTML = `<div class="inv-head"><div><span class="iid">${shelfCode(loc)}</span><div class="inv-name">${esc(shelfPos(loc))}</div>
@@ -1109,6 +1139,8 @@ function renderInvBottomInner(){
       <div class="inv-setrow">Set to <input type="number" min="0" id="invSetVal" value="${it.qty}" data-mfd-locked="skip">
         <button class="util" data-act="set" data-mfd-locked="skip">Set</button>
         ${it.loc ? `<label><input type="checkbox" data-act="present" data-mfd-locked="skip" ${it.present?'checked':''}> Stocked on shelf</label>` : ''}</div>
+      ${it.onOrder>0 ? `<button class="inv-recv" data-act="recv" data-mfd-locked="skip">&#128230; Order arrived &mdash; add ${it.onOrder} to on hand</button>` : ''}
+      ${trucksNote(it)}
       <div class="inv-note">${it.reorder>0 ? 'Reorder point: ' + it.reorder + (lowFlag(it)?' – at or below it, time to reorder.':'.') : 'No reorder point set.'}
         ${inv.last && inv.last.id===it.id ? ` Last change: ${inv.last.from} → ${inv.last.to}.` : ''}</div>`;
   } else {
@@ -1116,7 +1148,8 @@ function renderInvBottomInner(){
     body = `<div class="inv-info">
       ${row('On hand', it.qty)}${row('Reorder point', it.reorder||'&ndash;')}
       ${row('Quantity ordered', it.ordered||'&ndash;')}${row('Price paid (each)', it.price?money(it.price):'&ndash;')}
-      ${row('Order total', it.price&&it.ordered?money(it.price*it.ordered):'&ndash;')}${row('Ordered from', esc(it.from)||'&ndash;')}</div>`;
+      ${row('Order total', it.price&&it.ordered?money(it.price*it.ordered):'&ndash;')}${row('Ordered from', esc(it.from)||'&ndash;')}
+      ${row('On order (waiting)', it.onOrder||'&ndash;')}${row('Missing on trucks', (()=>{ const t = truckNeeds(it); return t.length ? t.map(x=>esc(x.label)+' &times;'+x.n).join(', ') : '&ndash;'; })())}</div>`;
   }
   invBottom.innerHTML = head + body + `<div class="inv-actions">
       ${it.loc ? '<button class="util" data-act="shelf" data-mfd-locked="skip">Show on shelf</button>' : ''}
@@ -1134,6 +1167,10 @@ function invSetQty(n, id){
 invBottom.addEventListener('click', e=>{
   const b = e.target.closest('[data-act]'); if(!b || b.tagName === 'INPUT') return;
   const it = invCur(); const a = b.dataset.act;
+  if(a === 'recv'){
+    const t = invCur(); if(t && t.onOrder > 0){ inv.last = { id:t.id, from:t.qty, to:t.qty + t.onOrder }; t.qty += t.onOrder; t.onOrder = 0; save(); renderAll(); }
+    return;
+  }
   if(a === 'sadj'){ const t = itemById(b.dataset.id); if(t) invSetQty(t.qty + parseInt(b.dataset.d), t.id); return; }
   if(a === 'open'){ invShow(b.dataset.id); return; }
   if(a === 'shelfopen' && inv.shelf){ sel = { ...inv.shelf }; showTab('lockers'); renderAll(); return; }
@@ -1208,6 +1245,7 @@ function reorderWhy(it){
   if(it.qty === 0) w.push('Out of stock');
   if(it.loc && !it.present) w.push('Not stocked on shelf');
   if(lowFlag(it)) w.push('At/below reorder point');
+  if(it.onOrder > 0) w.push('Already on order (' + it.onOrder + ')');
   return w.join(', ');
 }
 function printReport(kind){
@@ -1217,7 +1255,7 @@ function printReport(kind){
   const when = new Date().toLocaleString();
   let title, note, items, cols, cell;
   const common = it => ({ id:it.code, name:it.name, loc:locLabel(it.loc), qty:it.qty, reorder:it.reorder||'', status:statusOf(it).txt,
-    ordered:it.ordered||'', price:it.price?money(it.price):'', total:(it.price&&it.ordered)?money(it.price*it.ordered):'', from:it.from||'', why:reorderWhy(it) });
+    ordered:it.ordered||'', onOrder:it.onOrder||'', price:it.price?money(it.price):'', total:(it.price&&it.ordered)?money(it.price*it.ordered):'', from:it.from||'', why:reorderWhy(it) });
   if(kind === 'all'){
     title = 'Item Database &mdash; Full List'; items = data.items.slice().sort(byId);
     note = `${items.length} item${items.length===1?'':'s'} &middot; everything in the database, on a shelf or not`;
@@ -1231,7 +1269,7 @@ function printReport(kind){
     title = 'Item Database &mdash; Needs Reordering';
     items = data.items.filter(needsReorder).sort((a,b)=> (!a.from - !b.from) || a.from.localeCompare(b.from) || a.name.localeCompare(b.name));   // vendors A-Z, items with no vendor last
     note = `${items.length} item${items.length===1?'':'s'} out of stock, not stocked on a shelf, or at/below the reorder point &middot; sorted by vendor`;
-    cols = [['Item ID','id'],['Item','name'],['Location','loc'],['On hand','qty'],['Reorder pt','reorder'],['Why','why'],['Qty on order','ordered'],['Price (each)','price'],['Ordered from','from']];
+    cols = [['Item ID','id'],['Item','name'],['Location','loc'],['On hand','qty'],['Reorder pt','reorder'],['Why','why'],['Qty on order','onOrder'],['Price (each)','price'],['Ordered from','from']];
   }
   let h = `<h1>MFD Supply Locker</h1><h2 style="border:none;margin:0 0 2px;font-size:16px;">${title}</h2><div class="meta">Printed ${when} &middot; ${note}</div>`;
   if(!items.length){
@@ -1246,11 +1284,11 @@ function printReport(kind){
 document.getElementById('btnCsv').addEventListener('click', ()=>{
   if(!data.items.length){ alert('No items to export yet.'); return; }
   const q = v => '"' + String(v).replace(/"/g,'""') + '"';
-  const head = ['Item ID','Item','Locker','Door','Shelf','On hand','Stocked','Reorder point','Low stock','Out of stock','Qty ordered','Price paid (each)','Order total','Ordered from'];
+  const head = ['Item ID','Item','Locker','Door','Shelf','On hand','Stocked','Reorder point','Low stock','Out of stock','Qty ordered','Price paid (each)','Order total','Ordered from','On order (waiting)'];
   const lines = [head.map(q).join(',')].concat(data.items.map(it=>{
     const L = it.loc ? data.lockers[it.loc.l] : null, D = L ? L.doors[it.loc.d] : null;
     return [it.code, it.name, L ? L.name : 'Not on a shelf', D ? D.name : '', it.loc ? it.loc.s+1 : '', it.qty, it.loc ? (it.present?'Yes':'No') : '',
-            it.reorder, lowFlag(it)?'Yes':'No', it.qty===0?'Yes':'No', it.ordered, it.price.toFixed(2), (it.price*it.ordered).toFixed(2), it.from].map(q).join(',');
+            it.reorder, lowFlag(it)?'Yes':'No', it.qty===0?'Yes':'No', it.ordered, it.price.toFixed(2), (it.price*it.ordered).toFixed(2), it.from, it.onOrder||0].map(q).join(',');
   }));
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
