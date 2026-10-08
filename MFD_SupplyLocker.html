@@ -353,7 +353,7 @@
 
 <div id="view-qr" style="display:none;">
   <div class="qr-wrap">
-    <div class="qr-intro"><b>Print QR Codes.</b> Tick what you need: a whole locker or vehicle, one door, one shelf, a single item, a compartment or a bag/kit. Ticking a box also ticks everything inside it; untick anything you do not want. Each ticked line prints one 2 in &times; 2 in label.</div>
+    <div class="qr-intro"><b>Print QR Codes.</b> Tick what you need: a whole locker or vehicle, one door, one shelf, a single item, a compartment, a bag/kit or the Time Card entry form. Ticking a box also ticks everything inside it; untick anything you do not want. Each ticked line prints one 2 in &times; 2 in label.</div>
     <div class="qr-bar">
       <button class="util accent" id="qrPrintBtn" data-mfd-locked="skip">&#128424; Print Selected</button>
       <span class="qr-count" id="qrCount">0 labels selected</span>
@@ -1361,7 +1361,7 @@ document.getElementById('btnReset').addEventListener('click', ()=> requireUnlock
    A ticked box prints that line's own label, and ticking a box ticks everything inside it. Labels hold a place or an
    Item ID (never a quantity), so they never go stale. Vehicle labels open the Apparatus page, so they only work on this site. */
 const QR_VEHICLES = [['engine110','Engine 110'],['rescue110','Rescue 110'],['ambulance115','Ambulance 115'],['brush113','Brush Truck 113'],['brush114','Brush Truck 114']];
-const qrSel = new Set(), qrOpen = new Set(['sec:lk','sec:veh']);
+const qrSel = new Set(), qrOpen = new Set(['sec:lk','sec:veh','sec:rt']);
 const urlWith = (file, query)=>{ const u = new URL(file, location.href); u.search = query; u.hash = ''; return u.toString(); };
 const qrLabel = (url, name, id, cls, idCls)=> `<div class="qr-label ${cls||''}"><div class="qr-code">${qrSvg(url)}</div><div class="qr-name">${esc(name)}</div><div class="qr-id ${idCls||''}">${esc(id)}</div></div>`;
 function qrVehicleData(vid){
@@ -1393,7 +1393,9 @@ function buildQrTree(){
       })));
     return { key:'vh:'+vid, title:vlabel, sub:'vehicle'+(d?'':' (open it once in Apparatus to list its compartments)'), label:()=>qrLabel(urlWith('MFD_AllApparatus.html','?vehicle='+vid), vlabel, 'VEHICLE', 'veh'), kids };
   });
-  return [lockSec, { key:'sec:veh', title:'Vehicles', sec:true, nolabel:true, kids:vehs }];
+  const rt = { key:'sec:rt', title:'Roster & Time Card', sec:true, nolabel:true, kids:[
+    { key:'rt:tc', title:'Time Card \u203a Timecards', sub:'opens the new timecard entry form', label:()=>qrLabel(urlWith('MFD_RosterTimecards.html','?module=timecards&tab=timecards'), 'Time Card', 'ADD TIMECARD', 'veh'), kids:[] } ] };
+  return [lockSec, { key:'sec:veh', title:'Vehicles', sec:true, nolabel:true, kids:vehs }, rt];
 }
 function qrWalk(n, fn){ fn(n); (n.kids||[]).forEach(k=>qrWalk(k, fn)); }
 function qrFind(tree, key){ let f = null; tree.forEach(r=>qrWalk(r, n=>{ if(n.key === key && !f) f = n; })); return f; }

@@ -222,8 +222,22 @@ function showModule(name) {
 document.getElementById('tab-timecards').addEventListener('click', () => showModule('timecards'));
 document.getElementById('tab-roster').addEventListener('click', () => showModule('roster'));
 
+// Deep link from a QR label, e.g. ?module=timecards&tab=timecards opens the
+// Time Card module straight on its Timecards (new entry) tab.
+const qs = new URLSearchParams(location.search);
+const wantModule = frames[qs.get('module')] ? qs.get('module') : 'timecards';
+const wantTab = qs.get('tab');
+if (wantTab) {
+  frames[wantModule].addEventListener('load', () => {
+    try {
+      const b = frames[wantModule].contentDocument.querySelector('button.tab[data-tab="' + wantTab.replace(/[^a-z0-9_-]/gi, '') + '"]');
+      if (b) b.click();
+    } catch (e) { /* ignore */ }
+  }, { once: true });
+}
+
 // Load the default (first) tab immediately; the other loads on first click.
-loadModule('timecards');
+showModule(wantModule);
 </script>
 
 </body>
