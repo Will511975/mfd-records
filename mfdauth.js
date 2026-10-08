@@ -178,7 +178,7 @@
       if (typeof window.isLeadership === 'function') return; // Roster.html handles itself
       document.querySelectorAll('button, input, select, textarea').forEach(function (el) {
         if (el.closest('#mfdAccountBar, #mfdReportsModal, #mfd-personnel-report-card')) return;
-        if (el.dataset.mfdLocked === 'skip') return;
+        if (el.dataset.mfdLocked === 'skip' || el.closest('[data-mfd-locked="skip"]')) return;
 
         const tag = el.tagName.toLowerCase();
         if (tag === 'button') {
