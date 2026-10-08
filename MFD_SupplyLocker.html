@@ -178,6 +178,27 @@
     .print-only td,.print-only th{border:1px solid #000;padding:3px 6px;text-align:left;}
   }
 
+
+  /* ---- QR Codes tab ---- */
+  .qr-wrap{max-width:980px;margin:0 auto;padding:14px 20px 60px;}
+  .qr-intro{font-size:13px;color:var(--ink-300);background:var(--navy-800);border:1px solid var(--navy-700);border-radius:8px;padding:10px 14px;margin-bottom:12px;line-height:1.5;}
+  .qr-bar{position:sticky;top:0;z-index:5;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--navy-900);padding:8px 0 10px;}
+  .qr-bar .fill{flex:1;}
+  .qr-count{font-size:13px;font-weight:700;color:var(--gold-400);}
+  .qr-tree{border:1px solid var(--navy-700);border-radius:8px;padding:6px 8px;background:var(--navy-800);}
+  .qn{display:flex;align-items:center;gap:6px;padding:5px 4px;border-radius:5px;}
+  .qn:hover{background:rgba(255,255,255,.04);}
+  .qn .caret{width:22px;height:22px;flex:none;background:none;border:0;color:var(--ink-500);cursor:pointer;font-size:12px;padding:0;}
+  .qn .caret.none{visibility:hidden;}
+  .qn input[type=checkbox]{width:18px;height:18px;flex:none;accent-color:var(--red-600);cursor:pointer;}
+  .qn .ttl{font-size:14px;color:var(--ink-100);}
+  .qn .sub{font-size:12px;color:var(--ink-500);}
+  .qn .cn{margin-left:auto;font-size:11px;color:var(--ink-500);white-space:nowrap;}
+  .qn.sec .ttl{font-weight:800;font-size:15px;text-transform:uppercase;letter-spacing:.04em;}
+  .qn.nolabel .ttl{color:var(--ink-300);}
+  .qkids{margin-left:22px;border-left:1px solid var(--navy-700);padding-left:6px;}
+  .qr-note{font-size:12px;color:var(--ink-500);padding:4px 8px 8px 30px;}
+
   /* ---- Inventory tab: camera scanner (top half) + quick quantity / item info (bottom half) ---- */
   body.inv-mode .stat-strip, body.inv-mode .toolbar{display:none;}
   .inv-wrap{max-width:760px;margin:0 auto;padding:12px 16px 64px;display:grid;grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:12px;height:calc(100vh - 128px);height:calc(100dvh - 128px);box-sizing:border-box;min-height:600px;}
@@ -273,6 +294,7 @@
   <button class="tab-btn active" data-tab="lockers" data-mfd-locked="skip">&#128452; Lockers</button>
   <button class="tab-btn" data-tab="inv" data-mfd-locked="skip">&#128247; Inventory</button>
   <button class="tab-btn" data-tab="db" data-mfd-locked="skip">&#128203; Item Database</button>
+  <button class="tab-btn" data-tab="qr" data-mfd-locked="skip">&#127991; QR Codes</button>
 </div>
 
 <div class="stat-strip">
@@ -329,6 +351,24 @@
   </div>
 </div>
 
+<div id="view-qr" style="display:none;">
+  <div class="qr-wrap">
+    <div class="qr-intro"><b>Print QR Codes.</b> Tick what you need: a whole locker or vehicle, one door, one shelf, a single item, a compartment or a bag/kit. Ticking a box also ticks everything inside it; untick anything you do not want. Each ticked line prints one 2 in &times; 2 in label.</div>
+    <div class="qr-bar">
+      <button class="util accent" id="qrPrintBtn" data-mfd-locked="skip">&#128424; Print Selected</button>
+      <span class="qr-count" id="qrCount">0 labels selected</span>
+      <span class="fill"></span>
+      <button class="util" data-qrq="lockers" data-mfd-locked="skip">All lockers</button>
+      <button class="util" data-qrq="vehicles" data-mfd-locked="skip">All vehicles</button>
+      <button class="util" data-qrq="all" data-mfd-locked="skip">Everything</button>
+      <button class="util" data-qrq="clear" data-mfd-locked="skip">Clear</button>
+      <button class="util" data-qrq="expand" data-mfd-locked="skip">Expand all</button>
+      <button class="util" data-qrq="collapse" data-mfd-locked="skip">Collapse all</button>
+    </div>
+    <div class="qr-tree" id="qrTree"></div>
+  </div>
+</div>
+
 <div id="view-db" style="display:none;padding:0 24px 40px;">
   <div class="db-tools">
     <input type="search" id="dbSearch" placeholder="Search by Item ID, name, location or vendor&hellip;">
@@ -358,8 +398,7 @@
       <button data-print="all" data-mfd-locked="skip"><b>Whole database</b><span>Every item, on a shelf or not</span></button>
       <button data-print="stocked" data-mfd-locked="skip"><b>What is stocked</b><span>Items with stock on hand, by location</span></button>
       <button data-print="reorder" data-mfd-locked="skip"><b>What needs to be reordered</b><span>Out of stock, not stocked, or at/below the reorder point</span></button>
-      <button data-print="qr" data-mfd-locked="skip"><b>QR codes</b><span>2 in x 2 in labels, one per item, with the item name under each code</span></button>
-      <button data-print="shelfqr" data-mfd-locked="skip"><b>Shelf QR labels</b><span>2 in x 2 in labels for all 16 shelves &mdash; stick one on each shelf; scanning it lists that shelf</span></button>
+      <button data-print="qrtab" data-mfd-locked="skip"><b>QR codes&hellip;</b><span>Open the QR Codes tab: pick items, shelves, doors, lockers, vehicles, compartments and inspections</span></button>
     </div>
   </div>
 </div>
@@ -379,6 +418,8 @@
 </div>
 
 <style id="labelCss">
+  .qr-label.veh .qr-name{font-size:12pt;}
+  .qr-label.veh .qr-id{font-size:9pt;font-weight:800;color:#000;}
   .qr-sheet{display:grid;grid-template-columns:repeat(3,2in);gap:.2in;justify-content:start;}
   .qr-label{width:2in;height:2in;box-sizing:border-box;border:.5pt dashed #888;padding:.08in .1in;display:flex;flex-direction:column;align-items:center;justify-content:space-between;page-break-inside:avoid;break-inside:avoid;overflow:hidden;background:#fff;color:#000;font-family:Arial,sans-serif;}
   .qr-code{width:1.38in;height:1.38in;flex:none;}
@@ -750,9 +791,11 @@ function showTab(name){
   document.getElementById('view-lockers').style.display = name==='lockers' ? '' : 'none';
   document.getElementById('view-inv').style.display = name==='inv' ? '' : 'none';
   document.getElementById('view-db').style.display = name==='db' ? '' : 'none';
-  document.body.classList.toggle('inv-mode', name==='inv');
+  document.getElementById('view-qr').style.display = name==='qr' ? '' : 'none';
+  document.body.classList.toggle('inv-mode', name==='inv' || name==='qr');
   document.querySelectorAll('.tab-btn').forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
   if(name==='db') renderDb();
+  if(name==='qr') renderQr();
   if(name!=='inv' && inv.stream) invStopCam();
   if(name==='inv'){
     renderInvBottom();
@@ -924,10 +967,17 @@ let deepLinkHandled = false;
 function openDeepLink(){
   if(deepLinkHandled) return;
   const q = new URLSearchParams(location.search);
-  const code = q.get('item'), shelf = q.get('shelf');
-  if(!code && !shelf) return;
+  const code = q.get('item'), shelf = q.get('shelf'), lockerQ = q.get('locker'), doorQ = q.get('door'), tabQ = q.get('tab'), pickQ = q.get('pick');
+  if(!code && !shelf && !lockerQ && !doorQ && tabQ !== 'qr') return;
   deepLinkHandled = true;
   try{ history.replaceState(null, '', location.pathname); }catch(e){ /* ignore */ }
+  if(tabQ === 'qr'){ if(pickQ) qrPick(pickQ); showTab('qr'); return; }
+  if(lockerQ || doorQ){
+    const m = lockerQ ? /^\s*L([1-2])\s*$/i.exec(lockerQ) : /^\s*L([1-2])-D([1-2])\s*$/i.exec(doorQ);
+    if(!m){ alert('That label (' + (lockerQ||doorQ) + ") isn't recognized."); return; }
+    sel = { l:+m[1]-1, d:m[2] ? +m[2]-1 : 0, s:0 };
+    showTab('lockers'); renderAll(); return;
+  }
   if(shelf){
     const loc = parseShelfCode(shelf);
     if(!loc){ alert('That shelf label (' + shelf + ") isn't recognized."); return; }
@@ -1282,8 +1332,7 @@ function reorderWhy(it){
   return w.join(', ');
 }
 function printReport(kind){
-  if(kind === 'qr'){ printQrLabels(data.items.slice().sort((a,b)=>a.code.localeCompare(b.code))); return; }
-  if(kind === 'shelfqr'){ printShelfLabels(); return; }
+  if(kind === 'qrtab'){ showTab('qr'); return; }
   const byId = (a,b)=> a.code.localeCompare(b.code);
   const when = new Date().toLocaleString();
   let title, note, items, cols, cell;
@@ -1335,6 +1384,105 @@ document.getElementById('btnReset').addEventListener('click', ()=> requireUnlock
   const items = data.items.map(it=>({ ...it, loc:null })), keep = data.history, keepNum = data.nextItemNum;
   data = defaultData(); data.items = items; data.history = keep; data.nextItemNum = keepNum; sel = null; openItem = null; save(); renderAll();
 }));
+
+/* ---------- QR Codes tab: pick any labels from one tree and print them ----------
+   Lockers:  Locker > Door > Shelf > Item        Vehicles:  Vehicle > (Inspection, Compartment > Bag/Kit/Set)
+   A ticked box prints that line's own label, and ticking a box ticks everything inside it. Labels hold a place or an
+   Item ID (never a quantity), so they never go stale. Vehicle labels open the Apparatus page, so they only work on this site. */
+const QR_VEHICLES = [['engine110','Engine 110'],['rescue110','Rescue 110'],['ambulance115','Ambulance 115'],['brush113','Brush Truck 113'],['brush114','Brush Truck 114']];
+const qrSel = new Set(), qrOpen = new Set(['sec:lk','sec:veh']);
+const urlWith = (file, query)=>{ const u = new URL(file, location.href); u.search = query; u.hash = ''; return u.toString(); };
+const qrLabel = (url, name, id, cls, idCls)=> `<div class="qr-label ${cls||''}"><div class="qr-code">${qrSvg(url)}</div><div class="qr-name">${esc(name)}</div><div class="qr-id ${idCls||''}">${esc(id)}</div></div>`;
+function qrVehicleData(vid){
+  try{ const raw = localStorage.getItem('mantuaFD_' + vid + '_inventory'); if(raw){ const d = JSON.parse(raw); if(d && Array.isArray(d.compartments)) return d; } }catch(e){ /* ignore */ }
+  return null;
+}
+function buildQrTree(){
+  const lockers = data.lockers.map((L,l)=>({
+    key:'lk:'+l, title:L.name, sub:'locker', label:()=>qrLabel(urlWith('MFD_SupplyLocker.html','?locker=L'+(l+1)), L.name, 'LOCKER', 'veh'),
+    kids:L.doors.map((D,d)=>({
+      key:'dr:'+l+':'+d, title:D.name, sub:'door', label:()=>qrLabel(urlWith('MFD_SupplyLocker.html','?door=L'+(l+1)+'-D'+(d+1)), L.name+' › '+D.name, 'DOOR', 'veh'),
+      kids:D.shelves.map((S,s)=>{ const loc = {l,d,s};
+        return { key:'sh:'+l+':'+d+':'+s, title:'Shelf '+(s+1)+(s===0?' (top)':s===SHELF_COUNT-1?' (bottom)':''), sub:'shelf',
+          label:()=>qrLabel(shelfUrl(loc), shelfPlace(loc), shelfPos(loc).toUpperCase(), '', 'shelfno'),
+          kids:itemsAt(l,d,s).sort((a,b)=>a.code.localeCompare(b.code)).map(it=>({ key:'it:'+it.code, title:it.name, sub:it.code, label:()=>qrLabel(itemUrl(it), it.name, it.code), kids:[] })) };
+      }) }))
+  }));
+  const unplaced = data.items.filter(it=>!it.loc).sort((a,b)=>a.code.localeCompare(b.code));
+  const lockSec = { key:'sec:lk', title:'Supply Lockers', sec:true, nolabel:true, kids:lockers.concat(unplaced.length ? [{ key:'sec:un', title:'Items not on a shelf', sub:unplaced.length+' item'+(unplaced.length===1?'':'s'), nolabel:true,
+    kids:unplaced.map(it=>({ key:'it:'+it.code, title:it.name, sub:it.code, label:()=>qrLabel(itemUrl(it), it.name, it.code), kids:[] })) }] : []) };
+  const vehs = QR_VEHICLES.map(([vid,vlabel])=>{
+    const d = qrVehicleData(vid), comps = d ? d.compartments : [];
+    const kids = [{ key:'in:'+vid, title:'Vehicle Inspection', sub:'pre-trip checklist', label:()=>qrLabel(urlWith('MFD_AllApparatus.html','?vehicle='+vid+'&tab=vehicle'), vlabel+' Inspection', 'VEHICLE INSPECTION', 'veh'), kids:[] }]
+      .concat(comps.map(c=>({
+        key:'cp:'+vid+':'+c.id, title:c.label || c.id, sub:'compartment',
+        label:()=>qrLabel(urlWith('MFD_AllApparatus.html','?vehicle='+vid+'&comp='+encodeURIComponent(c.id)), c.label || c.id, vlabel.toUpperCase()),
+        kids:(c.containers||[]).map(ct=>({ key:'bg:'+vid+':'+c.id+':'+ct.id, title:ct.name, sub:ct.type||'bag / kit / set',
+          label:()=>qrLabel(urlWith('MFD_AllApparatus.html','?vehicle='+vid+'&comp='+encodeURIComponent(c.id)+'&bag='+encodeURIComponent(ct.id)), ct.name, vlabel+' › '+(c.label||c.id)), kids:[] }))
+      })));
+    return { key:'vh:'+vid, title:vlabel, sub:'vehicle'+(d?'':' (open it once in Apparatus to list its compartments)'), label:()=>qrLabel(urlWith('MFD_AllApparatus.html','?vehicle='+vid), vlabel, 'VEHICLE', 'veh'), kids };
+  });
+  return [lockSec, { key:'sec:veh', title:'Vehicles', sec:true, nolabel:true, kids:vehs }];
+}
+function qrWalk(n, fn){ fn(n); (n.kids||[]).forEach(k=>qrWalk(k, fn)); }
+function qrFind(tree, key){ let f = null; tree.forEach(r=>qrWalk(r, n=>{ if(n.key === key && !f) f = n; })); return f; }
+function qrSelectNode(n, on){ qrWalk(n, x=>{ if(!x.nolabel){ if(on) qrSel.add(x.key); else qrSel.delete(x.key); } }); }
+function qrCountIn(n){ let c = 0; qrWalk(n, x=>{ if(!x.nolabel) c++; }); return c; }
+function qrSelectedIn(n){ let c = 0; qrWalk(n, x=>{ if(!x.nolabel && qrSel.has(x.key)) c++; }); return c; }
+function qrPick(spec){            // opened from the Apparatus page, e.g. pick=vh:engine110 or cp:engine110:l1
+  const tree = buildQrTree(); const n = qrFind(tree, spec); if(!n) return;
+  qrSel.clear(); qrSelectNode(n, true);
+  qrOpen.add('sec:veh'); const parts = spec.split(':'); if(parts[0] === 'cp' || parts[0] === 'in' || parts[0] === 'bg') qrOpen.add('vh:' + parts[1]);
+}
+function renderQr(){
+  const tree = buildQrTree(); const host = document.getElementById('qrTree');
+  const row = (n)=>{
+    const has = (n.kids||[]).length > 0, open = qrOpen.has(n.key), total = qrCountIn(n), selN = qrSelectedIn(n);
+    const checked = n.nolabel ? (total > 0 && selN === total) : qrSel.has(n.key);
+    const mixed = !checked && selN > 0;
+    const ch = has && open ? '<div class="qkids">' + n.kids.map(row).join('') + '</div>' : '';
+    return `<div class="qnode"><div class="qn ${n.sec?'sec':''} ${n.nolabel?'nolabel':''}">
+      <button class="caret ${has?'':'none'}" data-qcar="${esc(n.key)}" data-mfd-locked="skip" title="${open?'Collapse':'Expand'}">${open?'&#9660;':'&#9654;'}</button>
+      <input type="checkbox" data-qk="${esc(n.key)}" data-mfd-locked="skip" ${checked?'checked':''} ${mixed?'data-mixed="1"':''}>
+      <span class="ttl">${esc(n.title)}</span>${n.sub?`<span class="sub">${esc(n.sub)}</span>`:''}
+      <span class="cn">${selN} / ${total} label${total===1?'':'s'}</span></div>${ch}</div>`;
+  };
+  host.innerHTML = tree.map(row).join('');
+  host.querySelectorAll('input[data-mixed]').forEach(i=>{ i.indeterminate = true; });
+  let selTotal = 0; tree.forEach(r=>{ selTotal += qrSelectedIn(r); });
+  document.getElementById('qrCount').textContent = selTotal + ' label' + (selTotal===1?'':'s') + ' selected';
+  document.getElementById('qrPrintBtn').disabled = selTotal === 0;
+}
+document.getElementById('qrTree').addEventListener('click', e=>{
+  const car = e.target.closest('[data-qcar]');
+  if(car){ const k = car.dataset.qcar; if(qrOpen.has(k)) qrOpen.delete(k); else qrOpen.add(k); renderQr(); }
+});
+document.getElementById('qrTree').addEventListener('change', e=>{
+  const cb = e.target.closest('[data-qk]'); if(!cb) return;
+  const n = qrFind(buildQrTree(), cb.dataset.qk); if(!n) return;
+  if(n.nolabel) qrSelectNode(n, cb.checked);
+  else if(n.kids && n.kids.length) qrSelectNode(n, cb.checked);      // a parent ticks or clears everything inside it
+  else { if(cb.checked) qrSel.add(n.key); else qrSel.delete(n.key); }
+  renderQr();
+});
+document.querySelectorAll('[data-qrq]').forEach(b=> b.addEventListener('click', ()=>{
+  const tree = buildQrTree(), act = b.dataset.qrq;
+  if(act === 'clear') qrSel.clear();
+  else if(act === 'lockers') qrSelectNode(tree[0], true);
+  else if(act === 'vehicles') qrSelectNode(tree[1], true);
+  else if(act === 'all') tree.forEach(r=>qrSelectNode(r, true));
+  else if(act === 'expand') tree.forEach(r=>qrWalk(r, n=>{ if((n.kids||[]).length) qrOpen.add(n.key); }));
+  else if(act === 'collapse'){ qrOpen.clear(); }
+  renderQr();
+}));
+document.getElementById('qrPrintBtn').addEventListener('click', ()=>{
+  const tree = buildQrTree(), labels = [];
+  tree.forEach(r=>qrWalk(r, n=>{ if(!n.nolabel && qrSel.has(n.key) && n.label) labels.push(n.label()); }));
+  if(!labels.length){ alert('Tick at least one line first.'); return; }
+  if(labels.length > 60 && !confirm('Print ' + labels.length + ' labels (' + Math.ceil(labels.length/12) + ' pages)?')) return;
+  printLabelSheet('<div class="qr-sheet">' + labels.join('') + '</div>', 'QR labels');
+});
+
 
 renderAll();
 </script>
