@@ -76,6 +76,29 @@
   .shelf-tabs{display:flex;gap:6px;margin:4px 0 6px;}
   .shelf-tab{flex:1;background:var(--navy-800);border:1px solid var(--navy-600);color:var(--ink-300);border-radius:6px;padding:6px 8px;font-size:12px;font-weight:700;cursor:pointer;}
   .shelf-tab.active{background:var(--red-600);border-color:var(--red-600);color:#fff;}
+  .iid{font-family:'Courier New',monospace;font-size:10.5px;color:var(--ink-500);background:var(--navy-900);border:1px solid var(--navy-600);border-radius:4px;padding:1px 5px;white-space:nowrap;}
+  .low-badge{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#1a0505;background:var(--red-500);border-radius:4px;padding:1px 6px;white-space:nowrap;}
+  .xpd{background:none;border:none;color:var(--ink-500);font-size:13px;cursor:pointer;padding:0 4px;line-height:1;}
+  .xpd.open{color:var(--gold-400);}
+  .item-detail{background:var(--navy-900);border:1px solid var(--navy-700);border-radius:6px;padding:10px 12px;margin:-2px 0 8px;}
+  .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;}
+  .dgrid label{display:flex;flex-direction:column;gap:3px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-500);}
+  .dgrid label.wide{grid-column:1 / -1;}
+  .dgrid input{background:var(--navy-800);border:1px solid var(--navy-600);border-radius:5px;color:var(--ink-100);padding:6px 8px;font-size:13px;font-family:inherit;text-transform:none;letter-spacing:0;font-weight:500;}
+  .dgrid input:disabled,.dgrid input[readonly]{opacity:.7;}
+  .dtotal{grid-column:1 / -1;font-size:12px;color:var(--ink-300);}
+  .dtotal b{color:var(--gold-400);}
+  .db-tools{display:flex;gap:8px;margin:6px 0 10px;}
+  .db-tools input{flex:1;max-width:420px;background:var(--navy-800);border:1px solid var(--navy-600);border-radius:6px;color:var(--ink-100);padding:8px 12px;font-size:13px;}
+  .db-wrap{overflow:auto;border:1px solid var(--navy-700);border-radius:8px;}
+  .db-table{border-collapse:collapse;width:100%;min-width:900px;font-size:12.5px;}
+  .db-table th{position:sticky;top:0;background:var(--navy-800);text-align:left;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-500);padding:8px 10px;border-bottom:1px solid var(--navy-600);white-space:nowrap;}
+  .db-table td{padding:8px 10px;border-bottom:1px solid var(--navy-700);white-space:nowrap;}
+  .db-table tbody tr{cursor:pointer;}
+  .db-table tbody tr:hover{background:rgba(255,255,255,.04);}
+  .db-table td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .st-ok{color:var(--ok-500);font-weight:700;} .st-need{color:var(--red-500);font-weight:700;} .st-low{color:var(--gold-400);font-weight:700;}
+  .db-empty{padding:30px;text-align:center;color:var(--ink-500);font-size:13px;}
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink-500);margin-top:20px;}
   .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
   .legend .l-ok::before{background:var(--ok-500);} .legend .l-part::before{background:var(--gold-500);} .legend .l-low::before{background:var(--red-500);}
@@ -159,13 +182,15 @@
 </header>
 
 <div class="tab-bar">
-  <button class="tab-btn active">&#128452; Lockers</button>
+  <button class="tab-btn active" data-tab="lockers" data-mfd-locked="skip">&#128452; Lockers</button>
+  <button class="tab-btn" data-tab="db" data-mfd-locked="skip">&#128203; Item Database</button>
 </div>
 
 <div class="stat-strip">
   <div class="stat-chip"><div class="num" id="sTotal">0</div><div class="lbl">Items</div></div>
   <div class="stat-chip ok"><div class="num" id="sPresent">0</div><div class="lbl">Stocked</div></div>
   <div class="stat-chip missing"><div class="num" id="sMissing">0</div><div class="lbl">Needed</div></div>
+  <div class="stat-chip"><div class="num" id="sLow" style="color:var(--gold-400)">0</div><div class="lbl">Low Stock</div></div>
   <div class="stat-chip"><div class="num" id="sPct">0%</div><div class="lbl">Complete</div></div>
   <div class="last-insp" id="lastCheck">No checks recorded yet</div>
 </div>
@@ -174,11 +199,12 @@
   <button class="util accent" id="btnQuickCheck" data-mfd-locked="skip">&#128269; Quick Check</button>
   <button class="util" id="btnHistory" data-mfd-locked="skip">&#128339; Check History</button>
   <button class="util" id="btnPrint" data-mfd-locked="skip">&#128424; Print List</button>
+  <button class="util" id="btnCsv" data-mfd-locked="skip">&#11015; Export Items (.csv)</button>
   <div class="fill"></div>
   <button class="util danger" id="btnReset" data-mfd-verb="reset">&#8634; Reset to Defaults</button>
 </div>
 
-<div class="wrap">
+<div class="wrap" id="view-lockers">
   <div class="diagram-pane">
     <div class="diagram-caption">Two lockers &middot; each has two doors and three shelves behind each door &middot; click a shelf to see only what is on that shelf</div>
     <div class="lockers-row" id="lockersRow"></div>
@@ -188,6 +214,14 @@
     <div class="panel-empty" id="panelEmpty"><span class="big">&#128452;</span>Click a shelf on a locker<br>to see and check what is on that shelf.</div>
     <div id="panelContent" style="display:none;"></div>
   </div>
+</div>
+
+<div id="view-db" style="display:none;padding:0 24px 40px;">
+  <div class="db-tools"><input type="search" id="dbSearch" placeholder="Search by Item ID, name, location or vendor&hellip;"></div>
+  <div class="db-wrap"><table class="db-table"><thead><tr>
+    <th>Item ID</th><th>Item</th><th>Location</th><th>On hand</th><th>Reorder point</th><th>Status</th>
+    <th>Qty ordered</th><th>Price paid (each)</th><th>Order total</th><th>Ordered from</th>
+  </tr></thead><tbody id="dbBody"></tbody></table><div class="db-empty" id="dbEmpty" style="display:none;"></div></div>
 </div>
 </div>
 
@@ -209,6 +243,7 @@
    what makes mfd-sync.js mirror it to the shared database automatically. */
 const STORAGE_KEY = 'mfd_supplylocker_v1';
 const uid = ()=> Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+let migrated = false;   // set when older saved items had to be given an Item ID
 
 function defaultData(){
   return {
@@ -220,6 +255,7 @@ function defaultData(){
         shelves: [0,1,2].map(()=>({ items:[], containers:[] }))
       }))
     })),
+    nextItemNum: 1,
     history: []
   };
 }
@@ -241,13 +277,24 @@ function normalize(raw){
         const rs = Array.isArray(rd.shelves) ? rd.shelves[si] : null;
         if(!rs) return;
         if(Array.isArray(rs.items)) S.items = rs.items.filter(i=>i && typeof i.name==='string').map(i=>({
-          id: i.id || uid(), name:i.name, qty: Math.max(0, parseInt(i.qty)||0), present: i.present ? 1 : 0 }));
+          id: i.id || uid(), code: (typeof i.code==='string' && /^SL-\d+$/.test(i.code)) ? i.code : '',
+          name:i.name, qty: Math.max(0, parseInt(i.qty)||0), present: i.present ? 1 : 0,
+          reorder: Math.max(0, parseInt(i.reorder)||0), ordered: Math.max(0, parseInt(i.ordered)||0),
+          price: Math.max(0, Math.round((parseFloat(i.price)||0)*100)/100), from: String(i.from||'').trim() }));
         if(Array.isArray(rs.containers)) S.containers = rs.containers.filter(c=>c && typeof c.name==='string').map(c=>({
           id: c.id || uid(), name:c.name, type:['bag','kit','set'].includes(c.type)?c.type:'set', contents: String(c.contents||'') }));
       });
     });
   });
   if(Array.isArray(raw.history)) base.history = raw.history.slice(0,100);
+  // Item IDs: auto-numbered SL-0001, SL-0002 ... and never reused. Items saved before
+  // IDs existed are numbered once, in locker / door / shelf order, then saved.
+  const everyItem = base.lockers.flatMap(L=>L.doors.flatMap(D=>D.shelves.flatMap(S=>S.items)));
+  let maxNum = 0;
+  everyItem.forEach(it=>{ if(it.code) maxNum = Math.max(maxNum, parseInt(it.code.slice(3),10)); });
+  let next = Math.max(parseInt(raw.nextItemNum)||1, maxNum+1);
+  everyItem.forEach(it=>{ if(!it.code){ it.code = 'SL-' + String(next++).padStart(4,'0'); migrated = true; } });
+  base.nextItemNum = next;
   return base;
 }
 function load(){
@@ -256,6 +303,12 @@ function load(){
   return defaultData();
 }
 let data = load();
+if(migrated){ save(); migrated = false; }
+const nextCode = ()=>{ const c = 'SL-' + String(data.nextItemNum++).padStart(4,'0'); return c; };
+const isAdmin = ()=> !!(window.MFD_AUTH && window.MFD_AUTH.role === 'admin');
+const lowFlag = it => it.reorder > 0 && it.qty <= it.reorder;
+const money = n => '$' + (Number(n)||0).toFixed(2);
+let openItem = null;   // id of the item whose details are expanded
 function flashSaved(){
   const f = document.getElementById('savedFlag'); f.classList.add('show');
   clearTimeout(flashSaved._t); flashSaved._t = setTimeout(()=>f.classList.remove('show'), 1200);
@@ -309,6 +362,7 @@ function renderStats(){
   document.getElementById('sTotal').textContent = c.t;
   document.getElementById('sPresent').textContent = c.p;
   document.getElementById('sMissing').textContent = c.t - c.p;
+  document.getElementById('sLow').textContent = allItems().filter(lowFlag).length;
   document.getElementById('sPct').textContent = (c.t ? Math.round(100*c.p/c.t) : 0) + '%';
   const last = data.history[0];
   document.getElementById('lastCheck').textContent = last
@@ -333,9 +387,23 @@ function renderPanel(){
       <div class="item-row ${it.present?'':'missing'}">
         <input type="checkbox" data-mfd-locked="skip" data-act="tick" data-s="${si}" data-i="${ii}" ${it.present?'checked':''} aria-label="Stocked">
         <span class="nm">${esc(it.name)}</span>
-        <input type="number" min="0" class="qty-in" data-mfd-locked="skip" data-act="qty" data-s="${si}" data-i="${ii}" value="${it.qty}" aria-label="Quantity">
+        ${lowFlag(it) ? '<span class="low-badge" title="At or below the reorder point">Low</span>' : ''}
+        <span class="iid">${esc(it.code)}</span>
+        <input type="number" min="0" class="qty-in" data-mfd-locked="skip" data-act="qty" data-s="${si}" data-i="${ii}" value="${it.qty}" aria-label="Quantity on hand" title="Quantity on hand">
+        <button class="xpd ${openItem===it.id?'open':''}" data-mfd-locked="skip" data-act="expand" data-s="${si}" data-i="${ii}" title="Item details (ordering info)">${openItem===it.id?'&#9652;':'&#9662;'}</button>
         <button class="del" data-mfd-verb="delete" data-act="delitem" data-s="${si}" data-i="${ii}" title="Remove item">&times;</button>
-      </div>`).join('')
+      </div>
+      ${openItem===it.id ? `
+      <div class="item-detail">
+        <div class="dgrid">
+          <label>Item ID<input type="text" value="${esc(it.code)}" readonly data-mfd-locked="skip"></label>
+          <label>Reorder point<input type="number" min="0" data-mfd-locked="skip" data-act="field" data-f="reorder" data-s="${si}" data-i="${ii}" value="${it.reorder}" ${isAdmin()?'':'disabled'}></label>
+          <label>Quantity ordered<input type="number" min="0" data-mfd-locked="skip" data-act="field" data-f="ordered" data-s="${si}" data-i="${ii}" value="${it.ordered}" ${isAdmin()?'':'disabled'}></label>
+          <label>Price paid (each)<input type="number" min="0" step="0.01" data-mfd-locked="skip" data-act="field" data-f="price" data-s="${si}" data-i="${ii}" value="${it.price}" ${isAdmin()?'':'disabled'}></label>
+          <label class="wide">Ordered from<input type="text" data-mfd-locked="skip" data-act="field" data-f="from" data-s="${si}" data-i="${ii}" value="${esc(it.from)}" placeholder="Vendor or store" ${isAdmin()?'':'disabled'}></label>
+          <div class="dtotal">Order total: <b id="otot">${money(it.price*it.ordered)}</b>${isAdmin()?'':' &middot; Only an Admin can edit ordering info'}</div>
+        </div>
+      </div>` : ''}`).join('')
       : '<div style="font-size:12px;color:var(--ink-500);">Nothing on this shelf yet.</div>'}
     <div class="add-row"><input type="text" placeholder="Add item to Shelf ${si+1}&hellip;" id="newItem${si}"><button data-mfd-verb="add" data-act="additem" data-s="${si}">Add</button></div>
     <div class="section-label">Bags / Kits / Sets on this shelf</div>
@@ -350,14 +418,91 @@ function renderPanel(){
     <button class="util" style="margin-top:12px;" data-mfd-verb="add" id="btnShowCont" data-act="showcont">+ Add Bag / Kit / Set</button>
     <div class="notes-block"><label>Door notes (apply to the whole door)</label><textarea id="doorNotes" data-mfd-locked="skip" placeholder="e.g. latch sticks, reorder gloves by Friday&hellip;">${esc(D.notes)}</textarea></div>`;
 }
-function renderAll(){ renderRow(); renderStats(); renderPanel(); }
+/* ---------- Item Database tab ---------- */
+const dbBody = document.getElementById('dbBody'), dbSearch = document.getElementById('dbSearch');
+function dbRows(){
+  const out = [];
+  data.lockers.forEach((L,li)=>L.doors.forEach((D,di)=>D.shelves.forEach((S,si)=>S.items.forEach(it=>
+    out.push({ it, li, di, si, loc: `${L.name} › ${D.name} › Shelf ${si+1}` })))));
+  return out;
+}
+function renderDb(){
+  const q = dbSearch.value.trim().toLowerCase();
+  const rows = dbRows().filter(r=> !q || [r.it.code, r.it.name, r.loc, r.it.from].join(' ').toLowerCase().includes(q));
+  dbBody.innerHTML = rows.map(r=>{
+    const it = r.it;
+    const st = !it.present ? '<span class="st-need">Needed</span>' : lowFlag(it) ? '<span class="st-low">Low</span>' : '<span class="st-ok">Stocked</span>';
+    return `<tr data-l="${r.li}" data-d="${r.di}" data-s="${r.si}" data-id="${esc(it.id)}">
+      <td><span class="iid">${esc(it.code)}</span></td><td>${esc(it.name)}</td><td>${esc(r.loc)}</td>
+      <td class="num">${it.qty}</td><td class="num">${it.reorder||'&ndash;'}</td><td>${st}</td>
+      <td class="num">${it.ordered||'&ndash;'}</td><td class="num">${it.price?money(it.price):'&ndash;'}</td>
+      <td class="num">${it.price&&it.ordered?money(it.price*it.ordered):'&ndash;'}</td><td>${esc(it.from)||'&ndash;'}</td></tr>`;
+  }).join('');
+  const em = document.getElementById('dbEmpty');
+  em.style.display = rows.length ? 'none' : '';
+  em.textContent = dbRows().length ? 'No items match your search.' : 'No items yet. Open a shelf on the Lockers tab and add some.';
+}
+dbSearch.addEventListener('input', renderDb);
+dbBody.addEventListener('click', e=>{
+  const tr = e.target.closest('tr'); if(!tr) return;
+  sel = { l:+tr.dataset.l, d:+tr.dataset.d, s:+tr.dataset.s }; openItem = tr.dataset.id;
+  showTab('lockers'); renderAll();
+});
+function showTab(name){
+  document.getElementById('view-lockers').style.display = name==='lockers' ? '' : 'none';
+  document.getElementById('view-db').style.display = name==='db' ? '' : 'none';
+  document.querySelectorAll('.tab-btn').forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
+  if(name==='db') renderDb();
+}
+document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> showTab(b.dataset.tab)));
+
+document.getElementById('btnCsv').addEventListener('click', ()=>{
+  const rows = dbRows();
+  if(!rows.length){ alert('No items to export yet.'); return; }
+  const q = v => '"' + String(v).replace(/"/g,'""') + '"';
+  const head = ['Item ID','Item','Locker','Door','Shelf','On hand','Stocked','Reorder point','Low stock','Qty ordered','Price paid (each)','Order total','Ordered from'];
+  const lines = [head.map(q).join(',')].concat(rows.map(r=>{
+    const it = r.it, L = data.lockers[r.li], D = L.doors[r.di];
+    return [it.code, it.name, L.name, D.name, r.si+1, it.qty, it.present?'Yes':'No', it.reorder, lowFlag(it)?'Yes':'No',
+            it.ordered, it.price.toFixed(2), (it.price*it.ordered).toFixed(2), it.from].map(q).join(',');
+  }));
+  const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); const d = new Date();
+  a.href = url; a.download = 'MFD_SupplyLocker_Items-' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=> URL.revokeObjectURL(url), 60000);
+});
+
+function renderAll(){ renderRow(); renderStats(); renderPanel(); renderDb(); }
+// Admin-only fields depend on who is signed in, which is only known after the sign-in gate finishes.
+window.addEventListener('mfd-auth-ready', renderAll);
+
+/* Keeps the row's "Low" badge correct while typing, without re-drawing the panel
+   (which would drop keyboard focus while someone is tabbing through fields). */
+function syncBadge(s, i, it){
+  const row = panel.querySelector(`[data-act="tick"][data-s="${s}"][data-i="${i}"]`);
+  if(!row) return; const r = row.closest('.item-row');
+  const old = r.querySelector('.low-badge'); if(old) old.remove();
+  if(lowFlag(it)) r.querySelector('.nm').insertAdjacentHTML('afterend','<span class="low-badge" title="At or below the reorder point">Low</span>');
+}
 
 /* ---------- Panel interactions (event delegation) ---------- */
 panel.addEventListener('change', e=>{
   const t = e.target; if(!sel) return;
   const D = data.lockers[sel.l].doors[sel.d];
   if(t.dataset.act === 'tick'){ D.shelves[+t.dataset.s].items[+t.dataset.i].present = t.checked ? 1 : 0; save(); renderAll(); }
-  else if(t.dataset.act === 'qty'){ D.shelves[+t.dataset.s].items[+t.dataset.i].qty = Math.max(0, parseInt(t.value)||0); save(); }
+  else if(t.dataset.act === 'qty'){ const it = D.shelves[+t.dataset.s].items[+t.dataset.i]; it.qty = Math.max(0, parseInt(t.value)||0); save(); renderStats(); renderRow(); renderDb(); syncBadge(+t.dataset.s, +t.dataset.i, it); }
+  else if(t.dataset.act === 'field'){
+    if(!isAdmin()) return;
+    const it = D.shelves[+t.dataset.s].items[+t.dataset.i], f = t.dataset.f;
+    if(f==='reorder' || f==='ordered') it[f] = Math.max(0, parseInt(t.value)||0);
+    else if(f==='price') it.price = Math.max(0, Math.round((parseFloat(t.value)||0)*100)/100);
+    else if(f==='from') it.from = t.value.trim();
+    save();
+    const tot = document.getElementById('otot'); if(tot) tot.textContent = money(it.price*it.ordered);
+    renderStats(); renderRow(); renderDb(); syncBadge(+t.dataset.s, +t.dataset.i, it);
+  }
   else if(t.id === 'doorNotes'){ D.notes = t.value; save(); }
 });
 panel.addEventListener('click', e=>{
@@ -372,9 +517,10 @@ panel.addEventListener('click', e=>{
     }); return;
   }
   if(act === 'pickshelf'){ sel.s = s; renderAll(); return; }
+  if(act === 'expand'){ const it = D.shelves[s].items[i]; openItem = openItem===it.id ? null : it.id; renderPanel(); return; }
   if(act === 'additem') requireUnlock(()=>{
     const inp = document.getElementById('newItem'+s); const name = inp.value.trim(); if(!name) return;
-    D.shelves[s].items.push({ id:uid(), name, qty:1, present:1 }); save(); renderAll();
+    D.shelves[s].items.push({ id:uid(), code:nextCode(), name, qty:1, present:1, reorder:0, ordered:0, price:0, from:'' }); save(); renderAll();
     const again = document.getElementById('newItem'+s); if(again) again.focus();
   });
   else if(act === 'delitem') requireUnlock(()=>{ D.shelves[s].items.splice(i,1); save(); renderAll(); });
@@ -397,7 +543,8 @@ panel.addEventListener('keydown', e=>{
 function missingList(){
   const out = [];
   data.lockers.forEach(L=>L.doors.forEach(D=>D.shelves.forEach((S,si)=>S.items.forEach(it=>{
-    if(!it.present) out.push({ locker:L.name, door:D.name, shelf:si+1, name:it.name, qty:it.qty });
+    if(!it.present || lowFlag(it)) out.push({ locker:L.name, door:D.name, shelf:si+1, code:it.code, name:it.name, qty:it.qty, reorder:it.reorder, from:it.from,
+      why: !it.present ? 'Not stocked' : 'Low stock' });
   }))));
   return out;
 }
@@ -427,15 +574,15 @@ document.getElementById('historyModal').addEventListener('click', e=>{ if(e.targ
 document.getElementById('btnPrint').addEventListener('click', ()=>{
   const miss = missingList();
   const c = cnt(allItems());
-  let h = `<h1>MFD Supply Locker &mdash; Restock List</h1><div class="meta">Printed ${new Date().toLocaleString()} &middot; ${c.p} of ${c.t} items stocked</div>`;
+  let h = `<h1>MFD Supply Locker &mdash; Restock List</h1><div class="meta">Printed ${new Date().toLocaleString()} &middot; ${c.p} of ${c.t} items stocked &middot; includes items at or below their reorder point</div>`;
   if(!miss.length) h += '<p>Nothing needs restocking.</p>';
   data.lockers.forEach(L=>{
     const m = miss.filter(x=>x.locker===L.name); if(!m.length) return;
     h += `<h2>${esc(L.name)}</h2>`;
     L.doors.forEach(D=>{
       const dm = m.filter(x=>x.door===D.name); if(!dm.length) return;
-      h += `<h3>${esc(D.name)}</h3><table><tr><th>Shelf</th><th>Item</th><th>Qty</th></tr>` +
-        dm.map(x=>`<tr><td>${x.shelf}</td><td>${esc(x.name)}</td><td>${x.qty}</td></tr>`).join('') + '</table>';
+      h += `<h3>${esc(D.name)}</h3><table><tr><th>Shelf</th><th>Item ID</th><th>Item</th><th>On hand</th><th>Reorder pt</th><th>Why</th><th>Order from</th></tr>` +
+        dm.map(x=>`<tr><td>${x.shelf}</td><td>${esc(x.code||'')}</td><td>${esc(x.name)}</td><td>${x.qty}</td><td>${x.reorder||''}</td><td>${x.why}</td><td>${esc(x.from||'')}</td></tr>`).join('') + '</table>';
     });
   });
   document.getElementById('printArea').innerHTML = h;
@@ -443,7 +590,7 @@ document.getElementById('btnPrint').addEventListener('click', ()=>{
 });
 document.getElementById('btnReset').addEventListener('click', ()=> requireUnlock(()=>{
   if(!confirm('Reset the Supply Locker? This clears every item, bag/kit/set, note and custom name. Check history is kept.')) return;
-  const keep = data.history; data = defaultData(); data.history = keep; sel = null; save(); renderAll();
+  const keep = data.history, keepNum = data.nextItemNum; data = defaultData(); data.history = keep; data.nextItemNum = keepNum; sel = null; openItem = null; save(); renderAll();
 }));
 
 renderAll();
