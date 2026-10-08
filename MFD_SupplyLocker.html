@@ -89,6 +89,17 @@
   .dtotal{grid-column:1 / -1;font-size:12px;color:var(--ink-300);}
   .dtotal b{color:var(--gold-400);}
   .db-tools{display:flex;gap:8px;margin:6px 0 10px;}
+  .db-tools select{background:var(--navy-800);border:1px solid var(--navy-600);border-radius:6px;color:var(--ink-100);padding:8px 10px;font-size:13px;}
+  .db-count{align-self:center;font-size:12px;color:var(--ink-500);margin-left:4px;}
+  .db-tools{flex-wrap:wrap;align-items:center;}
+  .print-choices{display:flex;flex-direction:column;gap:8px;}
+  .print-choices button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;background:var(--navy-800);border:1px solid var(--navy-600);border-radius:8px;color:var(--ink-100);padding:12px 14px;cursor:pointer;font-family:inherit;}
+  .print-choices button:hover{border-color:var(--gold-500);}
+  .print-choices b{font-size:14px;} .print-choices span{font-size:12px;color:var(--ink-500);}
+  .st-none{color:var(--ink-500);font-weight:700;}
+  .modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;align-items:center;}
+  .add-row select{flex:1;background:var(--navy-800);border:1px solid var(--navy-600);border-radius:6px;color:var(--ink-100);padding:7px 10px;font-size:13px;min-width:0;}
+  .dgrid select{background:var(--navy-800);border:1px solid var(--navy-600);border-radius:5px;color:var(--ink-100);padding:6px 8px;font-size:13px;font-family:inherit;}
   .db-tools input{flex:1;max-width:420px;background:var(--navy-800);border:1px solid var(--navy-600);border-radius:6px;color:var(--ink-100);padding:8px 12px;font-size:13px;}
   .db-wrap{overflow:auto;border:1px solid var(--navy-700);border-radius:8px;}
   .db-table{border-collapse:collapse;width:100%;min-width:900px;font-size:12.5px;}
@@ -150,7 +161,7 @@
   .hist-rec .miss{font-size:12px;color:var(--ink-300);margin-top:6px;line-height:1.5;}
   .print-only{display:none;}
   @media print{
-    body{background:#fff;color:#000;}
+    html,body{background:#fff !important;color:#000;}
     .no-print{display:none !important;}
     .print-only{display:block !important;font-family:Arial,sans-serif;color:#000;padding:10px;}
     .print-only h1{font-size:20px;margin:0 0 2px;} .print-only .meta{font-size:12px;margin-bottom:14px;}
@@ -187,10 +198,11 @@
 </div>
 
 <div class="stat-strip">
-  <div class="stat-chip"><div class="num" id="sTotal">0</div><div class="lbl">Items</div></div>
+  <div class="stat-chip"><div class="num" id="sTotal">0</div><div class="lbl">Items in Database</div></div>
   <div class="stat-chip ok"><div class="num" id="sPresent">0</div><div class="lbl">Stocked</div></div>
   <div class="stat-chip missing"><div class="num" id="sMissing">0</div><div class="lbl">Needed</div></div>
   <div class="stat-chip"><div class="num" id="sLow" style="color:var(--gold-400)">0</div><div class="lbl">Low Stock</div></div>
+  <div class="stat-chip"><div class="num" id="sUnplaced" style="color:var(--ink-300)">0</div><div class="lbl">Not on Shelf</div></div>
   <div class="stat-chip"><div class="num" id="sPct">0%</div><div class="lbl">Complete</div></div>
   <div class="last-insp" id="lastCheck">No checks recorded yet</div>
 </div>
@@ -201,7 +213,7 @@
   <button class="util" id="btnPrint" data-mfd-locked="skip">&#128424; Print List</button>
   <button class="util" id="btnCsv" data-mfd-locked="skip">&#11015; Export Items (.csv)</button>
   <div class="fill"></div>
-  <button class="util danger" id="btnReset" data-mfd-verb="reset">&#8634; Reset to Defaults</button>
+  <button class="util danger" id="btnReset" data-mfd-verb="reset">&#8634; Reset Lockers</button>
 </div>
 
 <div class="wrap" id="view-lockers">
@@ -217,12 +229,42 @@
 </div>
 
 <div id="view-db" style="display:none;padding:0 24px 40px;">
-  <div class="db-tools"><input type="search" id="dbSearch" placeholder="Search by Item ID, name, location or vendor&hellip;"></div>
+  <div class="db-tools">
+    <input type="search" id="dbSearch" placeholder="Search by Item ID, name, location or vendor&hellip;">
+    <select id="dbFilter" data-mfd-locked="skip">
+      <option value="all">All items</option>
+      <option value="shelf">On a shelf</option>
+      <option value="unplaced">Not on a shelf</option>
+      <option value="needed">Needed (not stocked)</option>
+      <option value="low">Low stock</option>
+      <option value="out">Out of stock (0)</option>
+    </select>
+    <button class="util accent" id="btnAddDbItem" data-mfd-verb="add">+ Add Item</button>
+    <span class="db-count" id="dbCount"></span>
+  </div>
   <div class="db-wrap"><table class="db-table"><thead><tr>
     <th>Item ID</th><th>Item</th><th>Location</th><th>On hand</th><th>Reorder point</th><th>Status</th>
     <th>Qty ordered</th><th>Price paid (each)</th><th>Order total</th><th>Ordered from</th>
   </tr></thead><tbody id="dbBody"></tbody></table><div class="db-empty" id="dbEmpty" style="display:none;"></div></div>
 </div>
+</div>
+
+<div class="modal-overlay" id="printModal">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head"><h2>Print List</h2><button class="util" id="btnClosePrint" data-mfd-locked="skip">Cancel</button></div>
+    <div class="print-choices">
+      <button data-print="all" data-mfd-locked="skip"><b>Whole database</b><span>Every item, on a shelf or not</span></button>
+      <button data-print="stocked" data-mfd-locked="skip"><b>What is stocked</b><span>Items with stock on hand, by location</span></button>
+      <button data-print="reorder" data-mfd-locked="skip"><b>What needs to be reordered</b><span>Out of stock, not stocked, or at/below the reorder point</span></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="itemModal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="itemModalTitle">Item</h2></div>
+    <div id="itemForm"></div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="historyModal">
@@ -236,34 +278,58 @@
 <div class="saved-flag" id="savedFlag">&#10003; Saved</div>
 
 <script>
-/* ---------- Supply Locker ----------
-   Layout is fixed: 2 lockers x 2 doors x 4 shelves. Each shelf holds loose
-   items (name, quantity, stocked yes/no) and optional bags/kits/sets.
-   Saved in localStorage under "mfd_supplylocker_v1" - the "mfd_" prefix is
-   what makes mfd-sync.js mirror it to the shared database automatically. */
+/* ---------- Supply Locker + Item Database ----------
+   The ITEM DATABASE is the master list: every item ever added lives in data.items with its own
+   permanent Item ID, whether or not it is on a shelf and even at quantity 0. Each item has an
+   optional shelf location (loc) - the lockers just show whichever items are placed on them.
+   Layout is fixed: 2 lockers x 2 doors x 4 shelves.
+   Saved in localStorage under "mfd_supplylocker_v1" - the "mfd_" prefix is what makes
+   mfd-sync.js mirror it to the shared database automatically. */
 const STORAGE_KEY = 'mfd_supplylocker_v1';
+const SHELF_COUNT = 4;
 const uid = ()=> Date.now().toString(36) + Math.random().toString(36).slice(2,7);
-let migrated = false;   // set when older saved items had to be given an Item ID
 
 function defaultData(){
   return {
-    version: 1,
+    version: 2,
+    nextItemNum: 1,
+    items: [],
     lockers: [1,2].map(n=>({
       id:'L'+n, name:'Locker '+n,
       doors: ['Left Door','Right Door'].map((dn,di)=>({
         id:'L'+n+'D'+(di+1), name:dn, notes:'',
-        shelves: [0,1,2,3].map(()=>({ items:[], containers:[] }))
+        shelves: Array.from({length:SHELF_COUNT}, ()=>({ containers:[] }))
       }))
     })),
-    nextItemNum: 1,
     history: []
   };
 }
-/* Rebuilds anything missing or malformed (e.g. from an older/partial backup)
-   so the page can never crash on bad saved data. */
+function validLoc(loc){
+  if(!loc || typeof loc !== 'object') return null;
+  const l = +loc.l, d = +loc.d, s = +loc.s;
+  return (Number.isInteger(l) && l>=0 && l<2 && Number.isInteger(d) && d>=0 && d<2 && Number.isInteger(s) && s>=0 && s<SHELF_COUNT) ? { l, d, s } : null;
+}
+function cleanItem(i, loc){
+  return {
+    id: i.id || uid(),
+    code: (typeof i.code==='string' && /^SL-\d+$/.test(i.code)) ? i.code : '',
+    name: String(i.name).trim(),
+    qty: Math.max(0, parseInt(i.qty)||0),
+    present: i.present ? 1 : 0,
+    reorder: Math.max(0, parseInt(i.reorder)||0),
+    ordered: Math.max(0, parseInt(i.ordered)||0),
+    price: Math.max(0, Math.round((parseFloat(i.price)||0)*100)/100),
+    from: String(i.from||'').trim(),
+    loc: loc
+  };
+}
+/* Rebuilds anything missing or malformed (e.g. from an older/partial backup) so the page can
+   never crash on bad saved data. Older saves kept items inside each shelf; those are moved
+   into the master Item Database here, keeping their shelf as their location. */
 function normalize(raw){
   const base = defaultData();
   if(!raw || typeof raw !== 'object') return base;
+  const legacy = [];
   base.lockers.forEach((L,li)=>{
     const rl = Array.isArray(raw.lockers) ? raw.lockers[li] : null;
     if(!rl) return;
@@ -276,24 +342,24 @@ function normalize(raw){
       D.shelves.forEach((S,si)=>{
         const rs = Array.isArray(rd.shelves) ? rd.shelves[si] : null;
         if(!rs) return;
-        if(Array.isArray(rs.items)) S.items = rs.items.filter(i=>i && typeof i.name==='string').map(i=>({
-          id: i.id || uid(), code: (typeof i.code==='string' && /^SL-\d+$/.test(i.code)) ? i.code : '',
-          name:i.name, qty: Math.max(0, parseInt(i.qty)||0), present: i.present ? 1 : 0,
-          reorder: Math.max(0, parseInt(i.reorder)||0), ordered: Math.max(0, parseInt(i.ordered)||0),
-          price: Math.max(0, Math.round((parseFloat(i.price)||0)*100)/100), from: String(i.from||'').trim() }));
         if(Array.isArray(rs.containers)) S.containers = rs.containers.filter(c=>c && typeof c.name==='string').map(c=>({
           id: c.id || uid(), name:c.name, type:['bag','kit','set'].includes(c.type)?c.type:'set', contents: String(c.contents||'') }));
+        if(Array.isArray(rs.items)) rs.items.forEach(i=>{ if(i && typeof i.name==='string' && i.name.trim()) legacy.push(cleanItem(i, {l:li,d:di,s:si})); });
       });
     });
   });
+  if(Array.isArray(raw.items)) base.items = raw.items.filter(i=>i && typeof i.name==='string' && i.name.trim()).map(i=>cleanItem(i, validLoc(i.loc)));
+  else base.items = legacy;
+  const seen = new Set();
+  base.items.forEach(it=>{ while(seen.has(it.id)) it.id = uid(); seen.add(it.id); });
   if(Array.isArray(raw.history)) base.history = raw.history.slice(0,100);
-  // Item IDs: auto-numbered SL-0001, SL-0002 ... and never reused. Items saved before
-  // IDs existed are numbered once, in locker / door / shelf order, then saved.
-  const everyItem = base.lockers.flatMap(L=>L.doors.flatMap(D=>D.shelves.flatMap(S=>S.items)));
+  // Item IDs: auto-numbered SL-0001, SL-0002 ... and never reused. Items saved before IDs
+  // existed are numbered once, in list order. This is worked out in memory only (nothing is
+  // written during page load) and stored with the next save.
   let maxNum = 0;
-  everyItem.forEach(it=>{ if(it.code) maxNum = Math.max(maxNum, parseInt(it.code.slice(3),10)); });
+  base.items.forEach(it=>{ if(it.code) maxNum = Math.max(maxNum, parseInt(it.code.slice(3),10)); });
   let next = Math.max(parseInt(raw.nextItemNum)||1, maxNum+1);
-  everyItem.forEach(it=>{ if(!it.code){ it.code = 'SL-' + String(next++).padStart(4,'0'); migrated = true; } });
+  base.items.forEach(it=>{ if(!it.code){ it.code = 'SL-' + String(next++).padStart(4,'0'); } });
   base.nextItemNum = next;
   return base;
 }
@@ -303,12 +369,12 @@ function load(){
   return defaultData();
 }
 let data = load();
-if(migrated){ save(); migrated = false; }
-const nextCode = ()=>{ const c = 'SL-' + String(data.nextItemNum++).padStart(4,'0'); return c; };
+const nextCode = ()=> 'SL-' + String(data.nextItemNum++).padStart(4,'0');
 const isAdmin = ()=> !!(window.MFD_AUTH && window.MFD_AUTH.role === 'admin');
 const lowFlag = it => it.reorder > 0 && it.qty <= it.reorder;
 const money = n => '$' + (Number(n)||0).toFixed(2);
-let openItem = null;   // id of the item whose details are expanded
+let openItem = null;   // id of the item whose details are expanded on a shelf
+
 function flashSaved(){
   const f = document.getElementById('savedFlag'); f.classList.add('show');
   clearTimeout(flashSaved._t); flashSaved._t = setTimeout(()=>f.classList.remove('show'), 1200);
@@ -318,34 +384,40 @@ function save(){
   catch(e){ console.warn('Could not save supply locker data', e); alert('Could not save - browser storage may be full or blocked.'); }
 }
 
-/* Structural changes (adding/removing items, bags/kits/sets, renaming, reset)
-   are Admin-only, same rule as the Apparatus Inventory. Ticking items stocked,
-   changing quantities, notes, checks and printing are open to any signed-in account. */
+/* Structural changes (adding/editing/deleting items in the database, placing or removing items on
+   shelves, bags/kits/sets, renaming, reset) are Admin-only, same rule as the Apparatus Inventory.
+   Ticking items stocked, changing on-hand quantities, notes, checks and printing are open to any
+   signed-in account. */
 function requireUnlock(action){
-  if(window.MFD_AUTH && window.MFD_AUTH.role === 'admin'){ action(); return; }
+  if(isAdmin()){ action(); return; }
   alert('Only Admin accounts can make this change. Ask your department Admin to make this change, or to upgrade your account.');
 }
 const esc = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- Helpers over the master list ---------- */
+const itemById = id => data.items.find(i=>i.id===id);
+const itemsAt = (l,d,s) => data.items.filter(it=>it.loc && it.loc.l===l && it.loc.d===d && it.loc.s===s);
+const doorItems = (l,d) => data.items.filter(it=>it.loc && it.loc.l===l && it.loc.d===d);
+const placedItems = ()=> data.items.filter(it=>it.loc);
+const unplacedItems = ()=> data.items.filter(it=>!it.loc);
+const cnt = items => ({ t:items.length, p:items.filter(i=>i.present).length });
+const cls = c => c.t===0 ? '' : c.p===c.t ? 'complete' : (c.p/c.t>=.5 ? 'partial' : 'low');
+const shelfCls = c => c.t===0 ? '' : c.p===c.t ? 'ok' : (c.p/c.t>=.5 ? 'part' : 'low');
+const locLabel = loc => loc ? `${data.lockers[loc.l].name} › ${data.lockers[loc.l].doors[loc.d].name} › Shelf ${loc.s+1}` : 'Not on a shelf';
 
 let sel = null;   // {l, d, s} = locker, door and shelf indices (0-based)
 const row = document.getElementById('lockersRow');
 const panelEmpty = document.getElementById('panelEmpty');
 const panel = document.getElementById('panelContent');
 
-const cnt = items => ({ t:items.length, p:items.filter(i=>i.present).length });
-const cls = c => c.t===0 ? '' : c.p===c.t ? 'complete' : (c.p/c.t>=.5 ? 'partial' : 'low');
-const shelfCls = c => c.t===0 ? '' : c.p===c.t ? 'ok' : (c.p/c.t>=.5 ? 'part' : 'low');
-const doorItems = d => d.shelves.flatMap(s=>s.items);
-const allItems = ()=> data.lockers.flatMap(L=>L.doors.flatMap(doorItems));
-
 function renderRow(){
   row.innerHTML = data.lockers.map((L,li)=>`
     <div><div class="cabinet-label">${esc(L.name)}</div>
     <div class="cabinet">${L.doors.map((D,di)=>{
-      const c = cnt(doorItems(D));
+      const c = cnt(doorItems(li,di));
       return `<div class="door ${di===0?'left':'right'} ${cls(c)} ${sel&&sel.l===li&&sel.d===di?'selected':''}" data-l="${li}" data-d="${di}">
         <div class="dname">${esc(D.name)}</div>
-        ${D.shelves.map((S,si)=>{ const k=cnt(S.items); return `<div class="shelf ${shelfCls(k)} ${sel&&sel.l===li&&sel.d===di&&sel.s===si?'sel':''}" data-s="${si}" title="Open Shelf ${si+1}"><b>Shelf ${si+1}</b><span class="cnt">${k.t?k.p+' / '+k.t:'empty'}</span></div>`; }).join('')}
+        ${D.shelves.map((S,si)=>{ const k=cnt(itemsAt(li,di,si)); return `<div class="shelf ${shelfCls(k)} ${sel&&sel.l===li&&sel.d===di&&sel.s===si?'sel':''}" data-s="${si}" title="Open Shelf ${si+1}"><b>Shelf ${si+1}</b><span class="cnt">${k.t?k.p+' / '+k.t:'empty'}</span></div>`; }).join('')}
         <div class="handle"></div></div>`;
     }).join('')}</div></div>`).join('');
   /* Clicking a shelf opens just that shelf. Clicking elsewhere on a door (its
@@ -358,11 +430,12 @@ function renderRow(){
   });
 }
 function renderStats(){
-  const c = cnt(allItems());
-  document.getElementById('sTotal').textContent = c.t;
+  const placed = placedItems(), c = cnt(placed);
+  document.getElementById('sTotal').textContent = data.items.length;
   document.getElementById('sPresent').textContent = c.p;
   document.getElementById('sMissing').textContent = c.t - c.p;
-  document.getElementById('sLow').textContent = allItems().filter(lowFlag).length;
+  document.getElementById('sLow').textContent = data.items.filter(lowFlag).length;
+  document.getElementById('sUnplaced').textContent = unplacedItems().length;
   document.getElementById('sPct').textContent = (c.t ? Math.round(100*c.p/c.t) : 0) + '%';
   const last = data.history[0];
   document.getElementById('lastCheck').textContent = last
@@ -373,8 +446,10 @@ function renderPanel(){
   if(!sel){ panelEmpty.style.display=''; panel.style.display='none'; return; }
   const L = data.lockers[sel.l], D = L.doors[sel.d], si = sel.s, S = D.shelves[si];
   panelEmpty.style.display='none'; panel.style.display='';
-  const k = cnt(S.items);
-  const shelfName = 'Shelf ' + (si+1) + (si===0?' (top)':si===3?' (bottom)':'');
+  const items = itemsAt(sel.l, sel.d, si), k = cnt(items);
+  const shelfName = 'Shelf ' + (si+1) + (si===0?' (top)':si===SHELF_COUNT-1?' (bottom)':'');
+  const dis = isAdmin() ? '' : 'disabled';
+  const unplaced = unplacedItems();
   panel.innerHTML = `
     <div class="panel-head">
       <div><h2>${esc(L.name)} &mdash; ${esc(D.name)}</h2><div class="sub">${shelfName} &middot; ${k.t} item${k.t===1?'':'s'}</div>
@@ -383,31 +458,33 @@ function renderPanel(){
     </div>
     <div class="shelf-tabs">${D.shelves.map((x,i)=>`<button class="shelf-tab ${i===si?'active':''}" data-mfd-locked="skip" data-act="pickshelf" data-s="${i}">Shelf ${i+1}</button>`).join('')}</div>
     <div class="shelf-head"><h3>${shelfName}</h3><span>${k.p} / ${k.t} stocked</span></div>
-    ${S.items.length ? S.items.map((it,ii)=>`
+    ${items.length ? items.map(it=>`
       <div class="item-row ${it.present?'':'missing'}">
-        <input type="checkbox" data-mfd-locked="skip" data-act="tick" data-s="${si}" data-i="${ii}" ${it.present?'checked':''} aria-label="Stocked">
+        <input type="checkbox" data-mfd-locked="skip" data-act="tick" data-id="${esc(it.id)}" ${it.present?'checked':''} aria-label="Stocked">
         <span class="nm">${esc(it.name)}</span>
         ${lowFlag(it) ? '<span class="low-badge" title="At or below the reorder point">Low</span>' : ''}
         <span class="iid">${esc(it.code)}</span>
-        <input type="number" min="0" class="qty-in" data-mfd-locked="skip" data-act="qty" data-s="${si}" data-i="${ii}" value="${it.qty}" aria-label="Quantity on hand" title="Quantity on hand">
-        <button class="xpd ${openItem===it.id?'open':''}" data-mfd-locked="skip" data-act="expand" data-s="${si}" data-i="${ii}" title="Item details (ordering info)">${openItem===it.id?'&#9652;':'&#9662;'}</button>
-        <button class="del" data-mfd-verb="delete" data-act="delitem" data-s="${si}" data-i="${ii}" title="Remove item">&times;</button>
+        <input type="number" min="0" class="qty-in" data-mfd-locked="skip" data-act="qty" data-id="${esc(it.id)}" value="${it.qty}" aria-label="Quantity on hand" title="Quantity on hand">
+        <button class="xpd ${openItem===it.id?'open':''}" data-mfd-locked="skip" data-act="expand" data-id="${esc(it.id)}" title="Item details (ordering info)">${openItem===it.id?'&#9652;':'&#9662;'}</button>
+        <button class="del" data-mfd-verb="delete" data-act="unplace" data-id="${esc(it.id)}" title="Take off this shelf (the item stays in the Item Database)">&times;</button>
       </div>
       ${openItem===it.id ? `
       <div class="item-detail">
         <div class="dgrid">
           <label>Item ID<input type="text" value="${esc(it.code)}" readonly data-mfd-locked="skip"></label>
-          <label>Reorder point<input type="number" min="0" data-mfd-locked="skip" data-act="field" data-f="reorder" data-s="${si}" data-i="${ii}" value="${it.reorder}" ${isAdmin()?'':'disabled'}></label>
-          <label>Quantity ordered<input type="number" min="0" data-mfd-locked="skip" data-act="field" data-f="ordered" data-s="${si}" data-i="${ii}" value="${it.ordered}" ${isAdmin()?'':'disabled'}></label>
-          <label>Price paid (each)<input type="number" min="0" step="0.01" data-mfd-locked="skip" data-act="field" data-f="price" data-s="${si}" data-i="${ii}" value="${it.price}" ${isAdmin()?'':'disabled'}></label>
-          <label class="wide">Ordered from<input type="text" data-mfd-locked="skip" data-act="field" data-f="from" data-s="${si}" data-i="${ii}" value="${esc(it.from)}" placeholder="Vendor or store" ${isAdmin()?'':'disabled'}></label>
+          <label>Item name<input type="text" data-mfd-locked="skip" data-act="field" data-f="name" data-id="${esc(it.id)}" value="${esc(it.name)}" ${dis}></label>
+          <label>Reorder point<input type="number" min="0" data-mfd-locked="skip" data-act="field" data-f="reorder" data-id="${esc(it.id)}" value="${it.reorder}" ${dis}></label>
+          <label>Quantity ordered<input type="number" min="0" data-mfd-locked="skip" data-act="field" data-f="ordered" data-id="${esc(it.id)}" value="${it.ordered}" ${dis}></label>
+          <label>Price paid (each)<input type="number" min="0" step="0.01" data-mfd-locked="skip" data-act="field" data-f="price" data-id="${esc(it.id)}" value="${it.price}" ${dis}></label>
+          <label>Ordered from<input type="text" data-mfd-locked="skip" data-act="field" data-f="from" data-id="${esc(it.id)}" value="${esc(it.from)}" placeholder="Vendor or store" ${dis}></label>
           <div class="dtotal">Order total: <b id="otot">${money(it.price*it.ordered)}</b>${isAdmin()?'':' &middot; Only an Admin can edit ordering info'}</div>
         </div>
       </div>` : ''}`).join('')
       : '<div style="font-size:12px;color:var(--ink-500);">Nothing on this shelf yet.</div>'}
-    <div class="add-row"><input type="text" placeholder="Add item to Shelf ${si+1}&hellip;" id="newItem${si}"><button data-mfd-verb="add" data-act="additem" data-s="${si}">Add</button></div>
+    <div class="add-row"><input type="text" placeholder="New item for Shelf ${si+1}&hellip;" id="newItem"><button data-mfd-verb="add" data-act="additem">Add</button></div>
+    ${unplaced.length ? `<div class="add-row"><select id="placeSelect" data-mfd-locked="skip" ${dis}><option value="">Put an item from the database on this shelf&hellip;</option>${unplaced.map(u=>`<option value="${esc(u.id)}">${esc(u.code)} &mdash; ${esc(u.name)}</option>`).join('')}</select><button data-mfd-verb="add" data-act="place">Put here</button></div>` : ''}
     <div class="section-label">Bags / Kits / Sets on this shelf</div>
-    ${S.containers.length ? S.containers.map((x,ci)=>`<div class="container"><div class="ch"><div>${esc(x.name)}<button class="cdel" data-mfd-verb="delete" data-act="delcont" data-s="${si}" data-i="${ci}">remove</button></div><span>${esc(x.type)}</span></div><div class="contents">${esc(x.contents)}</div></div>`).join('')
+    ${S.containers.length ? S.containers.map((x,ci)=>`<div class="container"><div class="ch"><div>${esc(x.name)}<button class="cdel" data-mfd-verb="delete" data-act="delcont" data-i="${ci}">remove</button></div><span>${esc(x.type)}</span></div><div class="contents">${esc(x.contents)}</div></div>`).join('')
       : '<div style="font-size:12px;color:var(--ink-500);">None on this shelf.</div>'}
     <div class="add-container-form" id="addContainerForm">
       <input type="text" id="newContName" placeholder="e.g. ALS Trauma Bag&hellip;">
@@ -418,36 +495,124 @@ function renderPanel(){
     <button class="util" style="margin-top:12px;" data-mfd-verb="add" id="btnShowCont" data-act="showcont">+ Add Bag / Kit / Set</button>
     <div class="notes-block"><label>Door notes (apply to the whole door)</label><textarea id="doorNotes" data-mfd-locked="skip" placeholder="e.g. latch sticks, reorder gloves by Friday&hellip;">${esc(D.notes)}</textarea></div>`;
 }
+
 /* ---------- Item Database tab ---------- */
-const dbBody = document.getElementById('dbBody'), dbSearch = document.getElementById('dbSearch');
-function dbRows(){
-  const out = [];
-  data.lockers.forEach((L,li)=>L.doors.forEach((D,di)=>D.shelves.forEach((S,si)=>S.items.forEach(it=>
-    out.push({ it, li, di, si, loc: `${L.name} › ${D.name} › Shelf ${si+1}` })))));
-  return out;
+const dbBody = document.getElementById('dbBody'), dbSearch = document.getElementById('dbSearch'), dbFilter = document.getElementById('dbFilter');
+function statusOf(it){
+  if(it.qty === 0) return { cls:'st-need', txt:'Out (0)' };
+  if(it.loc && !it.present) return { cls:'st-need', txt:'Needed' };
+  if(lowFlag(it)) return { cls:'st-low', txt:'Low' };
+  if(!it.loc) return { cls:'st-none', txt:'Not on a shelf' };
+  return { cls:'st-ok', txt:'Stocked' };
+}
+function dbMatches(it){
+  const f = dbFilter.value;
+  if(f==='shelf' && !it.loc) return false;
+  if(f==='unplaced' && it.loc) return false;
+  if(f==='low' && !lowFlag(it)) return false;
+  if(f==='out' && it.qty!==0) return false;
+  if(f==='needed' && !(it.loc && !it.present)) return false;
+  const q = dbSearch.value.trim().toLowerCase();
+  return !q || [it.code, it.name, locLabel(it.loc), it.from].join(' ').toLowerCase().includes(q);
 }
 function renderDb(){
-  const q = dbSearch.value.trim().toLowerCase();
-  const rows = dbRows().filter(r=> !q || [r.it.code, r.it.name, r.loc, r.it.from].join(' ').toLowerCase().includes(q));
-  dbBody.innerHTML = rows.map(r=>{
-    const it = r.it;
-    const st = !it.present ? '<span class="st-need">Needed</span>' : lowFlag(it) ? '<span class="st-low">Low</span>' : '<span class="st-ok">Stocked</span>';
-    return `<tr data-l="${r.li}" data-d="${r.di}" data-s="${r.si}" data-id="${esc(it.id)}">
-      <td><span class="iid">${esc(it.code)}</span></td><td>${esc(it.name)}</td><td>${esc(r.loc)}</td>
-      <td class="num">${it.qty}</td><td class="num">${it.reorder||'&ndash;'}</td><td>${st}</td>
+  const rows = data.items.filter(dbMatches);
+  dbBody.innerHTML = rows.map(it=>{
+    const st = statusOf(it);
+    return `<tr data-id="${esc(it.id)}">
+      <td><span class="iid">${esc(it.code)}</span></td><td>${esc(it.name)}</td><td>${esc(locLabel(it.loc))}</td>
+      <td class="num">${it.qty}</td><td class="num">${it.reorder||'&ndash;'}</td><td><span class="${st.cls}">${st.txt}</span></td>
       <td class="num">${it.ordered||'&ndash;'}</td><td class="num">${it.price?money(it.price):'&ndash;'}</td>
       <td class="num">${it.price&&it.ordered?money(it.price*it.ordered):'&ndash;'}</td><td>${esc(it.from)||'&ndash;'}</td></tr>`;
   }).join('');
   const em = document.getElementById('dbEmpty');
   em.style.display = rows.length ? 'none' : '';
-  em.textContent = dbRows().length ? 'No items match your search.' : 'No items yet. Open a shelf on the Lockers tab and add some.';
+  em.textContent = data.items.length ? 'No items match your search or filter.' : 'The Item Database is empty. Click "+ Add Item" to add the first item.';
+  document.getElementById('dbCount').textContent = rows.length === data.items.length
+    ? data.items.length + ' item' + (data.items.length===1?'':'s')
+    : rows.length + ' of ' + data.items.length + ' items';
 }
 dbSearch.addEventListener('input', renderDb);
+dbFilter.addEventListener('change', renderDb);
+
+/* ---------- Add / edit an item in the database (pop-up form) ---------- */
+const itemModal = document.getElementById('itemModal');
+let editingId = null;   // null = adding a new item
+function locOptions(selected){
+  let h = '<option value="">Not on a shelf (database only)</option>';
+  data.lockers.forEach((L,li)=>L.doors.forEach((D,di)=>{
+    h += `<optgroup label="${esc(L.name)} › ${esc(D.name)}">` +
+      D.shelves.map((S,si)=>`<option value="${li}-${di}-${si}" ${selected && selected.l===li && selected.d===di && selected.s===si ? 'selected':''}>Shelf ${si+1}${si===0?' (top)':si===SHELF_COUNT-1?' (bottom)':''}</option>`).join('') + '</optgroup>';
+  }));
+  return h;
+}
+function openItemForm(id){
+  editingId = id;
+  const it = id ? itemById(id) : { code:'', name:'', qty:0, present:1, reorder:0, ordered:0, price:0, from:'', loc:null };
+  if(!it) return;
+  const admin = isAdmin(), dis = admin ? '' : 'disabled';
+  document.getElementById('itemModalTitle').textContent = id ? 'Item ' + it.code : 'Add Item to Database';
+  document.getElementById('itemForm').innerHTML = `
+    <div class="dgrid">
+      <label>Item ID<input type="text" value="${id ? esc(it.code) : 'Assigned when saved'}" readonly data-mfd-locked="skip"></label>
+      <label>Item name<input type="text" id="ifName" data-mfd-locked="skip" value="${esc(it.name)}" placeholder="e.g. Exam gloves (M)" ${dis}></label>
+      <label>On hand<input type="number" min="0" id="ifQty" data-mfd-locked="skip" value="${it.qty}" ${dis}></label>
+      <label>Reorder point<input type="number" min="0" id="ifReorder" data-mfd-locked="skip" value="${it.reorder}" ${dis}></label>
+      <label>Quantity ordered<input type="number" min="0" id="ifOrdered" data-mfd-locked="skip" value="${it.ordered}" ${dis}></label>
+      <label>Price paid (each)<input type="number" min="0" step="0.01" id="ifPrice" data-mfd-locked="skip" value="${it.price}" ${dis}></label>
+      <label class="wide">Ordered from<input type="text" id="ifFrom" data-mfd-locked="skip" value="${esc(it.from)}" placeholder="Vendor or store" ${dis}></label>
+      <label class="wide">Location<select id="ifLoc" data-mfd-locked="skip" ${dis}>${locOptions(it.loc)}</select></label>
+      <div class="dtotal" id="ifTotal"></div>
+    </div>
+    ${admin ? '' : '<div class="dtotal" style="margin-top:8px;">Only an Admin can add or change items in the database.</div>'}
+    <div class="modal-actions">
+      ${admin ? '<button class="util accent" id="ifSave" data-mfd-locked="skip">Save</button>' : ''}
+      ${id && it.loc ? '<button class="util" id="ifShow" data-mfd-locked="skip">Show on shelf</button>' : ''}
+      <button class="util" id="ifCancel" data-mfd-locked="skip">${admin ? 'Cancel' : 'Close'}</button>
+      <div class="fill"></div>
+      ${admin && id ? '<button class="util danger" id="ifDelete" data-mfd-locked="skip">Delete item</button>' : ''}
+    </div>`;
+  const total = ()=>{ document.getElementById('ifTotal').innerHTML = 'Order total: <b>' + money((parseFloat(document.getElementById('ifPrice').value)||0) * (parseInt(document.getElementById('ifOrdered').value)||0)) + '</b>'; };
+  total(); ['ifPrice','ifOrdered'].forEach(i=> document.getElementById(i).addEventListener('input', total));
+  itemModal.classList.add('show');
+  const nm = document.getElementById('ifName'); if(admin) nm.focus();
+}
+function closeItemForm(){ itemModal.classList.remove('show'); editingId = null; }
+function parseLoc(v){ if(!v) return null; const p = v.split('-').map(Number); return validLoc({ l:p[0], d:p[1], s:p[2] }); }
+document.getElementById('itemForm').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  if(b.id === 'ifCancel'){ closeItemForm(); return; }
+  if(b.id === 'ifShow'){ const it = itemById(editingId); if(it && it.loc){ sel = { ...it.loc }; openItem = it.id; closeItemForm(); showTab('lockers'); renderAll(); } return; }
+  if(b.id === 'ifDelete') requireUnlock(()=>{
+    const it = itemById(editingId); if(!it) return;
+    if(!confirm(`Delete "${it.name}" (${it.code}) from the Item Database for good?\n\nIts Item ID will not be used again.`)) return;
+    data.items = data.items.filter(x=>x.id!==it.id); if(openItem===it.id) openItem = null;
+    save(); closeItemForm(); renderAll();
+  });
+  if(b.id === 'ifSave') requireUnlock(()=>{
+    const name = document.getElementById('ifName').value.trim();
+    if(!name){ alert('Type an item name first.'); document.getElementById('ifName').focus(); return; }
+    const vals = {
+      name,
+      qty: Math.max(0, parseInt(document.getElementById('ifQty').value)||0),
+      reorder: Math.max(0, parseInt(document.getElementById('ifReorder').value)||0),
+      ordered: Math.max(0, parseInt(document.getElementById('ifOrdered').value)||0),
+      price: Math.max(0, Math.round((parseFloat(document.getElementById('ifPrice').value)||0)*100)/100),
+      from: document.getElementById('ifFrom').value.trim(),
+      loc: parseLoc(document.getElementById('ifLoc').value)
+    };
+    if(editingId){ Object.assign(itemById(editingId), vals); }
+    else { data.items.push({ id:uid(), code:nextCode(), present:1, ...vals }); }
+    save(); closeItemForm(); renderAll();
+  });
+});
+itemModal.addEventListener('click', e=>{ if(e.target === itemModal) closeItemForm(); });
+document.getElementById('btnAddDbItem').addEventListener('click', ()=> requireUnlock(()=> openItemForm(null)));
 dbBody.addEventListener('click', e=>{
   const tr = e.target.closest('tr'); if(!tr) return;
-  sel = { l:+tr.dataset.l, d:+tr.dataset.d, s:+tr.dataset.s }; openItem = tr.dataset.id;
-  showTab('lockers'); renderAll();
+  openItemForm(tr.dataset.id);
 });
+
 function showTab(name){
   document.getElementById('view-lockers').style.display = name==='lockers' ? '' : 'none';
   document.getElementById('view-db').style.display = name==='db' ? '' : 'none';
@@ -456,59 +621,42 @@ function showTab(name){
 }
 document.querySelectorAll('.tab-btn').forEach(b=> b.addEventListener('click', ()=> showTab(b.dataset.tab)));
 
-document.getElementById('btnCsv').addEventListener('click', ()=>{
-  const rows = dbRows();
-  if(!rows.length){ alert('No items to export yet.'); return; }
-  const q = v => '"' + String(v).replace(/"/g,'""') + '"';
-  const head = ['Item ID','Item','Locker','Door','Shelf','On hand','Stocked','Reorder point','Low stock','Qty ordered','Price paid (each)','Order total','Ordered from'];
-  const lines = [head.map(q).join(',')].concat(rows.map(r=>{
-    const it = r.it, L = data.lockers[r.li], D = L.doors[r.di];
-    return [it.code, it.name, L.name, D.name, r.si+1, it.qty, it.present?'Yes':'No', it.reorder, lowFlag(it)?'Yes':'No',
-            it.ordered, it.price.toFixed(2), (it.price*it.ordered).toFixed(2), it.from].map(q).join(',');
-  }));
-  const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); const d = new Date();
-  a.href = url; a.download = 'MFD_SupplyLocker_Items-' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '.csv';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=> URL.revokeObjectURL(url), 60000);
-});
-
+/* Keeps the row's "Low" badge correct while typing, without re-drawing the panel
+   (which would drop keyboard focus while someone is tabbing through fields). */
+function syncBadge(it){
+  const box = panel.querySelector(`[data-act="tick"][data-id="${it.id}"]`);
+  if(!box) return; const r = box.closest('.item-row');
+  const old = r.querySelector('.low-badge'); if(old) old.remove();
+  if(lowFlag(it)) r.querySelector('.nm').insertAdjacentHTML('afterend','<span class="low-badge" title="At or below the reorder point">Low</span>');
+}
 function renderAll(){ renderRow(); renderStats(); renderPanel(); renderDb(); }
 // Admin-only fields depend on who is signed in, which is only known after the sign-in gate finishes.
 window.addEventListener('mfd-auth-ready', renderAll);
 
-/* Keeps the row's "Low" badge correct while typing, without re-drawing the panel
-   (which would drop keyboard focus while someone is tabbing through fields). */
-function syncBadge(s, i, it){
-  const row = panel.querySelector(`[data-act="tick"][data-s="${s}"][data-i="${i}"]`);
-  if(!row) return; const r = row.closest('.item-row');
-  const old = r.querySelector('.low-badge'); if(old) old.remove();
-  if(lowFlag(it)) r.querySelector('.nm').insertAdjacentHTML('afterend','<span class="low-badge" title="At or below the reorder point">Low</span>');
-}
-
-/* ---------- Panel interactions (event delegation) ---------- */
+/* ---------- Shelf panel interactions (event delegation) ---------- */
 panel.addEventListener('change', e=>{
   const t = e.target; if(!sel) return;
   const D = data.lockers[sel.l].doors[sel.d];
-  if(t.dataset.act === 'tick'){ D.shelves[+t.dataset.s].items[+t.dataset.i].present = t.checked ? 1 : 0; save(); renderAll(); }
-  else if(t.dataset.act === 'qty'){ const it = D.shelves[+t.dataset.s].items[+t.dataset.i]; it.qty = Math.max(0, parseInt(t.value)||0); save(); renderStats(); renderRow(); renderDb(); syncBadge(+t.dataset.s, +t.dataset.i, it); }
-  else if(t.dataset.act === 'field'){
+  const it = t.dataset.id ? itemById(t.dataset.id) : null;
+  if(t.dataset.act === 'tick' && it){ it.present = t.checked ? 1 : 0; save(); renderAll(); }
+  else if(t.dataset.act === 'qty' && it){ it.qty = Math.max(0, parseInt(t.value)||0); save(); renderStats(); renderRow(); renderDb(); syncBadge(it); }
+  else if(t.dataset.act === 'field' && it){
     if(!isAdmin()) return;
-    const it = D.shelves[+t.dataset.s].items[+t.dataset.i], f = t.dataset.f;
+    const f = t.dataset.f;
     if(f==='reorder' || f==='ordered') it[f] = Math.max(0, parseInt(t.value)||0);
     else if(f==='price') it.price = Math.max(0, Math.round((parseFloat(t.value)||0)*100)/100);
     else if(f==='from') it.from = t.value.trim();
+    else if(f==='name'){ const n = t.value.trim(); if(!n){ t.value = it.name; return; } it.name = n; const nm = t.closest('.item-detail').previousElementSibling.querySelector('.nm'); if(nm) nm.textContent = n; }
     save();
     const tot = document.getElementById('otot'); if(tot) tot.textContent = money(it.price*it.ordered);
-    renderStats(); renderRow(); renderDb(); syncBadge(+t.dataset.s, +t.dataset.i, it);
+    renderStats(); renderRow(); renderDb(); syncBadge(it);
   }
   else if(t.id === 'doorNotes'){ D.notes = t.value; save(); }
 });
 panel.addEventListener('click', e=>{
   const b = e.target.closest('[data-act], #btnRename'); if(!b || !sel) return;
-  const L = data.lockers[sel.l], D = L.doors[sel.d];
-  const act = b.dataset.act, s = +b.dataset.s, i = +b.dataset.i;
+  const L = data.lockers[sel.l], D = L.doors[sel.d], S = D.shelves[sel.s];
+  const act = b.dataset.act, id = b.dataset.id, i = +b.dataset.i;
   if(b.id === 'btnRename'){
     requireUnlock(()=>{
       const ln = prompt('Locker name:', L.name); if(ln && ln.trim()) L.name = ln.trim();
@@ -516,43 +664,51 @@ panel.addEventListener('click', e=>{
       save(); renderAll();
     }); return;
   }
-  if(act === 'pickshelf'){ sel.s = s; renderAll(); return; }
-  if(act === 'expand'){ const it = D.shelves[s].items[i]; openItem = openItem===it.id ? null : it.id; renderPanel(); return; }
+  if(act === 'pickshelf'){ sel.s = +b.dataset.s; renderAll(); return; }
+  if(act === 'expand'){ openItem = openItem===id ? null : id; renderPanel(); return; }
   if(act === 'additem') requireUnlock(()=>{
-    const inp = document.getElementById('newItem'+s); const name = inp.value.trim(); if(!name) return;
-    D.shelves[s].items.push({ id:uid(), code:nextCode(), name, qty:1, present:1, reorder:0, ordered:0, price:0, from:'' }); save(); renderAll();
-    const again = document.getElementById('newItem'+s); if(again) again.focus();
+    const inp = document.getElementById('newItem'); const name = inp.value.trim();
+    if(!name){ alert('Type an item name first.'); inp.focus(); return; }
+    data.items.push({ id:uid(), code:nextCode(), name, qty:1, present:1, reorder:0, ordered:0, price:0, from:'', loc:{ l:sel.l, d:sel.d, s:sel.s } });
+    save(); renderAll();
+    const again = document.getElementById('newItem'); if(again) again.focus();
   });
-  else if(act === 'delitem') requireUnlock(()=>{ D.shelves[s].items.splice(i,1); save(); renderAll(); });
-  else if(act === 'delcont') requireUnlock(()=>{ if(!confirm('Remove this bag / kit / set?')) return; D.shelves[s].containers.splice(i,1); save(); renderAll(); });
+  else if(act === 'place') requireUnlock(()=>{
+    const v = document.getElementById('placeSelect').value; if(!v){ alert('Pick an item from the list first.'); return; }
+    const it = itemById(v); if(!it) return; it.loc = { l:sel.l, d:sel.d, s:sel.s }; it.present = 1; save(); renderAll();
+  });
+  else if(act === 'unplace') requireUnlock(()=>{ const it = itemById(id); if(it){ it.loc = null; if(openItem===id) openItem = null; save(); renderAll(); } });
+  else if(act === 'delcont') requireUnlock(()=>{ if(!confirm('Remove this bag / kit / set?')) return; S.containers.splice(i,1); save(); renderAll(); });
   else if(act === 'showcont') requireUnlock(()=>{ document.getElementById('addContainerForm').classList.add('show'); b.style.display='none'; });
   else if(act === 'confirmcont') requireUnlock(()=>{
     const name = document.getElementById('newContName').value.trim(); if(!name) return;
-    D.shelves[sel.s].containers.push({
-      id:uid(), name, type:document.getElementById('newContType').value, contents:document.getElementById('newContContents').value.trim() });
+    S.containers.push({ id:uid(), name, type:document.getElementById('newContType').value, contents:document.getElementById('newContContents').value.trim() });
     save(); renderAll();
   });
 });
 panel.addEventListener('keydown', e=>{
-  if(e.key==='Enter' && e.target.id && e.target.id.startsWith('newItem')){
+  if(e.key==='Enter' && e.target.id === 'newItem'){
     const btn = e.target.parentElement.querySelector('[data-act="additem"]'); if(btn) btn.click();
   }
 });
 
-/* ---------- Quick Check / History / Print / Reset ---------- */
+/* ---------- Quick Check / History / Print / CSV / Reset ---------- */
 function missingList(){
   const out = [];
-  data.lockers.forEach(L=>L.doors.forEach(D=>D.shelves.forEach((S,si)=>S.items.forEach(it=>{
-    if(!it.present || lowFlag(it)) out.push({ locker:L.name, door:D.name, shelf:si+1, code:it.code, name:it.name, qty:it.qty, reorder:it.reorder, from:it.from,
-      why: !it.present ? 'Not stocked' : 'Low stock' });
-  }))));
+  data.items.forEach(it=>{
+    const needed = it.loc && !it.present, low = lowFlag(it);
+    if(!needed && !low) return;
+    out.push({ locker: it.loc ? data.lockers[it.loc.l].name : 'Not on a shelf', door: it.loc ? data.lockers[it.loc.l].doors[it.loc.d].name : '',
+      shelf: it.loc ? it.loc.s+1 : '', code:it.code, name:it.name, qty:it.qty, reorder:it.reorder, from:it.from,
+      why: needed ? 'Not stocked' : 'Low stock' });
+  });
   return out;
 }
 document.getElementById('btnQuickCheck').addEventListener('click', ()=>{
-  const c = cnt(allItems());
-  if(!c.t){ alert('Add some items to the shelves first.'); return; }
+  const c = cnt(placedItems());
+  if(!c.t){ alert('Put some items on the shelves first.'); return; }
   const by = (window.MFD_AUTH && window.MFD_AUTH.name) || 'Unknown';
-  if(!confirm(`Record a check as ${by}?\n\n${c.p} of ${c.t} items are marked stocked right now.`)) return;
+  if(!confirm(`Record a check as ${by}?\n\n${c.p} of ${c.t} items on the shelves are marked stocked right now.`)) return;
   data.history.unshift({ id:uid(), date:new Date().toISOString(), by, total:c.t, present:c.p, missing:missingList() });
   data.history = data.history.slice(0,100);
   save(); renderStats();
@@ -562,7 +718,7 @@ function openHistory(){
   list.innerHTML = data.history.length ? data.history.map(r=>`
     <div class="hist-rec"><div class="top"><span>${new Date(r.date).toLocaleString()} &middot; ${esc(r.by)}</span><span>${r.present} / ${r.total} stocked</span></div>
     <div class="miss">${r.missing && r.missing.length
-      ? 'Needed: ' + r.missing.map(m=>`${esc(m.name)} (${esc(m.locker)}, ${esc(m.door)}, shelf ${m.shelf})`).join('; ')
+      ? 'Needed: ' + r.missing.map(m=>`${esc(m.name)} (${m.door ? esc(m.locker)+', '+esc(m.door)+', shelf '+m.shelf : 'not on a shelf'})`).join('; ')
       : 'Everything was stocked.'}</div></div>`).join('')
     : '<div style="font-size:13px;color:var(--ink-500);">No checks recorded yet. Use Quick Check to record one.</div>';
   document.getElementById('historyModal').classList.add('show');
@@ -571,26 +727,74 @@ document.getElementById('btnHistory').addEventListener('click', openHistory);
 document.getElementById('btnCloseHistory').addEventListener('click', ()=>document.getElementById('historyModal').classList.remove('show'));
 document.getElementById('historyModal').addEventListener('click', e=>{ if(e.target.id==='historyModal') e.target.classList.remove('show'); });
 
-document.getElementById('btnPrint').addEventListener('click', ()=>{
-  const miss = missingList();
-  const c = cnt(allItems());
-  let h = `<h1>MFD Supply Locker &mdash; Restock List</h1><div class="meta">Printed ${new Date().toLocaleString()} &middot; ${c.p} of ${c.t} items stocked &middot; includes items at or below their reorder point</div>`;
-  if(!miss.length) h += '<p>Nothing needs restocking.</p>';
-  data.lockers.forEach(L=>{
-    const m = miss.filter(x=>x.locker===L.name); if(!m.length) return;
-    h += `<h2>${esc(L.name)}</h2>`;
-    L.doors.forEach(D=>{
-      const dm = m.filter(x=>x.door===D.name); if(!dm.length) return;
-      h += `<h3>${esc(D.name)}</h3><table><tr><th>Shelf</th><th>Item ID</th><th>Item</th><th>On hand</th><th>Reorder pt</th><th>Why</th><th>Order from</th></tr>` +
-        dm.map(x=>`<tr><td>${x.shelf}</td><td>${esc(x.code||'')}</td><td>${esc(x.name)}</td><td>${x.qty}</td><td>${x.reorder||''}</td><td>${x.why}</td><td>${esc(x.from||'')}</td></tr>`).join('') + '</table>';
-    });
-  });
+/* ---------- Print List: choose what to print ---------- */
+const printModal = document.getElementById('printModal');
+document.getElementById('btnPrint').addEventListener('click', ()=> printModal.classList.add('show'));
+document.getElementById('btnClosePrint').addEventListener('click', ()=> printModal.classList.remove('show'));
+printModal.addEventListener('click', e=>{
+  if(e.target === printModal){ printModal.classList.remove('show'); return; }
+  const b = e.target.closest('[data-print]'); if(b){ printModal.classList.remove('show'); printReport(b.dataset.print); }
+});
+const hasStock = it => it.qty > 0 && !(it.loc && !it.present);          // has product on hand (and isn't ticked "needed" on its shelf)
+const needsReorder = it => it.qty === 0 || (it.loc && !it.present) || lowFlag(it);
+function reorderWhy(it){
+  const w = [];
+  if(it.qty === 0) w.push('Out of stock');
+  if(it.loc && !it.present) w.push('Not stocked on shelf');
+  if(lowFlag(it)) w.push('At/below reorder point');
+  return w.join(', ');
+}
+function printReport(kind){
+  const byId = (a,b)=> a.code.localeCompare(b.code);
+  const when = new Date().toLocaleString();
+  let title, note, items, cols, cell;
+  const common = it => ({ id:it.code, name:it.name, loc:locLabel(it.loc), qty:it.qty, reorder:it.reorder||'', status:statusOf(it).txt,
+    ordered:it.ordered||'', price:it.price?money(it.price):'', total:(it.price&&it.ordered)?money(it.price*it.ordered):'', from:it.from||'', why:reorderWhy(it) });
+  if(kind === 'all'){
+    title = 'Item Database &mdash; Full List'; items = data.items.slice().sort(byId);
+    note = `${items.length} item${items.length===1?'':'s'} &middot; everything in the database, on a shelf or not`;
+    cols = [['Item ID','id'],['Item','name'],['Location','loc'],['On hand','qty'],['Reorder pt','reorder'],['Status','status'],['Qty ordered','ordered'],['Price (each)','price'],['Order total','total'],['Ordered from','from']];
+  } else if(kind === 'stocked'){
+    title = 'Item Database &mdash; What Is Stocked';
+    items = data.items.filter(hasStock).sort((a,b)=> locLabel(a.loc).localeCompare(locLabel(b.loc)) || byId(a,b));
+    note = `${items.length} item${items.length===1?'':'s'} with stock on hand, listed by location`;
+    cols = [['Item ID','id'],['Item','name'],['Location','loc'],['On hand','qty'],['Reorder pt','reorder'],['Status','status'],['Ordered from','from']];
+  } else {
+    title = 'Item Database &mdash; Needs Reordering';
+    items = data.items.filter(needsReorder).sort((a,b)=> (!a.from - !b.from) || a.from.localeCompare(b.from) || a.name.localeCompare(b.name));   // vendors A-Z, items with no vendor last
+    note = `${items.length} item${items.length===1?'':'s'} out of stock, not stocked on a shelf, or at/below the reorder point &middot; sorted by vendor`;
+    cols = [['Item ID','id'],['Item','name'],['Location','loc'],['On hand','qty'],['Reorder pt','reorder'],['Why','why'],['Qty on order','ordered'],['Price (each)','price'],['Ordered from','from']];
+  }
+  let h = `<h1>MFD Supply Locker</h1><h2 style="border:none;margin:0 0 2px;font-size:16px;">${title}</h2><div class="meta">Printed ${when} &middot; ${note}</div>`;
+  if(!items.length){
+    h += '<p>' + (kind==='all' ? 'The Item Database is empty.' : kind==='stocked' ? 'Nothing is stocked right now.' : 'Nothing needs reordering.') + '</p>';
+  } else {
+    h += '<table><tr>' + cols.map(c=>`<th>${c[0]}</th>`).join('') + '</tr>' +
+      items.map(it=>{ const r = common(it); return '<tr>' + cols.map(c=>`<td>${esc(r[c[1]])}</td>`).join('') + '</tr>'; }).join('') + '</table>';
+  }
   document.getElementById('printArea').innerHTML = h;
   window.print();
+}
+document.getElementById('btnCsv').addEventListener('click', ()=>{
+  if(!data.items.length){ alert('No items to export yet.'); return; }
+  const q = v => '"' + String(v).replace(/"/g,'""') + '"';
+  const head = ['Item ID','Item','Locker','Door','Shelf','On hand','Stocked','Reorder point','Low stock','Out of stock','Qty ordered','Price paid (each)','Order total','Ordered from'];
+  const lines = [head.map(q).join(',')].concat(data.items.map(it=>{
+    const L = it.loc ? data.lockers[it.loc.l] : null, D = L ? L.doors[it.loc.d] : null;
+    return [it.code, it.name, L ? L.name : 'Not on a shelf', D ? D.name : '', it.loc ? it.loc.s+1 : '', it.qty, it.loc ? (it.present?'Yes':'No') : '',
+            it.reorder, lowFlag(it)?'Yes':'No', it.qty===0?'Yes':'No', it.ordered, it.price.toFixed(2), (it.price*it.ordered).toFixed(2), it.from].map(q).join(',');
+  }));
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); const d = new Date();
+  a.href = url; a.download = 'MFD_SupplyLocker_Items-' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=> URL.revokeObjectURL(url), 60000);
 });
 document.getElementById('btnReset').addEventListener('click', ()=> requireUnlock(()=>{
-  if(!confirm('Reset the Supply Locker? This clears every item, bag/kit/set, note and custom name. Check history is kept.')) return;
-  const keep = data.history, keepNum = data.nextItemNum; data = defaultData(); data.history = keep; data.nextItemNum = keepNum; sel = null; openItem = null; save(); renderAll();
+  if(!confirm('Reset the lockers? This clears every bag/kit/set, door note and custom locker/door name, and takes every item off the shelves.\n\nNo items are deleted - they all stay in the Item Database with their Item IDs. Check history is kept.')) return;
+  const items = data.items.map(it=>({ ...it, loc:null })), keep = data.history, keepNum = data.nextItemNum;
+  data = defaultData(); data.items = items; data.history = keep; data.nextItemNum = keepNum; sel = null; openItem = null; save(); renderAll();
 }));
 
 renderAll();
