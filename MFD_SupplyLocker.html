@@ -49,13 +49,13 @@
   .diagram-pane,.panel{background:var(--navy-900);border:1px solid var(--navy-700);border-radius:10px;padding:16px;}
   .diagram-caption{font-size:11px;color:var(--ink-500);margin-bottom:12px;}
 
-  /* Locker cabinets: 2 lockers, each with 2 doors, 3 shelves behind each door */
+  /* Locker cabinets: 2 lockers, each with 2 doors, 4 shelves behind each door */
   .lockers-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
   @media (max-width:560px){.lockers-row{grid-template-columns:1fr;}}
   .cabinet-label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-300);margin:0 0 8px;text-align:center;}
   .cabinet{background:var(--navy-800);border:3px solid var(--navy-600);border-radius:8px 8px 4px 4px;padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px;position:relative;}
   .cabinet::after{content:"";position:absolute;left:-3px;right:-3px;bottom:-9px;height:6px;background:var(--navy-700);border-radius:0 0 4px 4px;}
-  .door{position:relative;height:340px;border-radius:4px;border:2px solid var(--navy-600);background:var(--navy-700);cursor:pointer;
+  .door{position:relative;height:420px;border-radius:4px;border:2px solid var(--navy-600);background:var(--navy-700);cursor:pointer;
     display:flex;flex-direction:column;padding:8px 8px 8px;gap:6px;transition:.15s;}
   .door:hover{border-color:var(--gold-500);transform:translateY(-1px);}
   .door.selected{border-color:var(--ink-100);box-shadow:0 0 0 2px var(--red-600);}
@@ -206,7 +206,7 @@
 
 <div class="wrap" id="view-lockers">
   <div class="diagram-pane">
-    <div class="diagram-caption">Two lockers &middot; each has two doors and three shelves behind each door &middot; click a shelf to see only what is on that shelf</div>
+    <div class="diagram-caption">Two lockers &middot; each has two doors and four shelves behind each door &middot; click a shelf to see only what is on that shelf</div>
     <div class="lockers-row" id="lockersRow"></div>
     <div class="legend"><span class="l-ok">Fully stocked</span><span class="l-part">Partly stocked</span><span class="l-low">Needs restock</span></div>
   </div>
@@ -237,7 +237,7 @@
 
 <script>
 /* ---------- Supply Locker ----------
-   Layout is fixed: 2 lockers x 2 doors x 3 shelves. Each shelf holds loose
+   Layout is fixed: 2 lockers x 2 doors x 4 shelves. Each shelf holds loose
    items (name, quantity, stocked yes/no) and optional bags/kits/sets.
    Saved in localStorage under "mfd_supplylocker_v1" - the "mfd_" prefix is
    what makes mfd-sync.js mirror it to the shared database automatically. */
@@ -252,7 +252,7 @@ function defaultData(){
       id:'L'+n, name:'Locker '+n,
       doors: ['Left Door','Right Door'].map((dn,di)=>({
         id:'L'+n+'D'+(di+1), name:dn, notes:'',
-        shelves: [0,1,2].map(()=>({ items:[], containers:[] }))
+        shelves: [0,1,2,3].map(()=>({ items:[], containers:[] }))
       }))
     })),
     nextItemNum: 1,
@@ -374,7 +374,7 @@ function renderPanel(){
   const L = data.lockers[sel.l], D = L.doors[sel.d], si = sel.s, S = D.shelves[si];
   panelEmpty.style.display='none'; panel.style.display='';
   const k = cnt(S.items);
-  const shelfName = 'Shelf ' + (si+1) + (si===0?' (top)':si===2?' (bottom)':'');
+  const shelfName = 'Shelf ' + (si+1) + (si===0?' (top)':si===3?' (bottom)':'');
   panel.innerHTML = `
     <div class="panel-head">
       <div><h2>${esc(L.name)} &mdash; ${esc(D.name)}</h2><div class="sub">${shelfName} &middot; ${k.t} item${k.t===1?'':'s'}</div>
