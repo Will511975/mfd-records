@@ -381,7 +381,6 @@
       <option value="out">Out of stock (0)</option>
     </select>
     <button class="util accent" id="btnAddDbItem" data-mfd-verb="add">+ Add Item</button>
-    <button class="util" id="btnQrAll" data-mfd-locked="skip" title="Print 2 in x 2 in QR labels for the items shown in the table">&#127991; Print QR Labels</button>
     <span class="db-count" id="dbCount"></span>
   </div>
   <div class="db-wrap"><table class="db-table"><thead><tr>
@@ -398,7 +397,6 @@
       <button data-print="all" data-mfd-locked="skip"><b>Whole database</b><span>Every item, on a shelf or not</span></button>
       <button data-print="stocked" data-mfd-locked="skip"><b>What is stocked</b><span>Items with stock on hand, by location</span></button>
       <button data-print="reorder" data-mfd-locked="skip"><b>What needs to be reordered</b><span>Out of stock, not stocked, or at/below the reorder point</span></button>
-      <button data-print="qrtab" data-mfd-locked="skip"><b>QR codes&hellip;</b><span>Open the QR Codes tab: pick items, shelves, doors, lockers, vehicles, compartments and inspections</span></button>
     </div>
   </div>
 </div>
@@ -621,8 +619,7 @@ function renderPanel(){
     <div class="panel-head">
       <div><h2>${esc(L.name)} &mdash; ${esc(D.name)}</h2><div class="sub">${shelfName} &middot; ${k.t} item${k.t===1?'':'s'}</div>
         <button class="rename-btn" id="btnRename" data-mfd-verb="edit">&#9998; Rename</button>
-        <button class="rename-btn" data-mfd-locked="skip" data-act="shelfinv" title="Open this shelf in the Inventory tab">&#128247; Open in Inventory</button>
-        <button class="rename-btn" data-mfd-locked="skip" data-act="shelflabel" title="Print a 2 in x 2 in QR label for this shelf">&#127991; Print shelf label</button></div>
+        <button class="rename-btn" data-mfd-locked="skip" data-act="shelfinv" title="Open this shelf in the Inventory tab">&#128247; Open in Inventory</button></div>
       <div class="pill">${k.p} / ${k.t} stocked</div>
     </div>
     <div class="shelf-tabs">${D.shelves.map((x,i)=>`<button class="shelf-tab ${i===si?'active':''}" data-mfd-locked="skip" data-act="pickshelf" data-s="${i}">Shelf ${i+1}</button>`).join('')}</div>
@@ -739,7 +736,6 @@ function openItemForm(id){
     <div class="modal-actions">
       ${admin ? '<button class="util accent" id="ifSave" data-mfd-locked="skip">Save</button>' : ''}
       ${id && it.loc ? '<button class="util" id="ifShow" data-mfd-locked="skip">Show on shelf</button>' : ''}
-      ${id ? '<button class="util" id="ifQr" data-mfd-locked="skip">&#127991; Print QR label</button>' : ''}
       <button class="util" id="ifCancel" data-mfd-locked="skip">${admin ? 'Cancel' : 'Close'}</button>
       <div class="fill"></div>
       ${admin && id ? '<button class="util danger" id="ifDelete" data-mfd-locked="skip">Delete item</button>' : ''}
@@ -754,7 +750,6 @@ function parseLoc(v){ if(!v) return null; const p = v.split('-').map(Number); re
 document.getElementById('itemForm').addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
   if(b.id === 'ifCancel'){ closeItemForm(); return; }
-  if(b.id === 'ifQr'){ const it = itemById(editingId); if(it) printQrLabels([it]); return; }
   if(b.id === 'ifShow'){ const it = itemById(editingId); if(it && it.loc){ sel = { ...it.loc }; openItem = it.id; closeItemForm(); showTab('lockers'); renderAll(); } return; }
   if(b.id === 'ifDelete') requireUnlock(()=>{
     const it = itemById(editingId); if(!it) return;
@@ -854,7 +849,6 @@ panel.addEventListener('click', e=>{
     }); return;
   }
   if(act === 'pickshelf'){ sel.s = +b.dataset.s; renderAll(); return; }
-  if(act === 'shelflabel'){ printShelfLabels([{ l:sel.l, d:sel.d, s:sel.s }]); return; }
   if(act === 'shelfinv'){ showTab('inv'); invShowShelf({ l:sel.l, d:sel.d, s:sel.s }); return; }
   if(act === 'expand'){ openItem = openItem===id ? null : id; renderPanel(); return; }
   if(act === 'additem') requireUnlock(()=>{
@@ -898,12 +892,6 @@ function qrSvg(text){
   let path = '';
   for(let r=0; r<n; r++) for(let c=0; c<n; c++) if(qr.isDark(r,c)) path += `M${c+q},${r+q}h1v1h-1z`;
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${n+2*q} ${n+2*q}" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="${path}" fill="#000"/></svg>`;
-}
-function printQrLabels(items){
-  if(!items.length){ alert('There are no items to make labels for.'); return; }
-  printLabelSheet('<div class="qr-sheet">' + items.map(it=>`
-    <div class="qr-label"><div class="qr-code">${qrSvg(itemUrl(it))}</div>
-    <div class="qr-name">${esc(it.name)}</div><div class="qr-id">${esc(it.code)}</div></div>`).join('') + '</div>', 'QR labels');
 }
 /* Labels open in their own clean tab with a Print button, so printing never depends on this page's layout,
    the sign-in wrapper, or a browser that quietly ignores window.print(). If the browser blocks the new tab,
@@ -950,18 +938,6 @@ function allShelves(){
   data.lockers.forEach((L,l)=> L.doors.forEach((D,d)=> D.shelves.forEach((S,s)=> out.push({ l, d, s }))));
   return out;
 }
-function printShelfLabels(list){
-  list = list || allShelves();
-  printLabelSheet('<div class="qr-sheet">' + list.map(loc=>`
-    <div class="qr-label"><div class="qr-code">${qrSvg(shelfUrl(loc))}</div>
-    <div class="qr-name">${esc(shelfPlace(loc))}</div><div class="qr-id shelfno">${esc(shelfPos(loc).toUpperCase())}</div></div>`).join('') + '</div>', 'Shelf labels');
-}
-document.getElementById('btnQrAll').addEventListener('click', ()=>{
-  const items = data.items.filter(dbMatches).sort((a,b)=>a.code.localeCompare(b.code));
-  if(!items.length){ alert('There are no items to make labels for.'); return; }
-  const per = 12, pages = Math.ceil(items.length/per);
-  if(confirm(`Print ${items.length} QR label${items.length===1?'':'s'} (2 in x 2 in each, ${pages} page${pages===1?'':'s'})?\n\nThis prints the items shown in the table now. Clear the search/filter first to print every item.`)) printQrLabels(items);
-});
 /* Scanning a label opens ...?item=SL-0001 : jump to that item once the person has signed in. */
 let deepLinkHandled = false;
 function openDeepLink(){
@@ -1192,7 +1168,6 @@ function renderShelfView(){
     : `<div class="inv-empty" style="margin:12px auto;">Nothing is on this shelf yet.</div>`) +
     `<div class="inv-note">Tick the box when the item is on the shelf. Tap an item&rsquo;s name for ordering details and bigger quantity steps.</div>
      <div class="inv-actions"><button class="util" data-act="shelfopen" data-mfd-locked="skip">Show in Lockers tab</button>
-       <button class="util" data-act="shelflbl" data-mfd-locked="skip">&#127991; Print shelf label</button>
        <button class="util" data-act="clearshelf" data-mfd-locked="skip">Clear</button></div>`;
 }
 function renderInvBottom(){
@@ -1236,7 +1211,6 @@ function renderInvBottomInner(){
   }
   invBottom.innerHTML = head + body + `<div class="inv-actions">
       ${it.loc ? '<button class="util" data-act="shelf" data-mfd-locked="skip">Show on shelf</button>' : ''}
-      <button class="util" data-act="qr" data-mfd-locked="skip">&#127991; Print QR label</button>
       ${isAdmin() ? '<button class="util" data-act="edit" data-mfd-locked="skip">Edit item</button>' : ''}
       <button class="util" data-act="clear" data-mfd-locked="skip">${inv.shelf ? '&larr; Back to shelf' : 'Clear'}</button></div>`;
 }
@@ -1257,14 +1231,12 @@ invBottom.addEventListener('click', e=>{
   if(a === 'sadj'){ const t = itemById(b.dataset.id); if(t) invSetQty(t.qty + parseInt(b.dataset.d), t.id); return; }
   if(a === 'open'){ invShow(b.dataset.id); return; }
   if(a === 'shelfopen' && inv.shelf){ sel = { ...inv.shelf }; showTab('lockers'); renderAll(); return; }
-  if(a === 'shelflbl' && inv.shelf){ printShelfLabels([inv.shelf]); return; }
   if(a === 'clearshelf'){ inv.shelf = null; renderInvBottom(); return; }
   if(a === 'stick') return;
   if(a === 'mode'){ inv.mode = b.dataset.mode; renderInvBottom(); }
   else if(a === 'adj' && it) invSetQty(it.qty + parseInt(b.dataset.d));
   else if(a === 'set'){ const v = parseInt(document.getElementById('invSetVal').value); invSetQty(isNaN(v) ? (it?it.qty:0) : v); }
   else if(a === 'shelf' && it && it.loc){ sel = { ...it.loc }; openItem = it.id; showTab('lockers'); renderAll(); }
-  else if(a === 'qr' && it) printQrLabels([it]);
   else if(a === 'edit' && it) requireUnlock(()=> openItemForm(it.id));
   else if(a === 'clear'){ inv.cur = null; invRenderRecent(); renderInvBottom(); }
 });
@@ -1332,7 +1304,6 @@ function reorderWhy(it){
   return w.join(', ');
 }
 function printReport(kind){
-  if(kind === 'qrtab'){ showTab('qr'); return; }
   const byId = (a,b)=> a.code.localeCompare(b.code);
   const when = new Date().toLocaleString();
   let title, note, items, cols, cell;

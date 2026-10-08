@@ -687,7 +687,6 @@
     <button class="util accent" id="btnQuickCheck">🔍 Quick Shift Check</button>
     <button class="util accent" id="btnFullInspection">📋 Full Inspection</button>
     <button class="util" id="btnInspectionHistory">🕓 Inspection History</button>
-    <button class="util" id="btnQrLabels" data-mfd-locked="skip">🏷 QR Labels</button>
     <div class="fill"></div>
     <button class="util danger" id="btnReset">↺ Reset to Defaults</button>
   </div>
@@ -771,7 +770,6 @@
     <button class="util" id="btnPdf" disabled onclick="window.print()">🖨 Save as PDF</button>
     <div class="fill"></div>
     <button class="util" id="btnViHistoryOpen">🕓 Inspection History</button>
-    <button class="util" id="btnViQr" data-mfd-locked="skip">🏷 QR Label</button>
   </div>
 
   <div class="vi-page">
@@ -1678,7 +1676,6 @@ function renderPanelHead(comp, st){
         <button class="rename-btn" id="btnRenameCompt" title="Rename compartment">✎</button>
         <button class="rename-btn ${isUnlocked?'move-active':''}" id="btnTogglePosition" title="${isUnlocked?'Lock position':'Move on diagram'}">${isUnlocked?'🔓':'🔒'}</button>
         ${hasCustomPos ? '<button class="rename-btn" id="btnResetPosition" title="Reset to automatic position">↺</button>' : ''}
-        <button class="rename-btn" id="btnCompQr" data-mfd-locked="skip" title="Open the QR Codes tab for this compartment">🏷</button>
       </div>
       <label class="loc-label">Location</label>
       <select class="loc-select" id="compLocSelect">${locOptions}</select>
@@ -1690,7 +1687,6 @@ function renderPanelHead(comp, st){
       delete comp.pos; // a new location implies wanting the standard spot for it again
       saveData(); renderSvg(); renderPanel();
     });
-    document.getElementById('btnCompQr').addEventListener('click', ()=>{ location.href = qrTabUrl('cp:' + currentVehicleId + ':' + comp.id); });
     const resetBtn = document.getElementById('btnResetPosition');
     if(resetBtn) resetBtn.addEventListener('click', ()=> requireUnlock(()=>{
       delete comp.pos;
@@ -3404,12 +3400,6 @@ function switchVehicle(vid){
   populateRosterNamesDatalist();
   if(currentTab === 'resupply') renderResupply();
 }
-
-/* ---------- QR labels live in the Supply Locker's "QR Codes" tab ----------
-   These helpers just open that tab with the right vehicle, compartment or inspection already ticked. */
-function qrTabUrl(pick){ return 'MFD_SupplyLocker.html?tab=qr&pick=' + encodeURIComponent(pick); }
-document.getElementById('btnQrLabels').addEventListener('click', ()=>{ location.href = qrTabUrl('vh:' + currentVehicleId); });
-document.getElementById('btnViQr').addEventListener('click', ()=>{ location.href = qrTabUrl('in:' + currentVehicleId); });
 
 /* ---------- Init ---------- */
 if(!data.notes) data.notes = {};
