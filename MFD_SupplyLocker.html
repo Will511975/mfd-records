@@ -378,6 +378,15 @@
   </div>
 </div>
 
+<style id="labelCss">
+  .qr-sheet{display:grid;grid-template-columns:repeat(3,2in);gap:.2in;justify-content:start;}
+  .qr-label{width:2in;height:2in;box-sizing:border-box;border:.5pt dashed #888;padding:.08in .1in;display:flex;flex-direction:column;align-items:center;justify-content:space-between;page-break-inside:avoid;break-inside:avoid;overflow:hidden;background:#fff;color:#000;font-family:Arial,sans-serif;}
+  .qr-code{width:1.38in;height:1.38in;flex:none;}
+  .qr-code svg{width:100%;height:100%;display:block;}
+  .qr-name{font-size:9pt;font-weight:700;line-height:1.1;text-align:center;max-height:.3in;overflow:hidden;width:100%;}
+  .qr-id{font-size:7.5pt;letter-spacing:.04em;line-height:1;color:#333;}
+  .qr-id.shelfno{font-size:11pt;font-weight:800;color:#000;letter-spacing:.02em;}
+</style>
 <div class="print-only" id="printArea"></div>
 <div class="saved-flag" id="savedFlag">&#10003; Saved</div>
 
@@ -849,9 +858,34 @@ function qrSvg(text){
 }
 function printQrLabels(items){
   if(!items.length){ alert('There are no items to make labels for.'); return; }
-  document.getElementById('printArea').innerHTML = '<div class="qr-sheet">' + items.map(it=>`
+  printLabelSheet('<div class="qr-sheet">' + items.map(it=>`
     <div class="qr-label"><div class="qr-code">${qrSvg(itemUrl(it))}</div>
-    <div class="qr-name">${esc(it.name)}</div><div class="qr-id">${esc(it.code)}</div></div>`).join('') + '</div>';
+    <div class="qr-name">${esc(it.name)}</div><div class="qr-id">${esc(it.code)}</div></div>`).join('') + '</div>', 'QR labels');
+}
+/* Labels open in their own clean tab with a Print button, so printing never depends on this page's layout,
+   the sign-in wrapper, or a browser that quietly ignores window.print(). If the browser blocks the new tab,
+   fall back to printing from this page. */
+function printLabelSheet(sheetHtml, title){
+  const css = document.getElementById('labelCss').textContent;
+  const doc = '<!doctype html><html><head><meta charset="utf-8"><title>' + esc(title) + '</title><style>'
+    + 'body{margin:0;background:#fff;color:#000;font-family:Arial,sans-serif;}'
+    + '.bar{position:sticky;top:0;background:#1e293b;color:#fff;padding:10px 14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:14px;}'
+    + '.bar button{background:#dc2626;color:#fff;border:0;border-radius:6px;padding:9px 18px;font-size:15px;font-weight:700;cursor:pointer;}'
+    + '.bar span{opacity:.85;}.sheet{padding:.5in;}'
+    + css
+    + '@media print{.bar{display:none!important;}.sheet{padding:0;}@page{margin:.5in;}}'
+    + '</style></head><body><div class="bar"><button onclick="window.print()">Print / Save as PDF</button>'
+    + '<span>Labels are 2 in &times; 2 in. Print at 100% / Actual size and cut along the dashed lines.</span></div>'
+    + '<div class="sheet">' + sheetHtml + '</div></body></html>';
+  let w = null;
+  try{ w = window.open('', '_blank'); }catch(e){ w = null; }
+  if(w && w.document){
+    w.document.open(); w.document.write(doc); w.document.close();
+    try{ w.focus(); }catch(e){}
+    setTimeout(()=>{ try{ w.print(); }catch(e){} }, 600);
+    return;
+  }
+  document.getElementById('printArea').innerHTML = sheetHtml;
   window.print();
 }
 /* Shelf labels: the QR holds ...MFD_SupplyLocker.html?shelf=L1-D2-S3 (locker 1, door 2, shelf 3 - all 1-based).
@@ -875,10 +909,9 @@ function allShelves(){
 }
 function printShelfLabels(list){
   list = list || allShelves();
-  document.getElementById('printArea').innerHTML = '<div class="qr-sheet">' + list.map(loc=>`
+  printLabelSheet('<div class="qr-sheet">' + list.map(loc=>`
     <div class="qr-label"><div class="qr-code">${qrSvg(shelfUrl(loc))}</div>
-    <div class="qr-name">${esc(shelfPlace(loc))}</div><div class="qr-id shelfno">${esc(shelfPos(loc).toUpperCase())}</div></div>`).join('') + '</div>';
-  window.print();
+    <div class="qr-name">${esc(shelfPlace(loc))}</div><div class="qr-id shelfno">${esc(shelfPos(loc).toUpperCase())}</div></div>`).join('') + '</div>', 'Shelf labels');
 }
 document.getElementById('btnQrAll').addEventListener('click', ()=>{
   const items = data.items.filter(dbMatches).sort((a,b)=>a.code.localeCompare(b.code));
