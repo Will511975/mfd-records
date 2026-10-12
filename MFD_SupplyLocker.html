@@ -312,6 +312,8 @@
   <button class="util" id="btnHistory" data-mfd-locked="skip">&#128339; Check History</button>
   <button class="util" id="btnPrint" data-mfd-locked="skip">&#128424; Print List</button>
   <button class="util" id="btnCsv" data-mfd-locked="skip">&#11015; Export Items (.csv)</button>
+  <button class="util" id="btnImport" data-mfd-verb="import" title="Add items (for example from a vendor order) from a .csv file">&#11014; Import Items (.csv)</button>
+  <input type="file" id="importFile" accept=".csv,text/csv" style="display:none">
   <a class="util" href="MFD_AllApparatus.html?tab=resupply" data-mfd-locked="skip" title="See what the trucks are missing and restock them from this inventory">&#128658; Truck Resupply</a>
   <div class="fill"></div>
   <button class="util danger" id="btnReset" data-mfd-verb="reset">&#8634; Reset Lockers</button>
@@ -371,7 +373,7 @@
 
 <div id="view-db" style="display:none;padding:0 24px 40px;">
   <div class="db-tools">
-    <input type="search" id="dbSearch" placeholder="Search by Item ID, name, location or vendor&hellip;">
+    <input type="search" id="dbSearch" placeholder="Search by Item ID, name, location, vendor, item # or order #&hellip;">
     <select id="dbFilter" data-mfd-locked="skip">
       <option value="all">All items</option>
       <option value="shelf">On a shelf</option>
@@ -386,6 +388,7 @@
   <div class="db-wrap"><table class="db-table"><thead><tr>
     <th>Item ID</th><th>Item</th><th>Location</th><th>On hand</th><th>Reorder point</th><th>Status</th>
     <th>Qty ordered</th><th>Price paid (each)</th><th>Order total</th><th>Ordered from</th>
+    <th>Vendor item #</th><th>Unit</th><th>Manufacturer</th><th>Mfr part #</th><th>Order #</th><th>Ordered on</th>
   </tr></thead><tbody id="dbBody"></tbody></table><div class="db-empty" id="dbEmpty" style="display:none;"></div></div>
 </div>
 </div>
@@ -485,6 +488,12 @@ function cleanItem(i, loc){
     orderedOn: typeof i.orderedOn === 'string' ? i.orderedOn : '',
     price: Math.max(0, Math.round((parseFloat(i.price)||0)*100)/100),
     from: String(i.from||'').trim(),
+    vendorNo: String(i.vendorNo||'').trim(),      // the vendor's own item number (e.g. Henry Schein #4998332)
+    mfr: String(i.mfr||'').trim(),                // manufacturer
+    mfrPart: String(i.mfrPart||'').trim(),        // manufacturer part number
+    uom: String(i.uom||'').trim(),                // unit of measure: Each, Box, Case ...
+    orderNo: String(i.orderNo||'').trim(),        // order number it was bought on
+    po: String(i.po||'').trim(),                  // purchase order number
     loc: loc
   };
 }
@@ -680,7 +689,7 @@ function dbMatches(it){
   if(f==='out' && it.qty!==0) return false;
   if(f==='needed' && !(it.loc && !it.present)) return false;
   const q = dbSearch.value.trim().toLowerCase();
-  return !q || [it.code, it.name, locLabel(it.loc), it.from].join(' ').toLowerCase().includes(q);
+  return !q || [it.code, it.name, locLabel(it.loc), it.from, it.vendorNo, it.mfr, it.mfrPart, it.uom, it.orderNo, it.po].join(' ').toLowerCase().includes(q);
 }
 function renderDb(){
   const rows = data.items.filter(dbMatches);
@@ -690,7 +699,8 @@ function renderDb(){
       <td><span class="iid">${esc(it.code)}</span></td><td>${esc(it.name)}</td><td>${esc(locLabel(it.loc))}</td>
       <td class="num">${it.qty}</td><td class="num">${it.reorder||'&ndash;'}</td><td><span class="${st.cls}">${st.txt}</span></td>
       <td class="num">${it.ordered||'&ndash;'}</td><td class="num">${it.price?money(it.price):'&ndash;'}</td>
-      <td class="num">${it.price&&it.ordered?money(it.price*it.ordered):'&ndash;'}</td><td>${esc(it.from)||'&ndash;'}</td></tr>`;
+      <td class="num">${it.price&&it.ordered?money(it.price*it.ordered):'&ndash;'}</td><td>${esc(it.from)||'&ndash;'}</td>
+      <td>${esc(it.vendorNo||'')||'&ndash;'}</td><td>${esc(it.uom||'')||'&ndash;'}</td><td>${esc(it.mfr||'')||'&ndash;'}</td><td>${esc(it.mfrPart||'')||'&ndash;'}</td><td>${esc(it.orderNo||'')||'&ndash;'}</td><td>${niceDay(it.orderedOn)||'&ndash;'}</td></tr>`;
   }).join('');
   const em = document.getElementById('dbEmpty');
   em.style.display = rows.length ? 'none' : '';
@@ -701,6 +711,15 @@ function renderDb(){
 }
 dbSearch.addEventListener('input', renderDb);
 dbFilter.addEventListener('change', renderDb);
+
+/* ---------- Order date helpers (orderedOn is stored as an ISO timestamp) ---------- */
+function localDay(iso){
+  if(!iso) return '';
+  const d = new Date(iso); if(isNaN(d)) return '';
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+const dayToIso = day => day ? new Date(day + 'T12:00:00').toISOString() : '';
+const niceDay = iso => { const d = localDay(iso); return d ? d.slice(5,7) + '/' + d.slice(8,10) + '/' + d.slice(0,4) : ''; };
 
 /* ---------- Add / edit an item in the database (pop-up form) ---------- */
 const itemModal = document.getElementById('itemModal');
@@ -715,7 +734,7 @@ function locOptions(selected){
 }
 function openItemForm(id){
   editingId = id;
-  const it = id ? itemById(id) : { code:'', name:'', qty:0, present:1, reorder:0, ordered:0, onOrder:0, price:0, from:'', loc:null };
+  const it = id ? itemById(id) : { code:'', name:'', qty:0, present:1, reorder:0, ordered:0, onOrder:0, orderedOn:'', price:0, from:'', vendorNo:'', mfr:'', mfrPart:'', uom:'', orderNo:'', po:'', loc:null };
   if(!it) return;
   const admin = isAdmin(), dis = admin ? '' : 'disabled';
   document.getElementById('itemModalTitle').textContent = id ? 'Item ' + it.code : 'Add Item to Database';
@@ -729,6 +748,13 @@ function openItemForm(id){
       <label>On order (not arrived yet)<input type="number" min="0" id="ifOnOrder" data-mfd-locked="skip" value="${it.onOrder||0}" ${dis}></label>
       <label>Price paid (each)<input type="number" min="0" step="0.01" id="ifPrice" data-mfd-locked="skip" value="${it.price}" ${dis}></label>
       <label class="wide">Ordered from<input type="text" id="ifFrom" data-mfd-locked="skip" value="${esc(it.from)}" placeholder="Vendor or store" ${dis}></label>
+      <label>Vendor item number<input type="text" id="ifVendorNo" data-mfd-locked="skip" value="${esc(it.vendorNo||'')}" placeholder="e.g. 4998332" ${dis}></label>
+      <label>Unit of measure<input type="text" id="ifUom" list="uomList" data-mfd-locked="skip" value="${esc(it.uom||'')}" placeholder="Each, Box, Case..." ${dis}><datalist id="uomList"><option>Each</option><option>Box</option><option>Package</option><option>Case</option><option>Pack</option><option>Pair</option><option>Roll</option><option>Bottle</option></datalist></label>
+      <label>Manufacturer<input type="text" id="ifMfr" data-mfd-locked="skip" value="${esc(it.mfr||'')}" ${dis}></label>
+      <label>Manufacturer part number<input type="text" id="ifMfrPart" data-mfd-locked="skip" value="${esc(it.mfrPart||'')}" ${dis}></label>
+      <label>Order number<input type="text" id="ifOrderNo" data-mfd-locked="skip" value="${esc(it.orderNo||'')}" ${dis}></label>
+      <label>PO #<input type="text" id="ifPo" data-mfd-locked="skip" value="${esc(it.po||'')}" ${dis}></label>
+      <label>Order date<input type="date" id="ifOrderDate" data-mfd-locked="skip" value="${localDay(it.orderedOn)}" ${dis}></label>
       <label class="wide">Location<select id="ifLoc" data-mfd-locked="skip" ${dis}>${locOptions(it.loc)}</select></label>
       <div class="dtotal" id="ifTotal"></div>
     </div>
@@ -768,8 +794,18 @@ document.getElementById('itemForm').addEventListener('click', e=>{
       onOrder: Math.max(0, parseInt(document.getElementById('ifOnOrder').value)||0),
       price: Math.max(0, Math.round((parseFloat(document.getElementById('ifPrice').value)||0)*100)/100),
       from: document.getElementById('ifFrom').value.trim(),
+      vendorNo: document.getElementById('ifVendorNo').value.trim(),
+      uom: document.getElementById('ifUom').value.trim(),
+      mfr: document.getElementById('ifMfr').value.trim(),
+      mfrPart: document.getElementById('ifMfrPart').value.trim(),
+      orderNo: document.getElementById('ifOrderNo').value.trim(),
+      po: document.getElementById('ifPo').value.trim(),
       loc: parseLoc(document.getElementById('ifLoc').value)
     };
+    const dayIn = document.getElementById('ifOrderDate').value;
+    // only touch the stored order date when the person actually changed it (keeps the exact time otherwise)
+    const before = editingId ? itemById(editingId) : null;
+    if(!before || dayIn !== localDay(before.orderedOn)) vals.orderedOn = dayToIso(dayIn);
     if(editingId){ Object.assign(itemById(editingId), vals); }
     else { data.items.push({ id:uid(), code:nextCode(), present:1, orderedOn:'', ...vals }); }
     save(); closeItemForm(); renderAll();
@@ -1207,7 +1243,10 @@ function renderInvBottomInner(){
       ${row('On hand', it.qty)}${row('Reorder point', it.reorder||'&ndash;')}
       ${row('Quantity ordered', it.ordered||'&ndash;')}${row('Price paid (each)', it.price?money(it.price):'&ndash;')}
       ${row('Order total', it.price&&it.ordered?money(it.price*it.ordered):'&ndash;')}${row('Ordered from', esc(it.from)||'&ndash;')}
-      ${row('On order (waiting)', it.onOrder||'&ndash;')}${row('Missing on trucks', (()=>{ const t = truckNeeds(it); return t.length ? t.map(x=>esc(x.label)+' &times;'+x.n).join(', ') : '&ndash;'; })())}</div>`;
+      ${row('Vendor item #', esc(it.vendorNo||'')||'&ndash;')}${row('Unit', esc(it.uom||'')||'&ndash;')}
+      ${row('Manufacturer', esc(it.mfr||'')||'&ndash;')}${row('Mfr part #', esc(it.mfrPart||'')||'&ndash;')}
+      ${row('Order #', esc(it.orderNo||'')||'&ndash;')}${row('PO #', esc(it.po||'')||'&ndash;')}
+      ${row('Ordered on', niceDay(it.orderedOn)||'&ndash;')}${row('On order (waiting)', it.onOrder||'&ndash;')}${row('Missing on trucks', (()=>{ const t = truckNeeds(it); return t.length ? t.map(x=>esc(x.label)+' &times;'+x.n).join(', ') : '&ndash;'; })())}</div>`;
   }
   invBottom.innerHTML = head + body + `<div class="inv-actions">
       ${it.loc ? '<button class="util" data-act="shelf" data-mfd-locked="skip">Show on shelf</button>' : ''}
@@ -1337,11 +1376,11 @@ function printReport(kind){
 document.getElementById('btnCsv').addEventListener('click', ()=>{
   if(!data.items.length){ alert('No items to export yet.'); return; }
   const q = v => '"' + String(v).replace(/"/g,'""') + '"';
-  const head = ['Item ID','Item','Locker','Door','Shelf','On hand','Stocked','Reorder point','Low stock','Out of stock','Qty ordered','Price paid (each)','Order total','Ordered from','On order (waiting)'];
+  const head = ['Item ID','Item','Locker','Door','Shelf','On hand','Stocked','Reorder point','Low stock','Out of stock','Qty ordered','Price paid (each)','Order total','Ordered from','On order (waiting)','Vendor item #','Unit','Manufacturer','Mfr part #','Order #','PO #','Order date'];
   const lines = [head.map(q).join(',')].concat(data.items.map(it=>{
     const L = it.loc ? data.lockers[it.loc.l] : null, D = L ? L.doors[it.loc.d] : null;
     return [it.code, it.name, L ? L.name : 'Not on a shelf', D ? D.name : '', it.loc ? it.loc.s+1 : '', it.qty, it.loc ? (it.present?'Yes':'No') : '',
-            it.reorder, lowFlag(it)?'Yes':'No', it.qty===0?'Yes':'No', it.ordered, it.price.toFixed(2), (it.price*it.ordered).toFixed(2), it.from, it.onOrder||0].map(q).join(',');
+            it.reorder, lowFlag(it)?'Yes':'No', it.qty===0?'Yes':'No', it.ordered, it.price.toFixed(2), (it.price*it.ordered).toFixed(2), it.from, it.onOrder||0, it.vendorNo||'', it.uom||'', it.mfr||'', it.mfrPart||'', it.orderNo||'', it.po||'', localDay(it.orderedOn)].map(q).join(',');
   }));
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -1349,6 +1388,91 @@ document.getElementById('btnCsv').addEventListener('click', ()=>{
   a.href = url; a.download = 'MFD_SupplyLocker_Items-' + d.getFullYear() + String(d.getMonth()+1).padStart(2,'0') + String(d.getDate()).padStart(2,'0') + '.csv';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(()=> URL.revokeObjectURL(url), 60000);
+});
+
+/* ---------- Import items from a .csv (Admin) ----------
+   Header names match the Export file, plus the vendor/order columns. Items already in the database
+   (matched by Vendor item # or exact name) only get their order details updated: their on-hand
+   count, reorder point and shelf are left alone. Everything else is added as a new item. */
+function parseCsv(text){
+  text = text.replace(/^﻿/, '');
+  const rows = []; let row = [], cur = '', q = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(q){
+      if(c === '"'){ if(text[i+1] === '"'){ cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if(c === '"') q = true;
+    else if(c === ','){ row.push(cur); cur = ''; }
+    else if(c === '\n' || c === '\r'){ if(c === '\r' && text[i+1] === '\n') i++; row.push(cur); cur = ''; if(row.some(x=>x.trim() !== '')) rows.push(row); row = []; }
+    else cur += c;
+  }
+  row.push(cur); if(row.some(x=>x.trim() !== '')) rows.push(row);
+  return rows;
+}
+const IMPORT_COLS = {
+  name:['item name','item','name'], vendorNo:['vendor item #','vendor item number','vendor item no'], uom:['unit','unit of measure'],
+  mfr:['manufacturer'], mfrPart:['mfr part #','manufacturer part number','manufacturer part #'], orderNo:['order #','order number'],
+  po:['po #','po'], orderDate:['order date','ordered on'], ordered:['qty ordered','quantity ordered'],
+  price:['price paid (each)','price (each)','price each'], from:['ordered from','vendor','from'],
+  qty:['on hand'], reorder:['reorder point'], onOrder:['on order (waiting)','on order']
+};
+function csvDay(v){
+  v = String(v||'').trim(); if(!v) return '';
+  let m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if(m) return m[1] + '-' + m[2].padStart(2,'0') + '-' + m[3].padStart(2,'0');
+  m = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if(m) return m[3] + '-' + m[1].padStart(2,'0') + '-' + m[2].padStart(2,'0');
+  return '';
+}
+function importCsvText(text, fileName){
+  const rows = parseCsv(text);
+  if(rows.length < 2){ alert('That file has no item rows.'); return; }
+  const head = rows[0].map(h=>h.trim().toLowerCase()), col = {};
+  Object.keys(IMPORT_COLS).forEach(k=>{ const i = head.findIndex(h=>IMPORT_COLS[k].includes(h)); if(i >= 0) col[k] = i; });
+  if(col.name === undefined){ alert('Could not find an "Item name" column in the first row of that file, so nothing was imported.'); return; }
+  const get = (r,k)=> col[k] === undefined ? '' : String(r[col[k]]||'').trim();
+  const adds = [], upds = []; let skipped = 0;
+  const seenNew = new Map();
+  rows.slice(1).forEach(r=>{
+    const name = get(r,'name'); if(!name){ skipped++; return; }
+    const rec = {
+      name, vendorNo:get(r,'vendorNo'), uom:get(r,'uom'), mfr:get(r,'mfr'), mfrPart:get(r,'mfrPart'), orderNo:get(r,'orderNo'), po:get(r,'po'),
+      day:csvDay(get(r,'orderDate')), ordered:Math.max(0, parseInt(get(r,'ordered'))||0), price:Math.max(0, Math.round((parseFloat(get(r,'price').replace(/[$,]/g,''))||0)*100)/100),
+      from:get(r,'from'), qty:Math.max(0, parseInt(get(r,'qty'))||0), reorder:Math.max(0, parseInt(get(r,'reorder'))||0),
+      onOrderRaw:get(r,'onOrder')
+    };
+    rec.onOrder = rec.onOrderRaw !== '' ? Math.max(0, parseInt(rec.onOrderRaw)||0) : rec.ordered;
+    const lower = name.toLowerCase();
+    const hit = data.items.find(it=> (rec.vendorNo && it.vendorNo === rec.vendorNo) || it.name.trim().toLowerCase() === lower);
+    if(hit) upds.push({ it:hit, rec }); else adds.push(rec);
+  });
+  if(!adds.length && !upds.length){ alert('No usable item rows found, so nothing was imported.'); return; }
+  const names = upds.slice(0,8).map(u=>'   - ' + u.rec.name + '  (already ' + u.it.code + ')').join('\n') + (upds.length>8 ? '\n   ... and ' + (upds.length-8) + ' more' : '');
+  const msg = 'Import from "' + fileName + '":\n\n' +
+    adds.length + ' new item' + (adds.length===1?'':'s') + ' will be added to the database (not on a shelf, On hand 0 unless the file says otherwise).\n' +
+    (upds.length ? upds.length + ' item' + (upds.length===1?'':'s') + ' already in the database will only get the new order details (their On hand, reorder point and shelf stay as they are):\n' + names + '\n' : '') +
+    (skipped ? '\n' + skipped + ' row' + (skipped===1?'':'s') + ' without an item name will be skipped.\n' : '') +
+    '\nContinue?';
+  if(!confirm(msg)) return;
+  upds.forEach(({it,rec})=>{
+    if(rec.vendorNo) it.vendorNo = rec.vendorNo; if(rec.uom) it.uom = rec.uom; if(rec.mfr) it.mfr = rec.mfr; if(rec.mfrPart) it.mfrPart = rec.mfrPart;
+    if(rec.orderNo) it.orderNo = rec.orderNo; if(rec.po) it.po = rec.po; if(rec.from) it.from = rec.from; if(rec.price) it.price = rec.price;
+    if(rec.day) it.orderedOn = dayToIso(rec.day);
+    if(rec.ordered || rec.onOrder){ it.ordered = rec.ordered; it.onOrder = rec.onOrder; }
+  });
+  adds.forEach(rec=>{
+    data.items.push(cleanItem({ id:uid(), code:nextCode(), name:rec.name, qty:rec.qty, present:1, reorder:rec.reorder, ordered:rec.ordered, onOrder:rec.onOrder,
+      orderedOn:rec.day ? dayToIso(rec.day) : '', price:rec.price, from:rec.from, vendorNo:rec.vendorNo, mfr:rec.mfr, mfrPart:rec.mfrPart, uom:rec.uom, orderNo:rec.orderNo, po:rec.po }, null));
+  });
+  save(); renderAll();
+  alert('Import done: ' + adds.length + ' added, ' + upds.length + ' updated' + (skipped ? ', ' + skipped + ' skipped' : '') + '.');
+}
+document.getElementById('btnImport').addEventListener('click', ()=> requireUnlock(()=> document.getElementById('importFile').click()));
+document.getElementById('importFile').addEventListener('change', e=>{
+  const f = e.target.files && e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{ e.target.value = ''; requireUnlock(()=> importCsvText(String(rd.result||''), f.name)); };
+  rd.onerror = ()=>{ e.target.value = ''; alert('Could not read that file.'); };
+  rd.readAsText(f);
 });
 document.getElementById('btnReset').addEventListener('click', ()=> requireUnlock(()=>{
   if(!confirm('Reset the lockers? This clears every bag/kit/set, door note and custom locker/door name, and takes every item off the shelves.\n\nNo items are deleted - they all stay in the Item Database with their Item IDs. Check history is kept.')) return;
