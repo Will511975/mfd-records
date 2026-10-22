@@ -455,6 +455,13 @@
   .missing-group{cursor:pointer;transition:.15s;}
   .missing-group:hover{border-color:var(--gold-500);}
 
+  /* Phones: let the header wrap so the truck buttons and links are not squeezed off the right edge */
+  @media (max-width:640px){
+    .header-inner{flex-wrap:wrap;padding:12px 14px;gap:10px;}
+    .header-text-block{flex:1 1 calc(100% - 56px);min-width:0;}
+    .header-link,.header-back{flex:1 1 auto;justify-content:center;text-align:center;padding:9px 12px;}
+    .vehicle-tab{padding:8px 11px;}
+  }
   @media (max-width:880px){
     .wrap{flex-direction:column;}
     .panel{max-width:100%;border-left:none;border-top:1px solid var(--navy-700);}

@@ -112,6 +112,18 @@
     .mfd-pill-btn:hover { background: rgba(0,0,0,0.9); }
     .mfd-pill-btn.mfd-role-admin { background: rgba(139,0,0,0.85); }
     .mfd-pill-btn.mfd-role-admin:hover { background: rgba(178,34,34,0.95); }
+    /* Phones and small tablets: one compact bar. Name pill on the left (shortens if needed), the other
+       three buttons shrink to icons so nothing runs off the screen, and the page gets bottom room. */
+    @media (max-width: 640px) {
+      body { padding-bottom: 64px !important; }
+      .mfd-floating-bar { bottom: 8px; gap: 6px; }
+      .mfd-floating-bar.left { left: 8px; right: 52px; }
+      .mfd-floating-bar.right { right: 8px; }
+      .mfd-floating-bar.left #mfdWhoAmI { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+      .mfd-floating-bar .mfd-pill-btn { min-height: 40px; padding: 8px 12px; }
+      .mfd-floating-bar .mfd-lbl { display: none; }
+      #mfdChangePassBtn, #mfdLogoutBtn, #mfdReportsBtn { min-width: 40px; font-size: 15px; padding: 8px 10px; }
+    }
     #mfdReportsModal {
       position: fixed; inset: 0; z-index: 999998; background: rgba(0,0,0,0.6);
       display: none; align-items: flex-start; justify-content: center; padding: 40px 16px;
@@ -363,14 +375,14 @@
         <button class="mfd-pill-btn ${auth.role === 'admin' ? 'mfd-role-admin' : ''}" id="mfdWhoAmI" title="Signed in">
           ${auth.role === 'admin' ? '⭐' : '👤'} ${auth.name} (${auth.role === 'admin' ? 'Admin' : 'Personnel'})
         </button>
-        <button class="mfd-pill-btn" id="mfdChangePassBtn">🔑 Change Password</button>
-        <button class="mfd-pill-btn" id="mfdLogoutBtn">🚪 Log Out</button>
+        <button class="mfd-pill-btn" id="mfdChangePassBtn" title="Change Password" aria-label="Change Password">🔑<span class="mfd-lbl"> Change Password</span></button>
+        <button class="mfd-pill-btn" id="mfdLogoutBtn" title="Log Out" aria-label="Log Out">🚪<span class="mfd-lbl"> Log Out</span></button>
       `;
       document.body.appendChild(leftBar);
 
       const rightBar = document.createElement('div');
       rightBar.className = 'mfd-floating-bar right';
-      rightBar.innerHTML = `<button class="mfd-pill-btn" id="mfdReportsBtn">📋 Reports</button>`;
+      rightBar.innerHTML = `<button class="mfd-pill-btn" id="mfdReportsBtn" title="Reports" aria-label="Reports">📋<span class="mfd-lbl"> Reports</span></button>`;
       document.body.appendChild(rightBar);
 
       const modal = document.createElement('div');

@@ -223,6 +223,7 @@ select.input option{background:var(--navy-800);}
    inherited visibility:hidden onto native form controls (buttons, selects),
    which would otherwise leave stray buttons visible on the printed page. */
 #print-report{display:none;}
+@media(max-width:640px){#maxocc-hint,#occload-hint{margin-top:4px !important;}}
 @media print{
   /* Orientation is set per print job (report vs. certificate) via a small
      dynamic <style> tag — see setPrintOrientation() in the script below. */
