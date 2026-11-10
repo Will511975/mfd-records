@@ -43,19 +43,21 @@
     }
 
     .header-inner {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 28px 32px 22px;
+      max-width: 100%;
+      padding: 14px 24px;
       display: flex;
       align-items: center;
-      gap: 22px;
+      gap: 14px;
     }
 
     .shield {
       flex-shrink: 0;
-      width: 64px;
-      height: 74px;
+      width: 38px;
+      height: 44px;
     }
+    .header-dept{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-500);}
+    .header-title{font-size:17px;font-weight:900;line-height:1.2;color:var(--ink-100);}
+    .header-subtitle{font-size:11px;color:#dc2626;font-weight:600;margin-top:2px;}
 
     .header-text h1 {
       font-size: 26px;
@@ -98,7 +100,7 @@
       margin-left: auto;
       flex-shrink: 0;
       display: inline-flex; align-items: center; gap: 5px;
-      padding: 8px 14px; border-radius: 8px;
+      padding: 6px 14px; border-radius: 7px;
       background: rgba(255,255,255,0.05); border: 1px solid var(--navy-700);
       color: var(--ink-300); font-size: 12px; font-weight: 600; text-decoration: none;
     }
@@ -235,11 +237,12 @@
             fill="rgba(248,113,113,0.85)"/>
     </svg>
 
-    <div class="header-text">
-      <h1>Backup &amp; Restore</h1>
-      <p>MFD Records System &middot; Administrator</p>
+    <div class="header-text" style="flex:1;">
+      <div class="header-dept">Mantua Township</div>
+      <div class="header-title">&#128190; Backup &amp; Restore</div>
+      <div class="header-subtitle">Administrator &middot; Save &amp; Restore All Records</div>
     </div>
-    <a class="back-link" href="index.html">&larr; Back to MFD Records System</a>
+    <a class="back-link" href="index.html">&larr; Back to Hub</a>
   </div>
 </header>
 

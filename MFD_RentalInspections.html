@@ -42,6 +42,9 @@ input,select,textarea{font-family:inherit;}
 .mfd-header-inner{max-width:100%;padding:14px 24px;display:flex;align-items:center;gap:14px;}
 .mfd-header-shield{flex-shrink:0;width:38px;height:44px;}
 .mfd-header-text-block{flex:1;}
+.mfd-header-text-block .dept{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;}
+.mfd-header-text-block .title{font-size:17px;font-weight:900;line-height:1.2;color:#f1f5f9;margin-top:0;}
+.mfd-header-text-block .subtitle{font-size:11px;color:#dc2626;font-weight:600;margin-top:2px;}
 .dept{font-size:11px;font-weight:700;color:var(--navy-500);text-transform:uppercase;letter-spacing:.08em;}
 .title{font-size:16px;font-weight:900;color:var(--slate-100);line-height:1.2;margin-top:2px;}
 .subtitle{font-size:11px;color:var(--fire-500);font-weight:600;margin-top:3px;}
@@ -324,9 +327,9 @@ table.pd-t td.pd-empty{text-align:center;color:#777;}
             fill="rgba(248,113,113,0.85)"/>
     </svg>
     <div class="mfd-header-text-block">
-      <div class="dept">Town of Mantua</div>
-      <div class="title">🔥 Fire Department</div>
-      <div class="subtitle">Rental Inspections</div>
+      <div class="dept">Mantua Township</div>
+      <div class="title">🏠 Rental Inspections</div>
+      <div class="subtitle">Rental &amp; Business Inspections</div>
     </div>
     <a href="index.html" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;background:rgba(255,255,255,0.05);border:1px solid var(--navy-700);color:var(--slate-400);font-size:12px;font-weight:600;text-decoration:none;transition:all .2s;flex-shrink:0;"
        onmouseover="this.style.color='#f1f5f9';this.style.background='rgba(255,255,255,0.09)'"
@@ -1222,9 +1225,14 @@ function saveInspection(){
 }
 function deleteInspection(id){
   requireUnlock(()=>{
-    if(!confirm('Delete this inspection record? This cannot be undone.')) return;
+    if(!confirm('Delete this inspection record?\n\nYou can undo it for a few seconds afterward.')) return;
+    const idx = inspections.findIndex(x=>x.id===id), gone = inspections[idx];
     inspections = inspections.filter(x=>x.id!==id);
     save(); toast('Inspection deleted','info'); refreshAll();
+    if(gone) mfdUndo('Inspection deleted', ()=>{
+      if(!inspections.some(x=>x.id===gone.id)) inspections.splice(Math.min(idx,inspections.length),0,gone);
+      save(); refreshAll();
+    });
   });
 }
 

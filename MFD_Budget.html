@@ -59,6 +59,9 @@ input,select,textarea{font-family:inherit;}
 .mfd-header-inner{max-width:100%;padding:14px 24px;display:flex;align-items:center;gap:14px;}
 .mfd-header-shield{flex-shrink:0;width:38px;height:44px;}
 .mfd-header-text-block{flex:1;}
+.mfd-header-text-block .dept{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;}
+.mfd-header-text-block .title{font-size:17px;font-weight:900;line-height:1.2;color:#f1f5f9;margin-top:0;}
+.mfd-header-text-block .subtitle{font-size:11px;color:#dc2626;font-weight:600;margin-top:2px;}
 
 /* ── Top tab bar (primary navigation, replaces sidebar) ── */
 .mfd-tab-bar{display:flex;align-items:center;gap:4px;padding:10px 24px 0;background:var(--navy-950);border-bottom:1px solid var(--navy-700);flex-wrap:wrap;}
@@ -307,8 +310,8 @@ table.pd-t td.pd-empty{text-align:center;color:#777;}
     </svg>
     <div class="mfd-header-text-block">
       <div class="dept">Mantua Township</div>
-      <div class="title">🔥 Fire Department</div>
-      <div class="subtitle">Budget &amp; Finance Tracker</div>
+      <div class="title">💰 Budget &amp; Finance</div>
+      <div class="subtitle">Budgets, Vendors &amp; Expenses</div>
     </div>
     <a href="index.html" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;background:rgba(255,255,255,0.05);border:1px solid var(--navy-700);color:var(--slate-400);font-size:12px;font-weight:600;text-decoration:none;transition:all .2s;flex-shrink:0;"
        onmouseover="this.style.color='#f1f5f9';this.style.background='rgba(255,255,255,0.09)'"
@@ -1355,9 +1358,19 @@ function saveExpense(){
 function editExpense(id){ openExpenseModal(id); }
 function deleteExpense(id){
   requireUnlock(()=>{
-    if(!confirm('Delete this expense? This cannot be undone.')) return;
+    if(!confirm('Delete this expense?\n\nYou can undo it for a few seconds afterward.')) return;
+    const fy = db.fiscalYear, idx = db.expenses.findIndex(e=>e.id===id), gone = db.expenses[idx];
     db.expenses = db.expenses.filter(e=>e.id!==id);
     save(); toast('Expense deleted','info'); refreshAll();
+    if(gone) mfdUndo('Expense deleted', ()=>{
+      if(db.fiscalYear===fy){
+        if(!db.expenses.some(e=>e.id===gone.id)) db.expenses.splice(Math.min(idx,db.expenses.length),0,gone);
+        save(); refreshAll();
+      } else {   // the fiscal year was switched meanwhile: put it back in that year's saved data
+        const k = 'mfd_budget_'+fy, raw = JSON.parse(localStorage.getItem(k)||'null');
+        if(raw && Array.isArray(raw.expenses) && !raw.expenses.some(e=>e.id===gone.id)){ raw.expenses.splice(Math.min(idx,raw.expenses.length),0,gone); localStorage.setItem(k, JSON.stringify(raw)); }
+      }
+    });
   });
 }
 
@@ -1385,7 +1398,7 @@ function openDetail(id){
       </div>
     </div>`;
   document.getElementById('detail-edit-btn').onclick   = ()=>{ closeModal('detail-modal'); openExpenseModal(id); };
-  document.getElementById('detail-delete-btn').onclick = ()=>{ if(confirm('Delete this expense?')){ closeModal('detail-modal'); deleteExpense(id); } };
+  document.getElementById('detail-delete-btn').onclick = ()=>{ closeModal('detail-modal'); deleteExpense(id); };
   document.getElementById('detail-modal').classList.add('open');
 }
 function dRow(label, val){
@@ -1528,9 +1541,15 @@ function saveVendor(){
 function editVendor(id){ openVendorModal(id); }
 function deleteVendor(id){
   requireUnlock(()=>{
-    if(!confirm('Delete this vendor?')) return;
+    if(!confirm('Delete this vendor?\n\nYou can undo it for a few seconds afterward.')) return;
+    const fy = db.fiscalYear, idx = db.vendors.findIndex(v=>v.id===id), gone = db.vendors[idx];
     db.vendors = db.vendors.filter(v=>v.id!==id);
     save(); toast('Vendor deleted','info'); renderVendors();
+    if(gone) mfdUndo('Vendor deleted', ()=>{
+      if(db.fiscalYear!==fy) return;
+      if(!db.vendors.some(v=>v.id===gone.id)) db.vendors.splice(Math.min(idx,db.vendors.length),0,gone);
+      save(); renderVendors();
+    });
   });
 }
 function updateVendorDatalist(){

@@ -1447,6 +1447,24 @@ function loadData(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh)); }catch(e){ console.warn('Could not persist default data', e); }
   return fresh;
 }
+
+/* ---------- Undo support for deletes ---------- */
+function apUndoSnap(msg){
+  const vid = currentVehicleId, snap = JSON.stringify(data), key = VEHICLES[vid].storageKey;
+  mfdUndo(msg, ()=>{
+    if(currentVehicleId===vid){
+      data = JSON.parse(snap); saveData();
+      try{ renderSvg(); renderPanel(); refreshStats(); renderLastInspection(); }catch(e){}
+    } else { localStorage.setItem(key, snap); }
+  });
+}
+function apUndoViSnap(msg, snap, vid){
+  const key = VEHICLES[vid].storageKeyVI;
+  mfdUndo(msg, ()=>{
+    if(currentVehicleId===vid){ viData = JSON.parse(snap); saveViData(); buildViForm(); refreshViStats(); }
+    else { localStorage.setItem(key, snap); }
+  });
+}
 function saveData(){
   try{
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
@@ -1760,8 +1778,12 @@ function renderPanel(){
       // (Admin or Personnel) — only structural changes (compartments,
       // containers, resets) stay behind requireUnlock.
       const idx = +e.target.getAttribute('data-idx');
+      const __nm = comp.items[idx] ? comp.items[idx].name : 'this item';
+      if(!confirm('Remove "'+__nm+'" from '+comp.label+'?\n\nYou can undo it for a few seconds afterward.')) return;
+      const __pre = JSON.stringify(data), __vid = currentVehicleId;
       comp.items.splice(idx,1);
       saveData(); renderSvg(); renderPanel(); refreshStats();
+      mfdUndo('Removed "'+__nm+'"', ()=>{ if(currentVehicleId===__vid){ data = JSON.parse(__pre); saveData(); renderSvg(); renderPanel(); refreshStats(); } else { localStorage.setItem(VEHICLES[__vid].storageKey, __pre); } });
     });
   });
 
@@ -1845,8 +1867,12 @@ function renderContainers(comp){
     btn.addEventListener('click', e=>{
       // Removing an item from inside a bag/kit/set — open to Personnel too.
       const cid = e.target.getAttribute('data-cid'), idx = +e.target.getAttribute('data-idx');
-      findContainer(comp, cid).items.splice(idx,1);
+      const __ct = findContainer(comp, cid), __nm = __ct.items[idx] ? __ct.items[idx].name : 'this item';
+      if(!confirm('Remove "'+__nm+'" from "'+__ct.name+'"?\n\nYou can undo it for a few seconds afterward.')) return;
+      const __pre = JSON.stringify(data), __vid = currentVehicleId;
+      __ct.items.splice(idx,1);
       saveData(); renderSvg(); renderPanel(); refreshStats();
+      mfdUndo('Removed "'+__nm+'"', ()=>{ if(currentVehicleId===__vid){ data = JSON.parse(__pre); saveData(); renderSvg(); renderPanel(); refreshStats(); } else { localStorage.setItem(VEHICLES[__vid].storageKey, __pre); } });
     });
   });
   wrap.querySelectorAll('.ci-add').forEach(btn=>{
@@ -1875,10 +1901,12 @@ function renderContainers(comp){
       requireUnlock(()=>{
         const cid = btn.getAttribute('data-delcontainer');
         const ct = findContainer(comp, cid);
-        if(!confirm(`Delete "${ct.name}" and all ${ct.items.length} of its items? This can't be undone.`)) return;
+        if(!confirm(`Delete "${ct.name}" and all ${ct.items.length} of its items?\n\nYou can undo it for a few seconds afterward.`)) return;
+        const __nm = ct.name; const __pre = JSON.stringify(data), __vid = currentVehicleId;
         comp.containers = comp.containers.filter(c=>c.id!==cid);
         expandedContainers.delete(cid);
         saveData(); renderSvg(); renderPanel(); refreshStats();
+        mfdUndo('Deleted "'+__nm+'"', ()=>{ if(currentVehicleId===__vid){ data = JSON.parse(__pre); saveData(); renderSvg(); renderPanel(); refreshStats(); } else { localStorage.setItem(VEHICLES[__vid].storageKey, __pre); } });
       });
     });
   });
@@ -1988,13 +2016,15 @@ document.getElementById('btnDeleteCompt').addEventListener('click', ()=>{
   if(!activeId) return;
   requireUnlock(()=>{
     const comp = getComp(activeId);
-    if(!confirm(`Delete "${comp.label}" and all ${comp.items.length} of its items? This can't be undone.`)) return;
+    if(!confirm(`Delete "${comp.label}" and all ${comp.items.length} of its items?\n\nYou can undo it for a few seconds afterward.`)) return;
+    const __nm = comp.label; const __pre = JSON.stringify(data), __vid = currentVehicleId;
     data.compartments = data.compartments.filter(c=>c.id!==activeId);
     delete data.notes[activeId];
     activeId = null;
     renaming = false;
     positioningId = null;
     saveData(); renderSvg(); renderPanel(); refreshStats();
+    mfdUndo('Deleted "'+__nm+'"', ()=>{ if(currentVehicleId===__vid){ data = JSON.parse(__pre); saveData(); renderSvg(); renderPanel(); refreshStats(); } else { localStorage.setItem(VEHICLES[__vid].storageKey, __pre); } });
   });
 });
 
@@ -2051,12 +2081,14 @@ function refreshStats(){
 document.getElementById('btnReset').addEventListener('click', ()=>{
   requireUnlock(()=>{
     if(!confirm('Reset ' + VEHICLES[currentVehicleId].label + ' to default compartments and equipment? This clears all current checks and custom items. Inspection history is kept. Vehicle inspection data is not affected.')) return;
+    const __pre = JSON.stringify(data), __vid = currentVehicleId;
     const preservedInspections = data.inspections || [];
     data = defaultData();
     data.inspections = preservedInspections;
     activeId = null;
     positioningId = null;
     saveData(); renderSvg(); renderPanel(); refreshStats(); renderLastInspection();
+    mfdUndo(VEHICLES[__vid].label+' reset to defaults', ()=>{ if(currentVehicleId===__vid){ data = JSON.parse(__pre); saveData(); renderSvg(); renderPanel(); refreshStats(); renderLastInspection(); } else { localStorage.setItem(VEHICLES[__vid].storageKey, __pre); } });
   });
 });
 
@@ -2559,12 +2591,14 @@ function viAddSection(){
 function viDeleteSection(sectionId){
   const sec = viData.sections.find(s=>s.id===sectionId);
   if(!sec) return;
-  if(!confirm(`Delete section "${sec.title}" and all ${sec.items.length} item(s) in it? This can't be undone.`)) return;
+  if(!confirm(`Delete section "${sec.title}" and all ${sec.items.length} item(s) in it?\n\nYou can undo it for a few seconds afterward.`)) return;
+  const __snap = JSON.stringify(viData), __vid = currentVehicleId, __nm = sec.title;
   sec.items.forEach(it=> delete viData.draft.items[it.id]);
   viData.sections = viData.sections.filter(s=>s.id!==sectionId);
   saveViData();
   buildViForm();
   refreshViStats();
+  apUndoViSnap('Deleted section "'+__nm+'"', __snap, __vid);
 }
 function viStartRenameSection(sectionId){
   const sec = viData.sections.find(s=>s.id===sectionId);
@@ -2598,12 +2632,14 @@ function viAddItem(sectionId){
 function viDeleteItem(itemId){
   const meta = viFindItemMeta(itemId);
   if(!meta) return;
-  if(!confirm(`Delete "${meta.item.label}" from the checklist? This can't be undone (past history entries keep their own copy).`)) return;
+  if(!confirm(`Delete "${meta.item.label}" from the checklist?\n\nPast history entries keep their own copy. You can undo it for a few seconds afterward.`)) return;
+  const __snap = JSON.stringify(viData), __vid = currentVehicleId, __nm = meta.item.label;
   meta.section.items = meta.section.items.filter(i=>i.id!==itemId);
   delete viData.draft.items[itemId];
   saveViData();
   buildViForm();
   refreshViStats();
+  apUndoViSnap('Deleted "'+__nm+'"', __snap, __vid);
 }
 function viStartRenameItem(itemId){
   const meta = viFindItemMeta(itemId);

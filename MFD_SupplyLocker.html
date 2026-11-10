@@ -779,9 +779,11 @@ document.getElementById('itemForm').addEventListener('click', e=>{
   if(b.id === 'ifShow'){ const it = itemById(editingId); if(it && it.loc){ sel = { ...it.loc }; openItem = it.id; closeItemForm(); showTab('lockers'); renderAll(); } return; }
   if(b.id === 'ifDelete') requireUnlock(()=>{
     const it = itemById(editingId); if(!it) return;
-    if(!confirm(`Delete "${it.name}" (${it.code}) from the Item Database for good?\n\nIts Item ID will not be used again.`)) return;
+    if(!confirm(`Delete "${it.name}" (${it.code}) from the Item Database?\n\nYou can undo it for a few seconds afterward.`)) return;
+    const __snap = JSON.stringify(data), __nm = it.name;
     data.items = data.items.filter(x=>x.id!==it.id); if(openItem===it.id) openItem = null;
     save(); closeItemForm(); renderAll();
+    mfdUndo('Deleted "'+__nm+'"', ()=>{ data = normalize(JSON.parse(__snap)); save(); renderAll(); });
   });
   if(b.id === 'ifSave') requireUnlock(()=>{
     const name = document.getElementById('ifName').value.trim();
@@ -899,7 +901,7 @@ panel.addEventListener('click', e=>{
     const it = itemById(v); if(!it) return; it.loc = { l:sel.l, d:sel.d, s:sel.s }; it.present = 1; save(); renderAll();
   });
   else if(act === 'unplace') requireUnlock(()=>{ const it = itemById(id); if(it){ it.loc = null; if(openItem===id) openItem = null; save(); renderAll(); } });
-  else if(act === 'delcont') requireUnlock(()=>{ if(!confirm('Remove this bag / kit / set?')) return; S.containers.splice(i,1); save(); renderAll(); });
+  else if(act === 'delcont') requireUnlock(()=>{ if(!confirm('Remove this bag / kit / set?\n\nYou can undo it for a few seconds afterward.')) return; const __snap = JSON.stringify(data); S.containers.splice(i,1); save(); renderAll(); mfdUndo('Bag / kit / set removed', ()=>{ data = normalize(JSON.parse(__snap)); save(); renderAll(); }); });
   else if(act === 'showcont') requireUnlock(()=>{ document.getElementById('addContainerForm').classList.add('show'); b.style.display='none'; });
   else if(act === 'confirmcont') requireUnlock(()=>{
     const name = document.getElementById('newContName').value.trim(); if(!name) return;
@@ -1476,8 +1478,10 @@ document.getElementById('importFile').addEventListener('change', e=>{
 });
 document.getElementById('btnReset').addEventListener('click', ()=> requireUnlock(()=>{
   if(!confirm('Reset the lockers? This clears every bag/kit/set, door note and custom locker/door name, and takes every item off the shelves.\n\nNo items are deleted - they all stay in the Item Database with their Item IDs. Check history is kept.')) return;
+  const __snap = JSON.stringify(data);
   const items = data.items.map(it=>({ ...it, loc:null })), keep = data.history, keepNum = data.nextItemNum;
   data = defaultData(); data.items = items; data.history = keep; data.nextItemNum = keepNum; sel = null; openItem = null; save(); renderAll();
+  mfdUndo('Lockers reset', ()=>{ data = normalize(JSON.parse(__snap)); save(); renderAll(); });
 }));
 
 /* ---------- QR Codes tab: pick any labels from one tree and print them ----------
