@@ -237,6 +237,57 @@
       cursor: not-allowed;
       pointer-events: none;
     }
+
+    /* ── Hub search + Needs attention ── */
+    .hub-search { position: relative; margin: 0 0 18px; }
+    .hub-search input {
+      width: 100%; padding: 13px 16px 13px 42px; border-radius: var(--radius);
+      background: var(--navy-800); border: 1px solid var(--border); color: var(--ink-100);
+      font-size: 15px; font-family: inherit; outline: none;
+    }
+    .hub-search input:focus { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-light); }
+    .hub-search .mag { position: absolute; left: 14px; top: 13px; width: 18px; height: 18px; stroke: var(--ink-500); fill: none; stroke-width: 2; pointer-events: none; }
+    .sr-panel {
+      display: none; position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 50;
+      background: var(--navy-900); border: 1px solid var(--border); border-radius: var(--radius);
+      box-shadow: 0 16px 40px rgba(0,0,0,.55); max-height: 70vh; overflow-y: auto;
+    }
+    .sr-panel.open { display: block; }
+    .sr-group { padding: 8px 14px 2px; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-500); }
+    .sr-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid rgba(255,255,255,.05); }
+    .sr-row:hover { background: var(--navy-800); }
+    .sr-main { flex: 1; min-width: 0; color: var(--ink-100); text-decoration: none; }
+    .sr-main b { display: block; font-size: 14px; font-weight: 700; }
+    .sr-main span { display: block; font-size: 12px; color: var(--ink-500); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sr-tel { flex-shrink: 0; padding: 6px 10px; border-radius: 7px; background: var(--red-light); border: 1px solid rgba(220,38,38,.4); color: #fca5a5; font-size: 12px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+    .sr-more, .sr-none { padding: 9px 14px; font-size: 12px; color: var(--ink-500); border-top: 1px solid rgba(255,255,255,.05); }
+
+    .attn { background: var(--navy-900); border: 1px solid var(--border); border-radius: var(--radius); margin: 0 0 22px; overflow: hidden; }
+    .attn-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    .attn-title { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-300); }
+    .attn-sum { font-size: 12px; color: var(--ink-500); }
+    .attn-ok { padding: 14px 16px; font-size: 14px; color: #86efac; }
+    .attn-row { border-top: 1px solid rgba(255,255,255,.05); }
+    .attn-row:first-of-type { border-top: 0; }
+    .attn-row > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 11px 16px; font-size: 14px; color: var(--ink-100); }
+    .attn-row > summary::-webkit-details-marker { display: none; }
+    .attn-row > summary:hover { background: var(--navy-800); }
+    .attn-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .sev-red .attn-dot { background: #ef4444; }
+    .sev-amber .attn-dot { background: #f59e0b; }
+    .attn-count { font-weight: 800; min-width: 22px; }
+    .attn-text { flex: 1; min-width: 0; }
+    .attn-go { font-size: 12px; font-weight: 700; color: #fca5a5; text-decoration: none; white-space: nowrap; padding: 4px 8px; border-radius: 6px; }
+    .attn-go:hover { background: var(--red-light); }
+    .attn-list { list-style: none; padding: 0 16px 12px 52px; font-size: 13px; color: var(--ink-300); }
+    .attn-list li { padding: 3px 0; }
+    .attn-list li span { color: var(--ink-500); }
+    @media (max-width: 560px) {
+      .attn-row > summary { flex-wrap: wrap; row-gap: 2px; }
+      .attn-text { flex: 1 1 calc(100% - 60px); }
+      .attn-go { margin-left: 42px; padding: 2px 0; }
+      .attn-list { padding-left: 38px; }
+    }
   </style>
 </head>
 <body>
@@ -269,6 +320,18 @@
     </div>
     <a class="backup-btn" id="btnBackupRestore" href="MFD_Backup.html" data-mfd-locked="skip">&#128190; Backup &amp; Restore</a>
   </div>
+
+
+  <div class="hub-search" id="hubSearch">
+    <svg class="mag" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+    <input id="hubSearchInput" type="search" placeholder="Search members, incidents, addresses…" autocomplete="off" aria-label="Search members, incident numbers and addresses">
+    <div class="sr-panel" id="srPanel" role="listbox"></div>
+  </div>
+
+  <section class="attn" id="attn" aria-label="Needs attention">
+    <div class="attn-head"><span class="attn-title">Needs attention</span><span class="attn-sum" id="attnSum"></span></div>
+    <div id="attnBody"></div>
+  </section>
 
   <p class="section-label">Select a module to open</p>
 
@@ -395,6 +458,204 @@ window.addEventListener('mfd-auth-ready', function(){
   btn.innerHTML = '&#128274; Admin only';
   btn.addEventListener('click', e => e.preventDefault());
 });
+</script>
+
+<script>
+/* ───────── Hub search + Needs attention (read-only; uses the synced local data) ───────── */
+(function(){
+  function ls(k, d){ try{ var r = localStorage.getItem(k); return r ? JSON.parse(r) : d; }catch(e){ return d; } }
+  function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function fmt(d){ if(!d) return '—'; var x = new Date(d); if(isNaN(x)) return String(d); return String(x.getMonth()+1).padStart(2,'0')+'/'+String(x.getDate()).padStart(2,'0')+'/'+x.getFullYear(); }
+  function fmtYMD(s){ if(!s) return '—'; var p = String(s).split('-'); return p.length===3 ? p[1]+'/'+p[2]+'/'+p[0] : s; }
+  function daysFromToday(d){ var t = new Date(); t.setHours(0,0,0,0); var x = new Date(d); x.setHours(0,0,0,0); return Math.round((x - t)/86400000); }
+  function plural(n, w){ return n + ' ' + w + (n === 1 ? '' : 's'); }
+  var VEHICLES = [['engine110','Engine 110'],['rescue110','Rescue 110'],['ambulance115','Ambulance 115'],['brush113','Brush 113'],['brush114','Brush 114']];
+  var VEH_STALE_DAYS = 30;          // flag a vehicle with no inspection in this many days
+  var CERT_SOON_DAYS = 60;          // same window the Roster uses for "expiring soon"
+  var REINSPECT_DAYS = 365, REINSPECT_SOON = 30;   // same policy as Rental Inspections
+  // years each certification stays valid (matches the Roster's certification list)
+  var CERT_YEARS = { 'NREMT':2, 'CPR':2, 'RC':1, 'FF1':3, 'FF2':3, 'HazMat':3, 'Code of Ethics':1 };
+
+  /* ===== Search ===== */
+  var input = document.getElementById('hubSearchInput');
+  var panel = document.getElementById('srPanel');
+  var LIMIT = 5;
+
+  function norm(s){ return String(s == null ? '' : s).toLowerCase(); }
+  function matches(hay, terms){ hay = norm(hay); for(var i=0;i<terms.length;i++){ if(hay.indexOf(terms[i]) < 0) return false; } return true; }
+
+  function runSearch(){
+    var q = input.value.trim();
+    if(q.length < 2){ panel.classList.remove('open'); panel.innerHTML = ''; return; }
+    var terms = norm(q).split(/\s+/).filter(Boolean);
+    var html = '', any = false;
+
+    // Members (name, call sign, rank, phone digits)
+    var members = ls('mfd_members_v5', []);
+    if(!Array.isArray(members)) members = [];
+    var mm = members.filter(function(m){
+      return matches([m.name, m.callSign, m.rank, m.status, m.phone, String(m.phone||'').replace(/\D/g,'')].join(' '), terms);
+    });
+    if(mm.length){
+      any = true; html += '<div class="sr-group">Members</div>';
+      mm.slice(0, LIMIT).forEach(function(m){
+        var tel = String(m.phone||'').replace(/[^\d+]/g,'');
+        html += '<div class="sr-row"><a class="sr-main" href="MFD_RosterTimecards.html?member='+encodeURIComponent(m.id)+'"><b>'+esc(m.name)+'</b><span>'
+          + esc([m.rank, m.callSign ? 'Call sign '+m.callSign : '', m.status].filter(Boolean).join(' · '))+'</span></a>'
+          + (tel ? '<a class="sr-tel" href="tel:'+esc(tel)+'">&#9742; '+esc(m.phone)+'</a>' : '') + '</div>';
+      });
+      if(mm.length > LIMIT) html += '<div class="sr-more">+ '+(mm.length-LIMIT)+' more members &mdash; refine your search</div>';
+    }
+
+    // Incidents / time cards (incident number, location, type, date)
+    var tcs = (ls('mantua_fd_timecards_v1', {}) || {}).timecards || [];
+    var seen = {}, inc = [];
+    tcs.forEach(function(tc){
+      var key = tc.incidentId ? 'i:'+tc.incidentId : 'd:'+tc.date+'|'+tc.start+'|'+tc.type;
+      if(seen[key]) return;
+      if(matches([tc.incidentId, tc.location, tc.incidentType, tc.type, tc.date, tc.responseArea].join(' '), terms)){ seen[key] = 1; inc.push(tc); }
+    });
+    inc.sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
+    if(inc.length){
+      any = true; html += '<div class="sr-group">Incidents &amp; time cards</div>';
+      inc.slice(0, LIMIT).forEach(function(tc){
+        var href = tc.incidentId ? 'MFD_RosterTimecards.html?incident='+encodeURIComponent(tc.incidentId) : 'MFD_RosterTimecards.html?module=timecards&tab=search';
+        html += '<div class="sr-row"><a class="sr-main" href="'+href+'"><b>'+esc(tc.incidentId || (tc.type||'Event')+' '+fmtYMD(tc.date))+'</b><span>'
+          + esc([fmtYMD(tc.date), tc.type, tc.incidentType, tc.location].filter(function(x){ return x && x !== '—'; }).join(' · '))+'</span></a></div>';
+      });
+      if(inc.length > LIMIT) html += '<div class="sr-more">+ '+(inc.length-LIMIT)+' more &mdash; refine your search</div>';
+    }
+
+    // Addresses (rental / business / day care inspections)
+    var rentals = ls('mfd_rental_inspections_v1', []);
+    if(!Array.isArray(rentals)) rentals = [];
+    var seenA = {}, ad = [];
+    rentals.forEach(function(r){
+      if(matches([r.address, r.businessName, r.owner].join(' '), terms)){
+        var k = norm(r.address); if(seenA[k]) return; seenA[k] = 1; ad.push(r);
+      }
+    });
+    if(ad.length){
+      any = true; html += '<div class="sr-group">Addresses (inspections)</div>';
+      ad.slice(0, LIMIT).forEach(function(r){
+        html += '<div class="sr-row"><a class="sr-main" href="MFD_RentalInspections.html?q='+encodeURIComponent(r.address||'')+'"><b>'+esc(r.businessName || r.address)+'</b><span>'
+          + esc([r.businessName ? r.address : '', r.owner ? 'Owner: '+r.owner : ''].filter(Boolean).join(' · '))+'</span></a></div>';
+      });
+      if(ad.length > LIMIT) html += '<div class="sr-more">+ '+(ad.length-LIMIT)+' more &mdash; refine your search</div>';
+    }
+
+    if(!any) html = '<div class="sr-none">No matches for &ldquo;'+esc(q)+'&rdquo;.</div>';
+    panel.innerHTML = html; panel.classList.add('open');
+  }
+  var t = null;
+  input.addEventListener('input', function(){ clearTimeout(t); t = setTimeout(runSearch, 120); });
+  input.addEventListener('focus', function(){ if(input.value.trim().length >= 2) runSearch(); });
+  input.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){ panel.classList.remove('open'); input.blur(); }
+    if(e.key === 'Enter'){ var a = panel.querySelector('.sr-main'); if(a) location.href = a.getAttribute('href'); }
+  });
+  document.addEventListener('click', function(e){ if(!document.getElementById('hubSearch').contains(e.target)) panel.classList.remove('open'); });
+
+  /* ===== Needs attention ===== */
+  function row(sev, n, text, href, goLabel, items){
+    var li = items.slice(0, 8).map(function(x){ return '<li>'+x+'</li>'; }).join('');
+    if(items.length > 8) li += '<li><span>+ '+(items.length-8)+' more &mdash; open the page to see all</span></li>';
+    return '<details class="attn-row sev-'+sev+'"><summary><span class="attn-dot"></span><span class="attn-count">'+n+'</span><span class="attn-text">'+text+'</span>'
+      + '<a class="attn-go" href="'+href+'" onclick="event.stopPropagation()">'+goLabel+' &rsaquo;</a></summary><ul class="attn-list">'+li+'</ul></details>';
+  }
+
+  function computeAttention(){
+    var out = []; // {sev, html}
+    // --- Certifications ---
+    try{
+      var members = ls('mfd_members_v5', []); if(!Array.isArray(members)) members = [];
+      var expired = [], soon = [];
+      members.forEach(function(m){
+        if(m.status !== 'Active' && m.status !== 'Probationary') return;
+        var c = m.certifications; if(!c || typeof c !== 'object') return;
+        [].concat(c.fireEms || [], c.mfdPapers || []).forEach(function(cert){
+          if(!cert || !cert.completedDate) return;
+          var yrs = cert.dueYears || CERT_YEARS[cert.name]; if(!yrs) return;
+          var due = new Date(cert.completedDate); if(isNaN(due)) return;
+          due.setFullYear(due.getFullYear() + yrs);
+          var left = daysFromToday(due);
+          var label = esc(m.name)+' &mdash; '+esc(cert.name)+(cert.level ? ' ('+esc(cert.level)+')' : '');
+          if(left < 0) expired.push({left:left, h: label+' <span>expired '+fmt(due)+'</span>'});
+          else if(left <= CERT_SOON_DAYS) soon.push({left:left, h: label+' <span>due '+fmt(due)+' (in '+plural(left,'day')+')</span>'});
+        });
+      });
+      expired.sort(function(a,b){ return a.left - b.left; }); soon.sort(function(a,b){ return a.left - b.left; });
+      if(expired.length) out.push({sev:'red', n:expired.length, html: row('red', expired.length, 'certification'+(expired.length===1?'':'s')+' expired', 'MFD_RosterTimecards.html?module=roster', 'Open Roster', expired.map(function(x){ return x.h; }))});
+      if(soon.length) out.push({sev:'amber', n:soon.length, html: row('amber', soon.length, 'certification'+(soon.length===1?'':'s')+' expiring within '+CERT_SOON_DAYS+' days', 'MFD_RosterTimecards.html?module=roster', 'Open Roster', soon.map(function(x){ return x.h; }))});
+    }catch(e){}
+
+    // --- Rental / business reinspections (most recent inspection at each address) ---
+    try{
+      var rentals = ls('mfd_rental_inspections_v1', []); if(!Array.isArray(rentals)) rentals = [];
+      var latest = {};
+      rentals.forEach(function(r){ var k = norm(r.address).trim().replace(/\s+/g,' '); if(!latest[k] || String(r.inspectionDate||'') > String(latest[k].inspectionDate||'')) latest[k] = r; });
+      var over = [], soonR = [];
+      Object.keys(latest).forEach(function(k){
+        var r = latest[k]; if(!r.inspectionDate) return;
+        var due = new Date(r.inspectionDate+'T00:00:00'); due.setDate(due.getDate() + REINSPECT_DAYS);
+        var left = daysFromToday(due);
+        var label = esc(r.businessName || r.address);
+        if(left < 0) over.push({left:left, h: label+' <span>reinspection was due '+fmt(due)+' ('+plural(-left,'day')+' overdue)</span>'});
+        else if(left <= REINSPECT_SOON) soonR.push({left:left, h: label+' <span>due '+fmt(due)+' (in '+plural(left,'day')+')</span>'});
+      });
+      over.sort(function(a,b){ return a.left - b.left; }); soonR.sort(function(a,b){ return a.left - b.left; });
+      if(over.length) out.push({sev:'red', n:over.length, html: row('red', over.length, 'reinspection'+(over.length===1?'':'s')+' overdue', 'MFD_RentalInspections.html', 'Open Rental Inspections', over.map(function(x){ return x.h; }))});
+      if(soonR.length) out.push({sev:'amber', n:soonR.length, html: row('amber', soonR.length, 'reinspection'+(soonR.length===1?'':'s')+' due within '+REINSPECT_SOON+' days', 'MFD_RentalInspections.html', 'Open Rental Inspections', soonR.map(function(x){ return x.h; }))});
+    }catch(e){}
+
+    // --- Vehicles: failed items, stale inspections, items missing from trucks ---
+    try{
+      var failed = [], stale = [], missing = [];
+      VEHICLES.forEach(function(v){
+        var vi = ls('mantuaFD_'+v[0]+'_vehicleInspection', null);
+        var hist = vi && Array.isArray(vi.history) ? vi.history.slice() : [];
+        hist.sort(function(a,b){ return String(a.completedAt||'').localeCompare(String(b.completedAt||'')); });
+        var last = hist[hist.length-1];
+        if(last && last.counts && last.counts.fail > 0) failed.push(esc(v[1])+' &mdash; '+plural(last.counts.fail,'item')+' failed <span>on the '+fmt(last.completedAt)+' inspection</span>');
+        if(!last) stale.push(esc(v[1])+' <span>no vehicle inspection on record</span>');
+        else { var age = -daysFromToday(last.completedAt); if(age > VEH_STALE_DAYS) stale.push(esc(v[1])+' <span>last inspected '+fmt(last.completedAt)+' ('+plural(age,'day')+' ago)</span>'); }
+        var inv = ls('mantuaFD_'+v[0]+'_inventory', null), miss = 0;
+        if(inv && Array.isArray(inv.compartments)) inv.compartments.forEach(function(c){
+          (c.items||[]).forEach(function(it){ if(it && !it.present) miss++; });
+          (c.containers||[]).forEach(function(ct){ (ct.items||[]).forEach(function(it){ if(it && !it.present) miss++; }); });
+        });
+        if(miss) missing.push(esc(v[1])+' &mdash; '+plural(miss,'item')+' missing');
+      });
+      if(failed.length) out.push({sev:'red', n:failed.length, html: row('red', failed.length, 'vehicle'+(failed.length===1?'':'s')+' with failed items on the last inspection', 'MFD_AllApparatus.html', 'Open Apparatus', failed)});
+      if(missing.length) out.push({sev:'amber', n:missing.length, html: row('amber', missing.length, 'vehicle'+(missing.length===1?'':'s')+' missing equipment (needs resupply)', 'MFD_AllApparatus.html?tab=resupply', 'Open Resupply', missing)});
+      if(stale.length) out.push({sev:'amber', n:stale.length, html: row('amber', stale.length, 'vehicle'+(stale.length===1?'':'s')+' not inspected in '+VEH_STALE_DAYS+'+ days', 'MFD_AllApparatus.html', 'Open Apparatus', stale)});
+    }catch(e){}
+
+    // --- Supply Locker: at or below the reorder point ---
+    try{
+      var sl = ls('mfd_supplylocker_v1', null), low = [];
+      if(sl && Array.isArray(sl.items)) sl.items.forEach(function(it){
+        var reorder = parseInt(it.reorder)||0, qty = parseInt(it.qty)||0;
+        if(reorder > 0 && qty <= reorder) low.push(esc(it.name)+' <span>'+qty+' on hand, reorder at '+reorder+((parseInt(it.onOrder)||0) > 0 ? ' &mdash; '+it.onOrder+' already on order' : '')+'</span>');
+      });
+      if(low.length) out.push({sev:'amber', n:low.length, html: row('amber', low.length, 'supply item'+(low.length===1?'':'s')+' at or below the reorder point', 'MFD_SupplyLocker.html', 'Open Supply Locker', low)});
+    }catch(e){}
+    return out;
+  }
+
+  function renderAttention(){
+    var list = computeAttention();
+    var body = document.getElementById('attnBody'), sum = document.getElementById('attnSum');
+    if(!list.length){ body.innerHTML = '<div class="attn-ok">&#10003; Nothing needs attention right now.</div>'; sum.textContent = ''; return; }
+    var red = list.filter(function(x){ return x.sev === 'red'; }).length;
+    list.sort(function(a,b){ return (a.sev === b.sev) ? 0 : (a.sev === 'red' ? -1 : 1); });
+    body.innerHTML = list.map(function(x){ return x.html; }).join('');
+    sum.textContent = plural(list.length, 'item') + (red ? ' · ' + red + ' urgent' : '');
+  }
+  window.addEventListener('mfd-auth-ready', renderAttention);
+  // if the data was already there when the page loaded, show it right away too
+  if(window.MFD_AUTH) renderAttention();
+})();
 </script>
 
 </div>

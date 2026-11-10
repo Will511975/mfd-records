@@ -1788,6 +1788,14 @@ window.addEventListener('DOMContentLoaded', ()=>{
   renderInspections();
   // The Dashboard now lives on its own page (MFD_Dashboard.html); open on Inspections here.
   if(!document.documentElement.classList.contains('dash-only')) showPage('inspections');
+  try{
+    const q = new URLSearchParams(location.search).get('q');
+    if(q && !document.documentElement.classList.contains('dash-only')){
+      showPage('inspections');
+      document.getElementById('insp-search').value = q;
+      renderInspections();
+    }
+  }catch(e){}
   document.querySelectorAll('.modal-overlay').forEach(o=>{
     o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
   });
