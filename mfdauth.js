@@ -163,7 +163,7 @@
       .mfd-floating-bar.left #mfdWhoAmI { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
       .mfd-floating-bar .mfd-pill-btn { min-height: 40px; padding: 8px 12px; }
       .mfd-floating-bar .mfd-lbl { display: none; }
-      #mfdChangePassBtn, #mfdLogoutBtn, #mfdReportsBtn { min-width: 40px; font-size: 15px; padding: 8px 10px; }
+      #mfdChangePassBtn, #mfdLogoutBtn, #mfdReportsBtn, #mfdHelpBtn { min-width: 40px; font-size: 15px; padding: 8px 10px; }
     }
     #mfdReportsModal {
       position: fixed; inset: 0; z-index: 999998; background: rgba(0,0,0,0.6);
@@ -418,6 +418,7 @@
         </button>
         <button class="mfd-pill-btn" id="mfdChangePassBtn" title="Change Password" aria-label="Change Password">🔑<span class="mfd-lbl"> Change Password</span></button>
         <button class="mfd-pill-btn" id="mfdLogoutBtn" title="Log Out" aria-label="Log Out">🚪<span class="mfd-lbl"> Log Out</span></button>
+        ${/MFD_Help\.html/.test(location.pathname) ? '' : '<a class="mfd-pill-btn" id="mfdHelpBtn" href="MFD_Help.html" title="Help &amp; User Guide" aria-label="Help" style="text-decoration:none;display:inline-flex;align-items:center;">❓<span class="mfd-lbl">&nbsp;Help</span></a>'}
       `;
       document.body.appendChild(leftBar);
 

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MFD Help &amp; User Guide</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy-950:#080e1e; --navy-900:#0f172a; --navy-800:#1e293b; --navy-700:#334155; --navy-600:#475569;
+      --red:#dc2626; --gold:#f59e0b; --ok:#22c55e;
+      --ink-100:#f1f5f9; --ink-300:#cbd5e1; --ink-500:#94a3b8;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family:'Inter',system-ui,sans-serif; background:var(--navy-950); color:var(--ink-100); min-height:100vh; line-height:1.55; }
+    header { background:linear-gradient(180deg,var(--navy-900),var(--navy-950)); border-bottom:3px solid var(--red); }
+    .header-inner { padding:14px 24px; display:flex; align-items:center; gap:14px; }
+    .header-shield { flex-shrink:0; width:38px; height:44px; }
+    .header-text-block { flex:1; }
+    .header-dept { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-500); }
+    .header-title { font-size:17px; font-weight:900; line-height:1.2; }
+    .header-subtitle { font-size:11px; color:var(--red); font-weight:600; margin-top:2px; }
+    .header-back { padding:6px 14px; border-radius:7px; background:rgba(255,255,255,.05); border:1px solid var(--navy-700); color:var(--ink-500); font-size:12px; font-weight:600; text-decoration:none; white-space:nowrap; }
+    .header-back:hover { color:var(--ink-100); }
+
+    .wrap { max-width:1100px; margin:0 auto; padding:22px 20px 110px; display:grid; grid-template-columns:230px 1fr; gap:28px; align-items:start; }
+    .toc { position:sticky; top:14px; background:var(--navy-900); border:1px solid var(--navy-700); border-radius:12px; padding:12px; max-height:calc(100vh - 28px); overflow-y:auto; }
+    .toc h4 { font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-500); margin:2px 8px 8px; }
+    .toc a { display:block; padding:6px 8px; border-radius:7px; font-size:13px; font-weight:600; color:var(--ink-300); text-decoration:none; }
+    .toc a:hover { background:rgba(255,255,255,.06); color:#fff; }
+    .main { min-width:0; }
+    .searchbox { position:sticky; top:0; z-index:5; background:var(--navy-950); padding:2px 0 12px; }
+    .searchbox input { width:100%; background:var(--navy-800); border:1px solid var(--navy-600); border-radius:10px; color:var(--ink-100); font:500 16px 'Inter',sans-serif; padding:12px 14px; }
+    .searchbox input:focus { outline:2px solid var(--red); outline-offset:1px; }
+    .searchnote { font-size:12px; color:var(--ink-500); margin-top:6px; min-height:16px; }
+    .intro { background:var(--navy-900); border:1px solid var(--navy-700); border-left:5px solid var(--red); border-radius:10px; padding:14px 16px; font-size:14px; color:var(--ink-300); margin-bottom:18px; }
+    section.hs { background:var(--navy-900); border:1px solid var(--navy-700); border-radius:12px; padding:18px 20px; margin-bottom:16px; scroll-margin-top:70px; }
+    section.hs h2 { font-size:19px; font-weight:900; margin-bottom:10px; }
+    section.hs h3 { font-size:14px; font-weight:800; color:#fff; margin:16px 0 4px; }
+    section.hs p, section.hs li { font-size:14px; color:var(--ink-300); }
+    section.hs p { margin:6px 0; }
+    section.hs ul, section.hs ol { margin:6px 0 6px 22px; }
+    section.hs li { margin:3px 0; }
+    b, strong { color:#fff; }
+    .tag { display:inline-block; font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; border-radius:999px; padding:1px 8px; vertical-align:1px; margin-left:4px; }
+    .tag.admin { background:rgba(220,38,38,.2); color:#fca5a5; border:1px solid rgba(220,38,38,.5); }
+    .tag.all { background:rgba(34,197,94,.15); color:#86efac; border:1px solid rgba(34,197,94,.4); }
+    .tip { background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.35); border-radius:9px; padding:9px 12px; margin:10px 0; font-size:13px; color:#fde68a; }
+    table.who { width:100%; border-collapse:collapse; margin:8px 0; font-size:13px; }
+    table.who th, table.who td { border:1px solid var(--navy-700); padding:7px 9px; text-align:left; vertical-align:top; color:var(--ink-300); }
+    table.who th { background:var(--navy-800); color:#fff; font-size:12px; }
+    .hs.hidden, .toc a.hidden { display:none; }
+    mark { background:#fde047; color:#000; border-radius:3px; padding:0 2px; }
+    @media (max-width: 860px) {
+      .wrap { grid-template-columns:1fr; padding:14px 14px 110px; }
+      .toc { position:static; max-height:none; }
+      .toc .links { display:flex; flex-wrap:wrap; gap:4px; }
+      .toc a { background:var(--navy-800); }
+      .header-inner { padding:12px 14px; }
+      section.hs { padding:14px; }
+      table.who { font-size:12px; }
+    }
+    @media print { header, .toc, .searchbox { display:none !important; } body { background:#fff; color:#000; } section.hs { background:#fff; border:1px solid #999; } section.hs *, .intro { color:#000 !important; } }
+  </style>
+</head>
+<body>
+<div id="mfdAuthGate"></div>
+<div id="mfdAppContent" style="display:none;">
+<header>
+  <div class="header-inner">
+    <svg class="header-shield" viewBox="0 0 64 74" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M32 2 L60 14 L60 36 C60 54 32 72 32 72 C32 72 4 54 4 36 L4 14 Z" fill="rgba(220,38,38,0.15)" stroke="rgba(220,38,38,0.5)" stroke-width="1.5"/>
+      <path d="M32 56 C24 52 20 44 24 36 C26 40 30 38 29 32 C33 36 35 30 32 24 C38 28 42 36 40 44 C44 40 44 34 42 30 C48 36 50 46 44 54 C42 58 36 60 32 56Z" fill="rgba(248,113,113,0.85)"/>
+    </svg>
+    <div class="header-text-block">
+      <div class="header-dept">Mantua Township</div>
+      <div class="header-title">&#10067; Help &amp; User Guide</div>
+      <div class="header-subtitle">How to use the MFD Records System</div>
+    </div>
+    <a href="index.html" class="header-back">&larr; Back to Hub</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Help topics">
+    <h4>Topics</h4>
+    <div class="links" id="tocLinks"></div>
+  </nav>
+
+  <div class="main">
+    <div class="searchbox">
+      <input id="helpSearch" type="search" placeholder="Search this guide" autocomplete="off" />
+      <div class="searchnote" id="searchNote"></div>
+    </div>
+
+    <div class="intro">
+      This guide covers everything in the MFD Records System. A <span class="tag all">Everyone</span> tag means any signed-in member can do it. An <span class="tag admin">Admin</span> tag means it needs an Admin account. You can also print this page from your browser's print menu.
+    </div>
+
+    <section class="hs" id="start" data-title="Getting started">
+      <h2>Getting started</h2>
+      <h3>Signing in</h3>
+      <p>Enter your <b>last name</b> and your <b>password</b>. Admins create each member's login from the Roster (open a member, then the Login Access section). If you can't sign in or you forgot your password, ask an Admin to reset it.</p>
+      <h3>The bar at the bottom of every page</h3>
+      <ul>
+        <li><b>Your name</b> shows who is signed in and whether the account is Admin or Personnel.</li>
+        <li><b>&#128273; Change Password</b> lets you set your own password.</li>
+        <li><b>&#128682; Log Out</b> signs you out. Always log out on a shared computer or station tablet.</li>
+        <li><b>&#10067; Help</b> opens this guide.</li>
+        <li><b>&#128203; Reports</b> opens the list of reports members have submitted (reports are submitted from the Time Card page).</li>
+      </ul>
+      <h3>Phones, tablets and computers</h3>
+      <p>Everything works on a computer or tablet. On a phone, the Roster shows a simple read-only directory with tap-to-call numbers. For full details and editing, use a computer or tablet.</p>
+      <h3>Where your data is kept</h3>
+      <p>Whatever you enter is saved on the device you are using and also synced to the department's online database, so other devices see it after they refresh the page.</p>
+    </section>
+
+    <section class="hs" id="hub" data-title="The hub: search and Needs attention">
+      <h2>The hub: search and Needs attention</h2>
+      <h3>Search box <span class="tag all">Everyone</span></h3>
+      <p>Type in the search box at the top of the hub to find:</p>
+      <ul>
+        <li><b>Members</b> by name, call sign, rank or phone number. Phone numbers are tap-to-call on a phone.</li>
+        <li><b>Incidents</b> by incident number, location or type. Choosing one opens the Time Card search with that incident.</li>
+        <li><b>Addresses</b> for rental and business inspections, or owner names. Choosing one opens Rental Inspections filtered to that address.</li>
+      </ul>
+      <h3>Needs attention <span class="tag all">Everyone</span></h3>
+      <p>This strip on the hub lists things that are due or overdue, so nothing slips. It covers:</p>
+      <ul>
+        <li>Certifications that have expired or expire within 60 days.</li>
+        <li>Rental or business reinspections that are overdue (365 days after the last inspection) or due within 30 days.</li>
+        <li>Vehicle inspections with failed items, and vehicles not inspected in 30 or more days.</li>
+        <li>Truck equipment marked missing.</li>
+        <li>Supply Locker items at or below their reorder level.</li>
+      </ul>
+      <p>Tap a row to jump straight to the place where it can be fixed.</p>
+    </section>
+
+    <section class="hs" id="dashboard" data-title="Dashboard">
+      <h2>Dashboard <span class="tag all">Everyone</span></h2>
+      <p>The Dashboard has four tabs: <b>Call Outs</b>, <b>Roster</b>, <b>Budget &amp; Finance</b> and <b>Rental Inspections</b>. Each gives an at-a-glance summary of that area.</p>
+      <h3>Choosing a period</h3>
+      <p>On Call Outs, use the shortcut buttons (This Month, Last Month, Last 3 Months, Last 12 Months, Year to Date, Last Year, This Fiscal Year, Last Fiscal Year, All Time) or set your own From and To months. The fiscal year runs <b>July 1 to June 30</b>.</p>
+      <h3>Print Summary</h3>
+      <p>Each tab has a <b>&#128424; Print Summary</b> button. A small window lets you tick the sections to include, then your browser's print window opens. Your choices are remembered for next time.</p>
+    </section>
+
+    <section class="hs" id="timecard" data-title="Time Card">
+      <h2>Time Card (Roster &amp; Time Card, Time Card tab)</h2>
+      <h3>Logging a call <span class="tag all">Everyone</span></h3>
+      <p>Open <b>Timecards</b> and fill in the entry form: incident number (format YY-MFD### or YY-MFR###), date, type, response area, nature of call, dispatch and back-in-service times, location, apparatus, transports, the members who responded and the officer in charge. Fields marked with * are required. Press <b>Add Timecard Entry</b>. One entry creates a time record for each member listed.</p>
+      <h3>Editing or deleting an entry <span class="tag admin">Admin</span></h3>
+      <p>Opening a saved entry to change or remove it needs an Admin account, because entries touch payroll. Everyone can still view all entries. Deleting asks you to confirm, then shows an <b>Undo</b> button for a few seconds (see "Deleting and Undo").</p>
+      <h3>Special events <span class="tag admin">Admin</span></h3>
+      <p>Add events that pay a different hourly rate (for example a standby). Retire an event you no longer use instead of deleting it. Delete is only for an event added by mistake.</p>
+      <h3>Pay Roll tab</h3>
+      <p>Choose a date range with the quick buttons (for example Last Month, Last Quarter, This Fiscal Year, Last Fiscal Year) or enter a Start and End date, then press <b>Run Payroll Report</b>. You can filter by position, jump to a person, set a minimum total, or show only people with hours logged.</p>
+      <h3>Search tab <span class="tag all">Everyone</span></h3>
+      <p>Search every entry by keyword, incident number, person, entry type, incident type, flags (transported, canceled, missing data), and more. Click a row to open it.</p>
+    </section>
+
+    <section class="hs" id="roster" data-title="Roster">
+      <h2>Roster (Roster &amp; Time Card, Roster tab)</h2>
+      <h3>The member list</h3>
+      <p>Search and filter members by rank and status (Active, Inactive, Probationary, Leave of Absence). Click a member to open their detail panel with Overview, Certifications, Gear, Contact and Payroll sections.</p>
+      <h3>Adding and editing members <span class="tag admin">Admin</span></h3>
+      <p>Use <b>Add Member</b> to create a member. Admins also manage each member's login access (their sign-in and role) and pay rate in the member's edit form. Editing and deleting members is hidden from Personnel accounts.</p>
+      <h3>Certifications</h3>
+      <p>Each certification has a completed date and a renewal period (for example CPR and NREMT every 2 years, Fire Fighter 1 and 2 every 3 years). The Roster flags anything expired or coming due in 60 days or less, and the hub's Needs attention strip repeats it.</p>
+      <h3>Reports and printing</h3>
+      <p>Use <b>Due / Overdue</b>, <b>NREMT Roster</b>, <b>Gear Size Report</b> and <b>Fire Fighter Certs</b> for ready-made lists, and <b>Print Roster</b>, <b>Print All Profiles</b> or a single member's <b>Print Profile</b> for paper copies.</p>
+      <h3>On a phone <span class="tag all">Everyone</span></h3>
+      <p>Under 900 pixels wide, the Roster becomes a read-only directory showing name, rank, call sign, status and phone number. Tap a number to call. Search by name, call sign, rank or part of a number, and tick <b>Show inactive</b> to include inactive members.</p>
+    </section>
+
+    <section class="hs" id="budget" data-title="Budget Tracker">
+      <h2>Budget Tracker</h2>
+      <p>Tabs: <b>Expenses</b>, <b>Budget Lines</b>, <b>Vendors</b> and <b>Reports</b>. Pick the fiscal year at the top (July to June).</p>
+      <h3>Logging an expense <span class="tag all">Everyone</span></h3>
+      <p>Press <b>Log Expense</b>. Fill in the date, category, description, vendor and amount (required), plus payment method, status, PO or invoice number, who requested it and notes. Press <b>Save Expense</b>. Click any expense to see its details.</p>
+      <h3>Budget lines, grants, editing and deleting <span class="tag admin">Admin</span></h3>
+      <p>Setting budget allocations, adding or changing Grants entries, editing expenses, and deleting expenses or vendors need an Admin account.</p>
+      <h3>Vendors</h3>
+      <p>Keep a vendor list (name, category, account number, contact, phone, email, address) so expenses can be picked from a list.</p>
+    </section>
+
+    <section class="hs" id="apparatus" data-title="Apparatus Inventory">
+      <h2>Apparatus Inventory</h2>
+      <p>Pick a vehicle at the top: Engine 110, Rescue 110, Ambulance 115, Brush Truck 113 or Brush Truck 114. Three tabs:</p>
+      <ul>
+        <li><b>Compartment Inventory</b> shows a diagram of the truck. Click a compartment to see its items, mark what is present, and change quantities. <span class="tag all">Everyone</span></li>
+        <li><b>Vehicle Inspection</b> is the checklist. Mark each item Pass, Fail or N/A and submit. The date of the last inspection is kept, and failed items appear on the hub's Needs attention strip. <span class="tag all">Everyone</span></li>
+        <li><b>Resupply</b> lists what the truck is short on and ties into the Supply Locker, so stock can be pulled from there. <span class="tag all">Everyone</span></li>
+      </ul>
+      <h3>Changing the layout <span class="tag admin">Admin</span></h3>
+      <p>Adding, renaming, repositioning or deleting compartments, bags and kits, editing the inspection checklist, and resetting a vehicle to its defaults all need an Admin account. Removing an item asks you to confirm and then offers Undo.</p>
+    </section>
+
+    <section class="hs" id="supply" data-title="Supply Locker">
+      <h2>Supply Locker</h2>
+      <p>Tabs: <b>Lockers</b>, <b>Inventory</b>, <b>Item Database</b> and <b>QR Codes</b>.</p>
+      <ul>
+        <li><b>Lockers</b> shows each station locker, its doors and shelves, and what is on each shelf.</li>
+        <li><b>Inventory</b> is for counting stock, including scanning a QR code with the phone's camera. Items at or below their reorder level feed the restock list that appears in Apparatus Resupply. <span class="tag all">Everyone</span></li>
+        <li><b>Item Database</b> is the master list of items: name, on hand, reorder level and on order. Adding, editing, deleting and importing from a CSV file are <span class="tag admin">Admin</span> actions.</li>
+        <li><b>QR Codes</b> builds printable labels. Tick what you want (locker, door, shelf, item, or a vehicle inspection label and its compartments and bags) and print. Truck items do not get labels; each vehicle gets one inspection label.</li>
+      </ul>
+      <p>Structural changes (shelves, bags, kits, sets, renaming, reset) need an Admin account. Deletes ask for confirmation and then offer Undo.</p>
+    </section>
+
+    <section class="hs" id="rental" data-title="Rental Inspections">
+      <h2>Rental Inspections</h2>
+      <p>Records the Town rental and business fire and safety inspections. Tabs: <b>Dashboard</b> and <b>Inspections</b>.</p>
+      <h3>Logging an inspection <span class="tag all">Everyone</span></h3>
+      <p>Press <b>Log Inspection</b>. Choose the type (rental or business), enter the owner, address and date, work through the checklist (Pass, Not Passed or N/A), add notes and who inspected, choose the result, and press <b>Save Inspection</b>.</p>
+      <h3>Reinspections</h3>
+      <p>A property is due for reinspection 365 days after its latest inspection. Open an inspection and press <b>Reinspect</b> to start a new one for the same address. The detail view also lists other inspections at the same address. Overdue and soon-due reinspections show on the hub.</p>
+      <h3>Printing</h3>
+      <p>Use <b>Print</b> in an inspection's detail view for the paper form and results.</p>
+      <h3>Editing and deleting <span class="tag admin">Admin</span></h3>
+      <p>Editing or deleting a saved inspection needs an Admin account. Deleting offers Undo.</p>
+    </section>
+
+    <section class="hs" id="undo" data-title="Deleting and Undo">
+      <h2>Deleting and Undo</h2>
+      <p>Anything that deletes data first asks you to confirm. After you confirm, a bar appears near the bottom of the screen with an <b>Undo</b> button for about 12 seconds. Press it and the item comes back exactly as it was. Press &#10005; to dismiss the bar.</p>
+      <div class="tip">Undo only lasts a few seconds. If you miss it, an Admin can restore from a backup (see Backup &amp; Restore).</div>
+    </section>
+
+    <section class="hs" id="print" data-title="Printing">
+      <h2>Printing</h2>
+      <p>Printing opens your browser's normal print window, so you can print to paper or save as a PDF. Dashboards, the Roster, the Time Card, Budget and Rental all have a <b>Print</b> or <b>Print Summary</b> button. Use <b>Portrait</b> for summaries; the Roster list prints best in <b>Landscape</b>.</p>
+    </section>
+
+    <section class="hs" id="backup" data-title="Backup &amp; Restore">
+      <h2>Backup &amp; Restore <span class="tag admin">Admin</span></h2>
+      <p>Open it from the Backup &amp; Restore button on the hub (Admins only).</p>
+      <ul>
+        <li><b>Backup All (.json)</b> downloads a file for every module that has saved data. Do this regularly and keep the files somewhere safe.</li>
+        <li><b>Download Pages (.html)</b> downloads a copy of the program files themselves. This is the software, not your data.</li>
+        <li><b>Restore From Backup</b>: drag one or more .json backup files onto the box (or click to choose them) and they are loaded back in. Restoring replaces the current data for those modules.</li>
+      </ul>
+    </section>
+
+    <section class="hs" id="who" data-title="Who can do what">
+      <h2>Who can do what</h2>
+      <table class="who">
+        <thead><tr><th>Area</th><th>Everyone signed in</th><th>Admin only</th></tr></thead>
+        <tbody>
+          <tr><td>Hub</td><td>Search, Needs attention</td><td>Backup &amp; Restore link</td></tr>
+          <tr><td>Time Card</td><td>Add entries, view and search all entries</td><td>Edit or delete entries, special events</td></tr>
+          <tr><td>Roster</td><td>View the member list and member details, phone directory on phones</td><td>Add, edit or delete members, logins and pay rates</td></tr>
+          <tr><td>Budget</td><td>Log expenses</td><td>Allocations, grants, edit or delete expenses and vendors</td></tr>
+          <tr><td>Apparatus</td><td>Inventory counts, vehicle inspections, resupply</td><td>Layout, compartments, checklist, reset</td></tr>
+          <tr><td>Supply Locker</td><td>Inventory counting and scanning</td><td>Item Database changes, shelves, bags and kits, CSV import</td></tr>
+          <tr><td>Rental Inspections</td><td>Log inspections</td><td>Edit or delete inspections</td></tr>
+          <tr><td>Backup &amp; Restore</td><td>&mdash;</td><td>Everything</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="hs" id="faq" data-title="Troubleshooting">
+      <h2>Troubleshooting</h2>
+      <h3>"Only Admin accounts can make this change."</h3>
+      <p>That action is limited to Admins. Ask an Admin to do it for you.</p>
+      <h3>I can't sign in.</h3>
+      <p>Check that you are using your last name and the right password. If it still fails, ask an Admin to reset your password from the Roster.</p>
+      <h3>I don't see someone's change on my screen.</h3>
+      <p>Refresh the page. Changes sync through the online database and appear after a refresh.</p>
+      <h3>The Roster on my phone shows only a list.</h3>
+      <p>That is intended. The phone view is read-only so numbers are quick to find and call. Use a computer or tablet for full details.</p>
+      <h3>I deleted something by mistake.</h3>
+      <p>Press Undo right away if the bar is still showing. Otherwise ask an Admin to restore from a backup.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  var secs = Array.prototype.slice.call(document.querySelectorAll('section.hs'));
+  var toc = document.getElementById('tocLinks');
+  secs.forEach(function(s){
+    var a = document.createElement('a'); a.href = '#' + s.id; a.textContent = s.getAttribute('data-title'); a.setAttribute('data-for', s.id); toc.appendChild(a);
+  });
+  var orig = secs.map(function(s){ return s.innerHTML; });
+  var input = document.getElementById('helpSearch'), note = document.getElementById('searchNote');
+  function esc(x){ return x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'); }
+  function run(){
+    var q = input.value.trim().toLowerCase(), shown = 0;
+    secs.forEach(function(s, i){
+      s.innerHTML = orig[i];
+      var hit = !q || s.textContent.toLowerCase().indexOf(q) >= 0;
+      s.classList.toggle('hidden', !hit);
+      var link = toc.querySelector('a[data-for="'+s.id+'"]'); if (link) link.classList.toggle('hidden', !hit);
+      if (hit) shown++;
+      if (q && hit && q.length >= 2) {
+        var rx = new RegExp('(' + esc(q) + ')', 'gi'), w = document.createTreeWalker(s, NodeFilter.SHOW_TEXT, null), nodes = [], n;
+        while ((n = w.nextNode())) nodes.push(n);
+        nodes.forEach(function(t){
+          if (!rx.test(t.nodeValue)) return; rx.lastIndex = 0;
+          var span = document.createElement('span'); span.innerHTML = t.nodeValue.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(rx, '<mark>$1</mark>');
+          t.parentNode.replaceChild(span, t);
+        });
+      }
+    });
+    note.textContent = q ? (shown ? shown + ' topic' + (shown === 1 ? '' : 's') + ' match' + (shown === 1 ? 'es' : '') + ' "' + input.value.trim() + '"' : 'No topics match "' + input.value.trim() + '". Try a different word.') : '';
+  }
+  input.addEventListener('input', run);
+})();
+</script>
+</div>
+<script src="mfd-sync.js"></script>
+<script src="mfdauth.js"></script>
+</body>
+</html>
