@@ -13,6 +13,16 @@
      closing the browser/tab clears it (sessionStorage).
    ============================================================ */
 (function () {
+
+  // ---- Dashboard embeds (?dash=...): the Dashboard page already shows one account bar ----
+  try {
+    var __q = /[?&]dash=/;
+    if (__q.test(location.search) || (window.parent !== window && __q.test(window.parent.location.search))) {
+      var __st = document.createElement('style'); __st.setAttribute('data-dash-embed','1');
+      __st.textContent = '.mfd-floating-bar, #mfdReportsModal { display:none !important; }';
+      document.head.appendChild(__st);
+    }
+  } catch (e) { /* ignore */ }
   const MEMBERS_KEY = 'mfd_members_v5';
   const SESSION_KEY = 'mfd_authSession';       // sessionStorage
   const REPORTS_KEY = 'mfd_reports_v1';        // localStorage

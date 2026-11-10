@@ -244,6 +244,14 @@ select.input option{background:var(--navy-800);}
 .print-menu-item:hover{background:var(--navy-700);color:var(--slate-100);}
 .print-menu-item + .print-menu-item{border-top:1px solid rgba(255,255,255,.06);}
 </style>
+<style>
+/* Dashboard moved to MFD_Dashboard.html. ?dash=1 = dashboard-only view used inside that page. */
+html:not(.dash-only) #nav-dashboard { display:none !important; }
+html.dash-only .mfd-top-header, html.dash-only .mfd-tab-bar, html.dash-only .topbar-actions,
+html.dash-only .mfd-toolbar-strip, html.dash-only .section-header .btn { display:none !important; }
+html.dash-only .page:not(#page-dashboard) { display:none !important; }
+</style>
+<script>try{if(/[?&]dash=/.test(location.search)||(window.parent!==window&&/[?&]dash=/.test(window.parent.location.search)))document.documentElement.classList.add('dash-only');}catch(e){}</script>
 </head>
 <body>
 <div id="mfdAuthGate"></div>
@@ -1722,6 +1730,8 @@ window.addEventListener('DOMContentLoaded', ()=>{
   load();
   renderDashboard();
   renderInspections();
+  // The Dashboard now lives on its own page (MFD_Dashboard.html); open on Inspections here.
+  if(!document.documentElement.classList.contains('dash-only')) showPage('inspections');
   document.querySelectorAll('.modal-overlay').forEach(o=>{
     o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
   });

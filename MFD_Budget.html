@@ -224,6 +224,16 @@ select.input option{background:var(--navy-800);}
   .form-group.span2{grid-column:span 1;}
 }
 </style>
+<style>
+/* Dashboard moved to MFD_Dashboard.html. ?dash=1 = dashboard-only view used inside that page. */
+html:not(.dash-only) #nav-dashboard { display:none !important; }
+html.dash-only .mfd-top-header, html.dash-only .mfd-tab-bar, html.dash-only .topbar-actions,
+html.dash-only .section-header .btn { display:none !important; }
+html.dash-only .mfd-toolbar-strip .mfd-toolbar-group:first-child { display:none !important; }
+html.dash-only .page:not(#page-dashboard) { display:none !important; }
+html.dash-only .cat-card { pointer-events:none; cursor:default; }
+</style>
+<script>try{if(/[?&]dash=/.test(location.search)||(window.parent!==window&&/[?&]dash=/.test(window.parent.location.search)))document.documentElement.classList.add('dash-only');}catch(e){}</script>
 </head>
 <body>
 <div id="mfdAuthGate"></div>
@@ -1514,6 +1524,8 @@ function refreshAll(){
 window.addEventListener('DOMContentLoaded', ()=>{
   loadFY(currentFY());
   buildFYOptions();
+  // The Dashboard now lives on its own page (MFD_Dashboard.html); open on Expenses here.
+  if(!document.documentElement.classList.contains('dash-only')) showPage('expenses');
   // Close modals on overlay click
   document.querySelectorAll('.modal-overlay').forEach(o=>{
     o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
