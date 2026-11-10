@@ -234,6 +234,61 @@ html.dash-only .page:not(#page-dashboard) { display:none !important; }
 html.dash-only .cat-card { pointer-events:none; cursor:default; }
 </style>
 <script>try{if(/[?&]dash=/.test(location.search)||(window.parent!==window&&/[?&]dash=/.test(window.parent.location.search)))document.documentElement.classList.add('dash-only');}catch(e){}</script>
+
+<style id="pd-style">
+/* Dashboard Print Summary (button, chooser, printable page) */
+.pd-bar-row{display:flex;justify-content:flex-end;margin:0 0 10px;}
+.pd-btn{background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.pd-btn:hover{background:#334155;}
+.pd-ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300000;align-items:center;justify-content:center;padding:16px;}
+.pd-ovl.open{display:flex;}
+.pd-modal{background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:12px;width:100%;max-width:460px;max-height:90vh;display:flex;flex-direction:column;font-family:Arial,Helvetica,sans-serif;}
+.pd-mh{padding:14px 18px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+.pd-mh h3{margin:0;font-size:15px;color:#f1f5f9;}
+.pd-mh p{margin:2px 0 0;font-size:12px;color:#94a3b8;}
+.pd-link{background:none;border:0;color:#60a5fa;font-size:12px;cursor:pointer;padding:0;font-family:inherit;}
+.pd-mb{padding:6px 18px;overflow-y:auto;flex:1 1 auto;}
+.pd-row{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1e293b;font-size:13px;cursor:pointer;}
+.pd-row:last-child{border-bottom:0;}
+.pd-row input{margin-top:2px;}
+.pd-mf{padding:12px 18px;border-top:1px solid #334155;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.pd-mf .pd-btn.go{background:#b91c1c;border-color:#b91c1c;color:#fff;}
+#pd-hint{display:none;padding:0 18px 8px;font-size:12px;color:#fca5a5;}
+#pd-print-root{display:none;}
+@media print{
+  body > *:not(#pd-print-root){display:none !important;}
+  #pd-print-root{display:block !important;}
+  html,body{background:#fff !important;height:auto !important;overflow:visible !important;}
+}
+.pd-wrap{font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;font-size:11px;line-height:1.35;}
+.pd-wrap,.pd-wrap *{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-sizing:border-box;}
+.pd-hdr{border-bottom:3px solid #b91c1c;padding-bottom:8px;margin-bottom:10px;}
+.pd-org{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#555;}
+.pd-title{font-size:20px;font-weight:700;margin-top:1px;}
+.pd-meta{font-size:12px;margin-top:3px;}
+.pd-intro{font-size:10.5px;color:#333;margin-top:6px;}
+.pd-tiles{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;}
+.pd-tile{border:1px solid #888;border-radius:4px;padding:5px 8px;min-width:90px;flex:1 1 90px;}
+.pd-tl{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:#444;}
+.pd-tv{font-size:18px;font-weight:700;line-height:1.15;color:#000;}
+.pd-ts{font-size:10px;color:#444;}
+.pd-sec{margin:0 0 14px;break-inside:avoid;page-break-inside:avoid;}
+.pd-h{font-size:13px;font-weight:700;border-bottom:1px solid #999;margin:0 0 3px;padding-bottom:2px;}
+.pd-help{font-size:10px;color:#555;margin:0 0 5px;}
+table.pd-t{width:100%;border-collapse:collapse;font-size:10.5px;}
+table.pd-t th{background:#ddd;text-align:left;padding:4px 6px;border:1px solid #999;font-size:10px;text-transform:none;letter-spacing:0;color:#000;font-weight:700;}
+table.pd-t td{padding:3px 6px;border:1px solid #ccc;vertical-align:top;}
+table.pd-t tr{break-inside:avoid;page-break-inside:avoid;}
+table.pd-t .pd-r{text-align:right;}
+table.pd-t tr.pd-total td{font-weight:700;background:#eee;border-top:2px solid #888;}
+table.pd-t td.pd-empty{text-align:center;color:#777;}
+.pd-bar{background:#e5e5e5;height:8px;border-radius:4px;overflow:hidden;min-width:50px;}
+.pd-bar i{display:block;height:100%;background:#555;}
+.pd-big{font-size:12px;margin:2px 0 5px;}
+.pd-bigbar{background:#e5e5e5;height:14px;border-radius:7px;overflow:hidden;}
+.pd-bigbar i{display:block;height:100%;background:#555;}
+.pd-foot{margin-top:8px;border-top:1px solid #ccc;padding-top:5px;font-size:9px;color:#666;display:flex;justify-content:space-between;}
+</style>
 </head>
 <body>
 <div id="mfdAuthGate"></div>
@@ -313,6 +368,7 @@ html.dash-only .cat-card { pointer-events:none; cursor:default; }
 
   <!-- ──────── DASHBOARD ──────── -->
   <div class="page active" id="page-dashboard">
+    <div class="pd-bar-row"><button class="pd-btn" type="button" onclick="pdOpen()">🖨 Print Summary</button></div>
     <!-- Stat cards -->
     <div class="stat-grid" style="margin-top:8px;">
       <div class="stat-card gold">
@@ -1533,6 +1589,124 @@ window.addEventListener('DOMContentLoaded', ()=>{
 });
 </script>
 </div>
+
+<!-- Dashboard Print Summary: chooser + printable page -->
+<div class="pd-ovl" id="pd-modal" onclick="if(event.target===this)pdClose()">
+  <div class="pd-modal">
+    <div class="pd-mh"><div><h3>Choose what to print</h3><p>Uncheck any sections you'd like to leave out.</p></div><button class="pd-link" onclick="pdAll(true)">Select all</button></div>
+    <div class="pd-mb" id="pd-modal-body"></div>
+    <div id="pd-hint">Pick at least one section to print.</div>
+    <div class="pd-mf"><button class="pd-link" onclick="pdAll(false)">Deselect all</button><div><button class="pd-btn" onclick="pdClose()" style="margin-right:8px;">Cancel</button><button class="pd-btn go" onclick="pdConfirm()">🖨 Print</button></div></div>
+  </div>
+</div>
+<div id="pd-print-root"></div>
+<script>
+var PD = {
+  key: 'budget',
+  title: 'Budget & Finance Summary',
+  period: function(){ var y=db.fiscalYear; return 'Period: <strong>'+pdEsc(fyLabel(y))+'</strong> (July 1, '+y+' &ndash; June 30, '+(y+1)+')'; },
+  intro: 'Built from the expenses logged for this fiscal year. <strong>Spent</strong> counts every entry that was not Rejected. <strong>Pending / PO</strong> is the part of Spent that is still marked Pending, so it is already included in Spent. Entries in the Grants category are money received: they add to the budget and are not counted as spending.',
+  sections: [
+    { id:'kpis', label:'Summary numbers (budget, spent, remaining, pending)', html:function(){
+        var t=pdBud();
+        return pdTiles([
+          ['Annual budget', fmt(t.budget), fyLabel(db.fiscalYear)],
+          ['Total spent', fmt(t.spent), t.nSpent+' transaction'+(t.nSpent===1?'':'s')],
+          ['Remaining', fmt(t.remain), t.budget>0 ? Math.round(100-t.pct)+'% remaining' : '—'],
+          ['Pending / PO', fmt(t.pending), t.nPend+' item'+(t.nPend===1?'':'s')]
+        ]);
+    }},
+    { id:'util', label:'Overall budget used', html:function(){
+        var t=pdBud();
+        return pdSec('Overall budget used','How much of the annual budget has been spent so far.',
+          '<div class="pd-big"><strong>'+fmt(t.spent)+'</strong> spent of <strong>'+fmt(t.budget)+'</strong> &mdash; <strong>'+t.pct.toFixed(1)+'%</strong> used</div>'
+          +'<div class="pd-bigbar"><i style="width:'+t.pct.toFixed(1)+'%"></i></div>'
+          +'<div class="pd-help" style="margin-top:4px;">Spent '+fmt(t.spent)+' &nbsp;&middot;&nbsp; Pending / PO '+fmt(t.pending)+' (included in Spent) &nbsp;&middot;&nbsp; Available '+fmt(Math.max(0,t.remain))+'</div>');
+    }},
+    { id:'cats', label:'Spending by budget category', html:function(){
+        var exps=fyExpenses(), t=pdBud();
+        var cats=CATEGORIES.filter(function(c){ return allocFor(c)>0 || catSpent(c,exps)>0; });
+        var rows=cats.map(function(c){
+          var a=allocFor(c), s=catSpent(c,exps), p=catPending(c,exps), rem=a-s;
+          if(c==='Grants') return [pdEsc((CAT_ICONS[c]||'')+' '+c), fmt(a)+' received','—','—','—','adds to budget'];
+          var used = a>0 ? Math.round(s/a*100)+'%' : (s>0 ? 'no budget set' : '—');
+          return [pdEsc((CAT_ICONS[c]||'')+' '+c), fmt(a), fmt(s), p>0?fmt(p):'—', a>0||s>0 ? (rem<0 ? '&minus;'+fmt(-rem)+' over' : fmt(rem)) : '—', used];
+        });
+        var foot=['Total', fmt(t.budget), fmt(t.spent), fmt(t.pending), t.remain<0?'&minus;'+fmt(-t.remain)+' over':fmt(t.remain), t.budget>0?Math.round(t.spent/t.budget*100)+'%':'—'];
+        return pdSec('Spending by budget category','Allocated = money budgeted for the category. Remaining = Allocated minus Spent.',
+          pdTable([{h:'Category'},{h:'Allocated',r:1},{h:'Spent',r:1},{h:'Pending',r:1},{h:'Remaining',r:1},{h:'Used',r:1}], rows, foot));
+    }},
+    { id:'recent', label:'Recent transactions (latest 10)', html:function(){
+        var recent=fyExpenses().sort(function(a,b){ return b.date.localeCompare(a.date); }).slice(0,10);
+        var rows=recent.map(function(e){
+          return [fmtDate(e.date), pdEsc(e.item)+(e.notes?'<div style="font-size:9px;color:#666;">'+pdEsc(e.notes.slice(0,80))+(e.notes.length>80?'&hellip;':'')+'</div>':''),
+                  pdEsc(e.category||'—'), pdEsc(e.vendor||'—'), pdEsc(e.method||'—'), pdEsc(e.status||'Pending'),
+                  (isGrantEntry(e)?'+':'')+fmt(e.amount)];
+        });
+        return pdSec('Recent transactions','The 10 most recent entries for this fiscal year. A + sign marks grant money received.',
+          pdTable([{h:'Date'},{h:'Item / description'},{h:'Category'},{h:'Vendor'},{h:'Method'},{h:'Status'},{h:'Amount',r:1}], rows));
+    }}
+  ]
+};
+function pdBud(){
+  var exps=fyExpenses(), budget=totalBudget();
+  var sp=exps.filter(function(e){ return !isGrantEntry(e) && e.status!=='Rejected'; });
+  var pe=exps.filter(function(e){ return !isGrantEntry(e) && e.status==='Pending'; });
+  var spent=sp.reduce(function(s,e){ return s+Number(e.amount||0); },0);
+  var pending=pe.reduce(function(s,e){ return s+Number(e.amount||0); },0);
+  return { budget:budget, spent:spent, pending:pending, remain:budget-spent, pct:budget>0?Math.min(100,spent/budget*100):0, nSpent:sp.length, nPend:pe.length };
+}
+
+function pdEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function pdPct(n,d){ return d ? Math.round(n/d*100) : 0; }
+function pdTiles(a){ return '<div class="pd-tiles">'+a.map(function(k){ return '<div class="pd-tile"><div class="pd-tl">'+pdEsc(k[0])+'</div><div class="pd-tv">'+pdEsc(k[1])+'</div><div class="pd-ts">'+pdEsc(k[2]||'')+'</div></div>'; }).join('')+'</div>'; }
+function pdSec(h,help,body){ return '<div class="pd-sec"><div class="pd-h">'+pdEsc(h)+'</div>'+(help?'<div class="pd-help">'+help+'</div>':'')+body+'</div>'; }
+function pdBar(p){ p=Math.max(0,Math.min(100,p||0)); return '<div class="pd-bar"><i style="width:'+p.toFixed(1)+'%"></i></div>'; }
+function pdTable(cols,rows,foot){
+  var h='<table class="pd-t"><thead><tr>'+cols.map(function(c){ return '<th'+(c.r?' class="pd-r"':'')+(c.w?' style="width:'+c.w+'"':'')+'>'+c.h+'</th>'; }).join('')+'</tr></thead><tbody>';
+  if(!rows.length) h+='<tr><td colspan="'+cols.length+'" class="pd-empty">None.</td></tr>';
+  rows.forEach(function(r){ h+='<tr>'+r.map(function(v,i){ return '<td'+(cols[i].r?' class="pd-r"':'')+'>'+v+'</td>'; }).join('')+'</tr>'; });
+  if(foot) h+='<tr class="pd-total">'+foot.map(function(v,i){ return '<td'+(cols[i].r?' class="pd-r"':'')+'>'+v+'</td>'; }).join('')+'</tr>';
+  return h+'</tbody></table>';
+}
+function pdLoadSel(){ try{ var r=localStorage.getItem('mfd_pd_sel_'+PD.key); if(r) return JSON.parse(r)||{}; }catch(e){} return {}; }
+function pdOpen(){
+  var sel=pdLoadSel();
+  document.getElementById('pd-modal-body').innerHTML=PD.sections.map(function(s){
+    return '<label class="pd-row"><input type="checkbox" data-pd="'+s.id+'"'+(sel[s.id]===false?'':' checked')+'><span>'+pdEsc(s.label)+'</span></label>';
+  }).join('');
+  document.getElementById('pd-hint').style.display='none';
+  document.getElementById('pd-modal').classList.add('open');
+}
+function pdClose(){ document.getElementById('pd-modal').classList.remove('open'); }
+function pdAll(v){ var l=document.querySelectorAll('#pd-modal-body input'); for(var i=0;i<l.length;i++) l[i].checked=v; }
+function pdConfirm(){
+  var sel={}, any=false, l=document.querySelectorAll('#pd-modal-body input');
+  for(var i=0;i<l.length;i++){ sel[l[i].getAttribute('data-pd')]=l[i].checked; if(l[i].checked) any=true; }
+  if(!any){ document.getElementById('pd-hint').style.display='block'; return; }
+  try{ localStorage.setItem('mfd_pd_sel_'+PD.key, JSON.stringify(sel)); }catch(e){}
+  pdClose(); pdPrint(sel);
+}
+function pdMount(sel){
+  sel=sel||{};
+  var today=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  var body=PD.sections.filter(function(s){ return sel[s.id]!==false; }).map(function(s){ return s.html(); }).join('');
+  var root=document.getElementById('pd-print-root');
+  root.innerHTML='<div class="pd-wrap"><div class="pd-hdr"><div class="pd-org">Mantua Fire Department</div><div class="pd-title">Mantua Fire Department &ndash; '+pdEsc(PD.title)+'</div>'
+    +'<div class="pd-meta">'+PD.period()+'</div><div class="pd-meta" style="font-size:11px;">Printed: '+pdEsc(today)+'</div><div class="pd-intro">'+PD.intro+'</div></div>'
+    +body+'<div class="pd-foot"><span>Mantua Fire Department &middot; '+pdEsc(PD.title)+'</span><span>Printed '+pdEsc(today)+'</span></div></div>';
+  return root;
+}
+function pdPrint(sel){
+  pdMount(sel);
+  var old=document.getElementById('pd-page-style'); if(old) old.parentNode.removeChild(old);
+  var st=document.createElement('style'); st.id='pd-page-style'; st.textContent='@media print{ @page{ size:portrait; margin:0.5in; } }'; document.head.appendChild(st);
+  setTimeout(function(){
+    window.print();
+    setTimeout(function(){ var r=document.getElementById('pd-print-root'); if(r) r.innerHTML=''; },1500);
+  },100);
+}
+</script>
 <script src="mfd-sync.js"></script>
 <script src="mfdauth.js"></script>
 </body>
