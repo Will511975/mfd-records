@@ -23,6 +23,37 @@
       document.head.appendChild(__st);
     }
   } catch (e) { /* ignore */ }
+
+  // ---- Shared "Deleted … Undo" bar (window.mfdUndo(message, undoFn)) ----
+  (function () {
+    var bar = null, timer = null;
+    function ensure() {
+      if (bar) return bar;
+      var st = document.createElement('style');
+      st.textContent = '#mfdUndoBar{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:2147483000;display:none;align-items:center;gap:12px;background:#1e293b;color:#f1f5f9;border:1px solid #475569;border-radius:10px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.5);font:600 13px/1.3 Inter,system-ui,sans-serif;max-width:92vw}'
+        + '#mfdUndoBar button{font:700 13px Inter,system-ui,sans-serif;cursor:pointer;border-radius:7px;padding:5px 12px;border:1px solid #475569;background:#334155;color:#f1f5f9}'
+        + '#mfdUndoBar .u-go{background:#dc2626;border-color:#dc2626;color:#fff}#mfdUndoBar .u-x{background:none;border:none;color:#94a3b8;padding:2px 6px}';
+      document.head.appendChild(st);
+      bar = document.createElement('div'); bar.id = 'mfdUndoBar'; bar.setAttribute('role', 'status'); bar.setAttribute('aria-live', 'polite');
+      document.body.appendChild(bar);
+      return bar;
+    }
+    function hide() { clearTimeout(timer); if (bar) bar.style.display = 'none'; }
+    function note(msg) {
+      var b = ensure(); clearTimeout(timer); b.innerHTML = ''; var m = document.createElement('span'); m.textContent = msg; b.appendChild(m);
+      b.style.display = 'flex'; timer = setTimeout(hide, 2500);
+    }
+    window.mfdUndo = function (message, undoFn, seconds) {
+      var b = ensure(); clearTimeout(timer); b.innerHTML = '';
+      var m = document.createElement('span'); m.textContent = message;
+      var u = document.createElement('button'); u.className = 'u-go'; u.type = 'button'; u.textContent = 'Undo';
+      var x = document.createElement('button'); x.className = 'u-x'; x.type = 'button'; x.textContent = '✕'; x.setAttribute('aria-label', 'Dismiss');
+      b.appendChild(m); b.appendChild(u); b.appendChild(x); b.style.display = 'flex';
+      u.onclick = function () { hide(); try { undoFn(); note('Restored ✓'); } catch (e) { console.error('Undo failed', e); note('Sorry, that could not be undone.'); } };
+      x.onclick = hide;
+      timer = setTimeout(hide, (seconds || 12) * 1000);
+    };
+  })();
   const MEMBERS_KEY = 'mfd_members_v5';
   const SESSION_KEY = 'mfd_authSession';       // sessionStorage
   const REPORTS_KEY = 'mfd_reports_v1';        // localStorage
