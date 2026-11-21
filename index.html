@@ -282,6 +282,9 @@
     .attn-list { list-style: none; padding: 0 16px 12px 52px; font-size: 13px; color: var(--ink-300); }
     .attn-list li { padding: 3px 0; }
     .attn-list li span { color: var(--ink-500); }
+    .attn-list a.attn-item { display: block; color: inherit; text-decoration: none; padding: 4px 8px; margin: 0 -8px; border-radius: 6px; }
+    .attn-list a.attn-item:hover, .attn-list a.attn-item:focus-visible { background: var(--navy-800); color: var(--ink-100); outline: none; }
+    .attn-list a.attn-item em { font-style: normal; color: #fca5a5; font-weight: 700; margin-left: 6px; }
     @media (max-width: 560px) {
       .attn-row > summary { flex-wrap: wrap; row-gap: 2px; }
       .attn-text { flex: 1 1 calc(100% - 60px); }
@@ -558,7 +561,7 @@ window.addEventListener('mfd-auth-ready', function(){
 
   /* ===== Needs attention ===== */
   function row(sev, n, text, href, goLabel, items){
-    var li = items.slice(0, 8).map(function(x){ return '<li>'+x+'</li>'; }).join('');
+    var li = items.slice(0, 8).map(function(x){ return (typeof x === 'string') ? '<li>'+x+'</li>' : '<li><a class="attn-item" href="'+x.href+'" title="Open this record">'+x.h+'<em>&rsaquo;</em></a></li>'; }).join('');
     if(items.length > 8) li += '<li><span>+ '+(items.length-8)+' more &mdash; open the page to see all</span></li>';
     return '<details class="attn-row sev-'+sev+'"><summary><span class="attn-dot"></span><span class="attn-count">'+n+'</span><span class="attn-text">'+text+'</span>'
       + '<a class="attn-go" href="'+href+'" onclick="event.stopPropagation()">'+goLabel+' &rsaquo;</a></summary><ul class="attn-list">'+li+'</ul></details>';
@@ -580,13 +583,51 @@ window.addEventListener('mfd-auth-ready', function(){
           due.setFullYear(due.getFullYear() + yrs);
           var left = daysFromToday(due);
           var label = esc(m.name)+' &mdash; '+esc(cert.name)+(cert.level ? ' ('+esc(cert.level)+')' : '');
-          if(left < 0) expired.push({left:left, h: label+' <span>expired '+fmt(due)+'</span>'});
-          else if(left <= CERT_SOON_DAYS) soon.push({left:left, h: label+' <span>due '+fmt(due)+' (in '+plural(left,'day')+')</span>'});
+          var href = 'MFD_RosterTimecards.html?member='+encodeURIComponent(m.id);
+          if(left < 0) expired.push({left:left, href:href, h: label+' <span>expired '+fmt(due)+'</span>'});
+          else if(left <= CERT_SOON_DAYS) soon.push({left:left, href:href, h: label+' <span>due '+fmt(due)+' (in '+plural(left,'day')+')</span>'});
         });
       });
       expired.sort(function(a,b){ return a.left - b.left; }); soon.sort(function(a,b){ return a.left - b.left; });
-      if(expired.length) out.push({sev:'red', n:expired.length, html: row('red', expired.length, 'certification'+(expired.length===1?'':'s')+' expired', 'MFD_RosterTimecards.html?module=roster', 'Open Roster', expired.map(function(x){ return x.h; }))});
-      if(soon.length) out.push({sev:'amber', n:soon.length, html: row('amber', soon.length, 'certification'+(soon.length===1?'':'s')+' expiring within '+CERT_SOON_DAYS+' days', 'MFD_RosterTimecards.html?module=roster', 'Open Roster', soon.map(function(x){ return x.h; }))});
+      if(expired.length) out.push({sev:'red', n:expired.length, html: row('red', expired.length, 'certification'+(expired.length===1?'':'s')+' expired', 'MFD_RosterTimecards.html?module=roster', 'Open Roster', expired.map(function(x){ return {h:x.h, href:x.href}; }))});
+      if(soon.length) out.push({sev:'amber', n:soon.length, html: row('amber', soon.length, 'certification'+(soon.length===1?'':'s')+' expiring within '+CERT_SOON_DAYS+' days', 'MFD_RosterTimecards.html?module=roster', 'Open Roster', soon.map(function(x){ return {h:x.h, href:x.href}; }))});
+    }catch(e){}
+
+    // --- Time cards: missing call numbers and calls with no members listed (this year only) ---
+    try{
+      var tcAll = (ls('mantua_fd_timecards_v1', {}) || {}).timecards; if(!Array.isArray(tcAll)) tcAll = [];
+      var yy = String(new Date().getFullYear()).slice(-2), yFull = new Date().getFullYear() + '-01-01';
+      var series = {};
+      tcAll.forEach(function(tc){
+        var m = /^(\d{2})-([A-Za-z]+)(\d+)$/.exec(String(tc.incidentId || '').trim());
+        if(!m || m[1] !== yy) return;
+        var k = m[1] + '-' + m[2].toUpperCase(), n = parseInt(m[3], 10);
+        var s = series[k] = series[k] || { nums: {}, max: 0 };
+        s.nums[n] = tc.date || s.nums[n] || ''; if(n > s.max) s.max = n;
+      });
+      var gaps = [];
+      Object.keys(series).forEach(function(k){
+        var s = series[k];
+        if(Object.keys(s.nums).length < 5) return;           // too few numbers to call a gap
+        for(var i = 1; i < s.max; i++){
+          if(s.nums[i] !== undefined) continue;
+          var a = i - 1; while(a > 0 && s.nums[a] === undefined) a--;
+          var b = i + 1; while(b < s.max && s.nums[b] === undefined) b++;
+          var id = k + String(i).padStart(3, '0');
+          gaps.push({ href: 'MFD_RosterTimecards.html?module=timecards&tab=timecards',
+            h: esc(id) + ' <span>no time card &mdash; numbered between calls on ' + fmtYMD(s.nums[a]) + ' and ' + fmtYMD(s.nums[b]) + '</span>' });
+        }
+      });
+      if(gaps.length) out.push({sev:'amber', n:gaps.length, html: row('amber', gaps.length, 'call number'+(gaps.length===1?'':'s')+' missing from the Time Cards (a call that was never entered?)', 'MFD_RosterTimecards.html?module=timecards&tab=timecards', 'Open Time Card', gaps)});
+      var noOne = [], seenNo = {};
+      tcAll.forEach(function(tc){
+        if((tc.type !== 'Callout' && tc.type !== 'Wild Land') || String(tc.date||'') < yFull) return;
+        if(Array.isArray(tc.employeeIds) && tc.employeeIds.length) return;
+        var key = tc.incidentId || ('d:' + tc.date + '|' + tc.start); if(seenNo[key]) return; seenNo[key] = 1;
+        noOne.push({ href: tc.incidentId ? 'MFD_RosterTimecards.html?incident='+encodeURIComponent(tc.incidentId) : 'MFD_RosterTimecards.html?module=timecards&tab=search',
+          h: esc(tc.incidentId || ((tc.type||'Call') + ' ' + fmtYMD(tc.date))) + ' <span>' + fmtYMD(tc.date) + (tc.incidentType ? ' &middot; ' + esc(tc.incidentType) : '') + ' &mdash; no members listed</span>' });
+      });
+      if(noOne.length) out.push({sev:'red', n:noOne.length, html: row('red', noOne.length, 'call'+(noOne.length===1?'':'s')+' with no members listed (no one gets credit or pay)', 'MFD_RosterTimecards.html?module=timecards&tab=search', 'Open Time Card', noOne)});
     }catch(e){}
 
     // --- Rental / business reinspections (most recent inspection at each address) ---
@@ -600,12 +641,13 @@ window.addEventListener('mfd-auth-ready', function(){
         var due = new Date(r.inspectionDate+'T00:00:00'); due.setDate(due.getDate() + REINSPECT_DAYS);
         var left = daysFromToday(due);
         var label = esc(r.businessName || r.address);
-        if(left < 0) over.push({left:left, h: label+' <span>reinspection was due '+fmt(due)+' ('+plural(-left,'day')+' overdue)</span>'});
-        else if(left <= REINSPECT_SOON) soonR.push({left:left, h: label+' <span>due '+fmt(due)+' (in '+plural(left,'day')+')</span>'});
+        var rhref = 'MFD_RentalInspections.html?q='+encodeURIComponent(r.address || r.businessName || '');
+        if(left < 0) over.push({left:left, href:rhref, h: label+' <span>reinspection was due '+fmt(due)+' ('+plural(-left,'day')+' overdue)</span>'});
+        else if(left <= REINSPECT_SOON) soonR.push({left:left, href:rhref, h: label+' <span>due '+fmt(due)+' (in '+plural(left,'day')+')</span>'});
       });
       over.sort(function(a,b){ return a.left - b.left; }); soonR.sort(function(a,b){ return a.left - b.left; });
-      if(over.length) out.push({sev:'red', n:over.length, html: row('red', over.length, 'reinspection'+(over.length===1?'':'s')+' overdue', 'MFD_RentalInspections.html', 'Open Rental Inspections', over.map(function(x){ return x.h; }))});
-      if(soonR.length) out.push({sev:'amber', n:soonR.length, html: row('amber', soonR.length, 'reinspection'+(soonR.length===1?'':'s')+' due within '+REINSPECT_SOON+' days', 'MFD_RentalInspections.html', 'Open Rental Inspections', soonR.map(function(x){ return x.h; }))});
+      if(over.length) out.push({sev:'red', n:over.length, html: row('red', over.length, 'reinspection'+(over.length===1?'':'s')+' overdue', 'MFD_RentalInspections.html', 'Open Rental Inspections', over.map(function(x){ return {h:x.h, href:x.href}; }))});
+      if(soonR.length) out.push({sev:'amber', n:soonR.length, html: row('amber', soonR.length, 'reinspection'+(soonR.length===1?'':'s')+' due within '+REINSPECT_SOON+' days', 'MFD_RentalInspections.html', 'Open Rental Inspections', soonR.map(function(x){ return {h:x.h, href:x.href}; }))});
     }catch(e){}
 
     // --- Vehicles: failed items, stale inspections, items missing from trucks ---
@@ -616,15 +658,16 @@ window.addEventListener('mfd-auth-ready', function(){
         var hist = vi && Array.isArray(vi.history) ? vi.history.slice() : [];
         hist.sort(function(a,b){ return String(a.completedAt||'').localeCompare(String(b.completedAt||'')); });
         var last = hist[hist.length-1];
-        if(last && last.counts && last.counts.fail > 0) failed.push(esc(v[1])+' &mdash; '+plural(last.counts.fail,'item')+' failed <span>on the '+fmt(last.completedAt)+' inspection</span>');
-        if(!last) stale.push(esc(v[1])+' <span>no vehicle inspection on record</span>');
-        else { var age = -daysFromToday(last.completedAt); if(age > VEH_STALE_DAYS) stale.push(esc(v[1])+' <span>last inspected '+fmt(last.completedAt)+' ('+plural(age,'day')+' ago)</span>'); }
+        var vhref = 'MFD_AllApparatus.html?vehicle='+v[0]+'&tab=vehicle';
+        if(last && last.counts && last.counts.fail > 0) failed.push({href:vhref, h:esc(v[1])+' &mdash; '+plural(last.counts.fail,'item')+' failed <span>on the '+fmt(last.completedAt)+' inspection</span>'});
+        if(!last) stale.push({href:vhref, h:esc(v[1])+' <span>no vehicle inspection on record</span>'});
+        else { var age = -daysFromToday(last.completedAt); if(age > VEH_STALE_DAYS) stale.push({href:vhref, h:esc(v[1])+' <span>last inspected '+fmt(last.completedAt)+' ('+plural(age,'day')+' ago)</span>'}); }
         var inv = ls('mantuaFD_'+v[0]+'_inventory', null), miss = 0;
         if(inv && Array.isArray(inv.compartments)) inv.compartments.forEach(function(c){
           (c.items||[]).forEach(function(it){ if(it && !it.present) miss++; });
           (c.containers||[]).forEach(function(ct){ (ct.items||[]).forEach(function(it){ if(it && !it.present) miss++; }); });
         });
-        if(miss) missing.push(esc(v[1])+' &mdash; '+plural(miss,'item')+' missing');
+        if(miss) missing.push({href:'MFD_AllApparatus.html?vehicle='+v[0]+'&tab=inventory', h:esc(v[1])+' &mdash; '+plural(miss,'item')+' missing'});
       });
       if(failed.length) out.push({sev:'red', n:failed.length, html: row('red', failed.length, 'vehicle'+(failed.length===1?'':'s')+' with failed items on the last inspection', 'MFD_AllApparatus.html', 'Open Apparatus', failed)});
       if(missing.length) out.push({sev:'amber', n:missing.length, html: row('amber', missing.length, 'vehicle'+(missing.length===1?'':'s')+' missing equipment (needs resupply)', 'MFD_AllApparatus.html?tab=resupply', 'Open Resupply', missing)});
@@ -636,7 +679,7 @@ window.addEventListener('mfd-auth-ready', function(){
       var sl = ls('mfd_supplylocker_v1', null), low = [];
       if(sl && Array.isArray(sl.items)) sl.items.forEach(function(it){
         var reorder = parseInt(it.reorder)||0, qty = parseInt(it.qty)||0;
-        if(reorder > 0 && qty <= reorder) low.push(esc(it.name)+' <span>'+qty+' on hand, reorder at '+reorder+((parseInt(it.onOrder)||0) > 0 ? ' &mdash; '+it.onOrder+' already on order' : '')+'</span>');
+        if(reorder > 0 && qty <= reorder) low.push({href: it.code ? 'MFD_SupplyLocker.html?item='+encodeURIComponent(it.code) : 'MFD_SupplyLocker.html', h:esc(it.name)+' <span>'+qty+' on hand, reorder at '+reorder+((parseInt(it.onOrder)||0) > 0 ? ' &mdash; '+it.onOrder+' already on order' : '')+'</span>'});
       });
       if(low.length) out.push({sev:'amber', n:low.length, html: row('amber', low.length, 'supply item'+(low.length===1?'':'s')+' at or below the reorder point', 'MFD_SupplyLocker.html', 'Open Supply Locker', low)});
     }catch(e){}
