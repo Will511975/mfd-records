@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark" />
 <title>Mantua Fire Department – Budget Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -13,7 +14,7 @@
   --navy-800: #1e293b;
   --navy-700: #334155;
   --navy-600: #475569;
-  --navy-500: #64748b;
+  --navy-500: #94a3b8;
   --fire-700: #b91c1c;
   --fire-600: #dc2626;
   --fire-500: #ef4444;
@@ -43,7 +44,7 @@ input,select,textarea{font-family:inherit;}
 .sidebar-logo .dept{font-size:11px;font-weight:700;color:var(--navy-500);text-transform:uppercase;letter-spacing:.08em;}
 .sidebar-logo .title{font-size:16px;font-weight:900;color:var(--slate-100);line-height:1.2;margin-top:2px;}
 .sidebar-logo .subtitle{font-size:11px;color:var(--fire-500);font-weight:600;margin-top:3px;}
-.sidebar-section{padding:14px 12px 6px;font-size:10px;font-weight:800;color:var(--navy-600);text-transform:uppercase;letter-spacing:.1em;}
+.sidebar-section{padding:14px 12px 6px;font-size:11px;font-weight:800;color:var(--navy-600);text-transform:uppercase;letter-spacing:.1em;}
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;font-size:.875rem;font-weight:600;color:var(--slate-400);cursor:pointer;transition:all .2s;margin:2px 12px;}
 .nav-item:hover{color:var(--slate-100);background:rgba(255,255,255,.04);}
 .nav-item.active{color:var(--fire-500);background:rgba(220,38,38,.10);border-left:3px solid var(--fire-600);margin-left:9px;}
@@ -59,7 +60,7 @@ input,select,textarea{font-family:inherit;}
 .mfd-header-inner{max-width:100%;padding:14px 24px;display:flex;align-items:center;gap:14px;}
 .mfd-header-shield{flex-shrink:0;width:38px;height:44px;}
 .mfd-header-text-block{flex:1;}
-.mfd-header-text-block .dept{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;}
+.mfd-header-text-block .dept{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;}
 .mfd-header-text-block .title{font-size:17px;font-weight:900;line-height:1.2;color:#f1f5f9;margin-top:0;}
 .mfd-header-text-block .subtitle{font-size:11px;color:#dc2626;font-weight:600;margin-top:2px;}
 
@@ -71,7 +72,7 @@ input,select,textarea{font-family:inherit;}
 /* ── Secondary toolbar (Quick Actions & Fiscal Year, replaces sidebar sections) ── */
 .mfd-toolbar-strip{display:flex;align-items:center;gap:18px;padding:10px 24px;background:var(--navy-900);border-bottom:1px solid var(--navy-700);flex-wrap:wrap;}
 .mfd-toolbar-group{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
-.mfd-toolbar-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--navy-500);margin-right:6px;}
+.mfd-toolbar-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--navy-500);margin-right:6px;}
 .mfd-toolbar-strip .nav-item{width:auto;margin:0;padding:6px 10px;border-radius:6px;border-left:none;font-size:.8rem;}
 .topbar{background:var(--navy-950);border-bottom:1px solid rgba(255,255,255,.06);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;}
 .topbar-title{font-size:20px;font-weight:800;color:var(--slate-100);}
@@ -130,7 +131,7 @@ input,select,textarea{font-family:inherit;}
 .tbl-wrap{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:12px;overflow:hidden;margin-bottom:24px;}
 .tbl-toolbar{padding:12px 18px;border-bottom:1px solid var(--navy-700);display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
-thead th{background:var(--navy-950);padding:10px 14px;text-align:left;font-size:10px;font-weight:800;color:var(--navy-500);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--navy-700);white-space:nowrap;cursor:pointer;user-select:none;}
+thead th{background:var(--navy-950);padding:10px 14px;text-align:left;font-size:11px;font-weight:800;color:var(--navy-500);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--navy-700);white-space:nowrap;cursor:pointer;user-select:none;}
 thead th:hover{color:var(--slate-300);}
 tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s;}
 tbody tr:last-child{border-bottom:none;}
@@ -144,7 +145,7 @@ tbody td{padding:11px 14px;vertical-align:middle;}
 .td-amount.income{color:var(--green-400);}
 
 /* ── Badges ── */
-.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
 .badge-apparatus{background:rgba(239,68,68,.15);color:var(--fire-400);border:1px solid rgba(239,68,68,.3);}
 .badge-equipment{background:rgba(245,158,11,.15);color:var(--gold-400);border:1px solid rgba(245,158,11,.3);}
 .badge-training{background:rgba(59,130,246,.15);color:var(--blue-400);border:1px solid rgba(59,130,246,.3);}
@@ -350,7 +351,7 @@ table.pd-t td.pd-empty{text-align:center;color:#777;}
   </div>
   <div class="mfd-toolbar-group">
     <span class="mfd-toolbar-label">Fiscal Year</span>
-    <select id="fy-select" class="input" style="padding:5px 8px;font-size:12px;" onchange="onFYChange()"></select>
+    <select id="fy-select" aria-label="Fiscal year" class="input" style="padding:5px 8px;font-size:12px;" onchange="onFYChange()"></select>
   </div>
 </div>
 

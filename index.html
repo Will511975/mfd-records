@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow">
   <title>MFD Records System</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
@@ -221,7 +222,7 @@
       font-weight: 700;
       letter-spacing: 0.02em;
       background: var(--red);
-      color: var(--ink-100);
+      color: #fff;
       border: none;
       border-radius: 8px;
       padding: 12px 20px;
@@ -253,7 +254,7 @@
       box-shadow: 0 16px 40px rgba(0,0,0,.55); max-height: 70vh; overflow-y: auto;
     }
     .sr-panel.open { display: block; }
-    .sr-group { padding: 8px 14px 2px; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-500); }
+    .sr-group { padding: 8px 14px 2px; font-size:11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-500); }
     .sr-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid rgba(255,255,255,.05); }
     .sr-row:hover { background: var(--navy-800); }
     .sr-main { flex: 1; min-width: 0; color: var(--ink-100); text-decoration: none; }
@@ -267,17 +268,18 @@
     .attn-title { font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-300); }
     .attn-sum { font-size: 12px; color: var(--ink-500); }
     .attn-ok { padding: 14px 16px; font-size: 14px; color: #86efac; }
-    .attn-row { border-top: 1px solid rgba(255,255,255,.05); }
+    .attn-row { position: relative; border-top: 1px solid rgba(255,255,255,.05); }
     .attn-row:first-of-type { border-top: 0; }
-    .attn-row > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 11px 16px; font-size: 14px; color: var(--ink-100); }
-    .attn-row > summary::-webkit-details-marker { display: none; }
-    .attn-row > summary:hover { background: var(--navy-800); }
+    .attn-row summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 11px 16px; font-size: 14px; color: var(--ink-100); }
+    .attn-row summary::-webkit-details-marker { display: none; }
+    .attn-row summary:hover { background: var(--navy-800); }
+    .attn-row summary { padding-right: 190px; }
     .attn-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
     .sev-red .attn-dot { background: #ef4444; }
     .sev-amber .attn-dot { background: #f59e0b; }
     .attn-count { font-weight: 800; min-width: 22px; }
     .attn-text { flex: 1; min-width: 0; }
-    .attn-go { font-size: 12px; font-weight: 700; color: #fca5a5; text-decoration: none; white-space: nowrap; padding: 4px 8px; border-radius: 6px; }
+    .attn-go { position: absolute; right: 10px; top: 7px; font-size: 12px; font-weight: 700; color: #fca5a5; text-decoration: none; white-space: nowrap; padding: 6px 8px; border-radius: 6px; }
     .attn-go:hover { background: var(--red-light); }
     .attn-list { list-style: none; padding: 0 16px 12px 52px; font-size: 13px; color: var(--ink-300); }
     .attn-list li { padding: 3px 0; }
@@ -286,9 +288,9 @@
     .attn-list a.attn-item:hover, .attn-list a.attn-item:focus-visible { background: var(--navy-800); color: var(--ink-100); outline: none; }
     .attn-list a.attn-item em { font-style: normal; color: #fca5a5; font-weight: 700; margin-left: 6px; }
     @media (max-width: 560px) {
-      .attn-row > summary { flex-wrap: wrap; row-gap: 2px; }
+      .attn-row summary { flex-wrap: wrap; row-gap: 2px; padding-right: 16px; }
       .attn-text { flex: 1 1 calc(100% - 60px); }
-      .attn-go { margin-left: 42px; padding: 2px 0; }
+      .attn-go { position: static; display: block; margin: -4px 0 8px 42px; padding: 6px 0; }
       .attn-list { padding-left: 38px; }
     }
   </style>
@@ -563,8 +565,8 @@ window.addEventListener('mfd-auth-ready', function(){
   function row(sev, n, text, href, goLabel, items){
     var li = items.slice(0, 8).map(function(x){ return (typeof x === 'string') ? '<li>'+x+'</li>' : '<li><a class="attn-item" href="'+x.href+'" title="Open this record">'+x.h+'<em>&rsaquo;</em></a></li>'; }).join('');
     if(items.length > 8) li += '<li><span>+ '+(items.length-8)+' more &mdash; open the page to see all</span></li>';
-    return '<details class="attn-row sev-'+sev+'"><summary><span class="attn-dot"></span><span class="attn-count">'+n+'</span><span class="attn-text">'+text+'</span>'
-      + '<a class="attn-go" href="'+href+'" onclick="event.stopPropagation()">'+goLabel+' &rsaquo;</a></summary><ul class="attn-list">'+li+'</ul></details>';
+    return '<div class="attn-row sev-'+sev+'"><details><summary><span class="attn-dot"></span><span class="attn-count">'+n+'</span><span class="attn-text">'+text+'</span></summary>'
+      + '<ul class="attn-list">'+li+'</ul></details><a class="attn-go" href="'+href+'">'+goLabel+' &rsaquo;</a></div>';
   }
 
   function computeAttention(){
@@ -579,7 +581,7 @@ window.addEventListener('mfd-auth-ready', function(){
         [].concat(c.fireEms || [], c.mfdPapers || []).forEach(function(cert){
           if(!cert || !cert.completedDate) return;
           var yrs = cert.dueYears || CERT_YEARS[cert.name]; if(!yrs) return;
-          var due = new Date(cert.completedDate); if(isNaN(due)) return;
+          var due = /^\d{4}-\d{2}-\d{2}$/.test(String(cert.completedDate)) ? new Date(cert.completedDate+'T00:00:00') : new Date(cert.completedDate); if(isNaN(due)) return;
           due.setFullYear(due.getFullYear() + yrs);
           var left = daysFromToday(due);
           var label = esc(m.name)+' &mdash; '+esc(cert.name)+(cert.level ? ' ('+esc(cert.level)+')' : '');

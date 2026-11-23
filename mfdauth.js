@@ -196,6 +196,12 @@
       border-radius: 6px; font-size: 11px; padding: 2px 8px; cursor: pointer; flex-shrink: 0;
     }
     .mfd-reports-empty { color: #777; font-size: 13px; text-align: center; padding: 30px 0; }
+
+    /* Easier tapping on touch screens */
+    @media (max-width: 800px) and (pointer: coarse) {
+      button:not(.mfd-pill-btn), select, .btn, [role="button"], input[type="button"], input[type="submit"] { min-height: 36px; }
+      td button, td .btn { min-width: 36px; }
+    }
   `;
   document.head.appendChild(style);
 
@@ -214,6 +220,18 @@
       content.style.display = '';
       injectFloatingUI();
       if (window.MFD_AUTH && window.MFD_AUTH.role === 'personnel') startPersonnelLock();
+      // Screen readers: give the page a main region and a level-1 heading if it has none
+      try {
+        if (!document.querySelector('main, [role="main"]')) {
+          var mainEl = content.querySelector(':scope > .main, :scope > .frame-wrap, :scope > .wrap');
+          if (mainEl) mainEl.setAttribute('role', 'main');
+          else { content.setAttribute('role', 'main'); content.querySelectorAll('header').forEach(function (h) { h.setAttribute('role', 'presentation'); }); }
+        }
+        if (!document.querySelector('h1, [role="heading"][aria-level="1"]')) {
+          var t = document.querySelector('.header-title, .mfd-header-text-block > .title, .mfd-header-text-block > div:nth-child(2)');
+          if (t) { t.setAttribute('role', 'heading'); t.setAttribute('aria-level', '1'); }
+        }
+      } catch (e) { /* non-critical */ }
       window.dispatchEvent(new CustomEvent('mfd-auth-ready', { detail: window.MFD_AUTH }));
     }
 
@@ -467,7 +485,7 @@
           <div class="mfd-report-item" data-report-id="${r.id}">
             <div class="mfd-report-meta">
               <span>${(r.authorName || 'Unknown').replace(/</g,'&lt;')} — ${when}</span>
-              ${isAdmin ? '<button class="mfd-report-del" data-del-id="' + r.id + '">Delete</button>' : ''}
+              ${isAdmin ? '<button class="mfd-report-del" data-del-id="' + String(r.id).replace(/[&<>"']/g,'') + '">Delete</button>' : ''}
             </div>
             <div class="mfd-report-text">${(r.text || '').replace(/</g,'&lt;')}</div>
           </div>

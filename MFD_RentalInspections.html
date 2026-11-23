@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark" />
 <title>Mantua Fire Department – Rental Inspections</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -13,7 +14,7 @@
   --navy-800: #1e293b;
   --navy-700: #334155;
   --navy-600: #475569;
-  --navy-500: #64748b;
+  --navy-500: #94a3b8;
   --fire-700: #b91c1c;
   --fire-600: #dc2626;
   --fire-500: #ef4444;
@@ -42,7 +43,7 @@ input,select,textarea{font-family:inherit;}
 .mfd-header-inner{max-width:100%;padding:14px 24px;display:flex;align-items:center;gap:14px;}
 .mfd-header-shield{flex-shrink:0;width:38px;height:44px;}
 .mfd-header-text-block{flex:1;}
-.mfd-header-text-block .dept{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;}
+.mfd-header-text-block .dept{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;}
 .mfd-header-text-block .title{font-size:17px;font-weight:900;line-height:1.2;color:#f1f5f9;margin-top:0;}
 .mfd-header-text-block .subtitle{font-size:11px;color:#dc2626;font-weight:600;margin-top:2px;}
 .dept{font-size:11px;font-weight:700;color:var(--navy-500);text-transform:uppercase;letter-spacing:.08em;}
@@ -60,7 +61,7 @@ input,select,textarea{font-family:inherit;}
 /* ── Secondary toolbar ── */
 .mfd-toolbar-strip{display:flex;align-items:center;gap:18px;padding:10px 24px;background:var(--navy-900);border-bottom:1px solid var(--navy-700);flex-wrap:wrap;}
 .mfd-toolbar-group{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
-.mfd-toolbar-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--navy-500);margin-right:6px;}
+.mfd-toolbar-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--navy-500);margin-right:6px;}
 .mfd-toolbar-strip .nav-item{width:auto;margin:0;padding:6px 10px;border-radius:6px;border-left:none;font-size:.8rem;}
 .topbar{background:var(--navy-950);border-bottom:1px solid rgba(255,255,255,.06);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;}
 .topbar-title{font-size:20px;font-weight:800;color:var(--slate-100);}
@@ -98,7 +99,7 @@ input,select,textarea{font-family:inherit;}
 .tbl-wrap{background:var(--navy-800);border:1px solid var(--navy-700);border-radius:12px;overflow:hidden;margin-bottom:24px;}
 .tbl-toolbar{padding:12px 18px;border-bottom:1px solid var(--navy-700);display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
 table{width:100%;border-collapse:collapse;font-size:13px;}
-thead th{background:var(--navy-950);padding:10px 14px;text-align:left;font-size:10px;font-weight:800;color:var(--navy-500);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--navy-700);white-space:nowrap;cursor:pointer;user-select:none;}
+thead th{background:var(--navy-950);padding:10px 14px;text-align:left;font-size:11px;font-weight:800;color:var(--navy-500);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--navy-700);white-space:nowrap;cursor:pointer;user-select:none;}
 thead th:hover{color:var(--slate-300);}
 tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s;cursor:pointer;}
 tbody tr:last-child{border-bottom:none;}
@@ -108,7 +109,7 @@ tbody td{padding:11px 14px;vertical-align:middle;}
 .td-sub{font-size:11px;color:var(--navy-500);margin-top:2px;}
 
 /* ── Badges ── */
-.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
 .badge-pass{background:rgba(34,197,94,.15);color:var(--green-400);border:1px solid rgba(34,197,94,.3);}
 .badge-fail{background:rgba(239,68,68,.15);color:var(--fire-400);border:1px solid rgba(239,68,68,.3);}
 .badge-pending{background:rgba(100,116,139,.15);color:var(--slate-400);border:1px solid rgba(100,116,139,.3);}
@@ -164,8 +165,8 @@ select.input option{background:var(--navy-800);}
 .ci-btn.no.active{background:rgba(239,68,68,.18);color:var(--fire-400);border-color:rgba(239,68,68,.5);}
 .ci-btn.na.active{background:rgba(100,116,139,.28);color:var(--slate-200);border-color:rgba(100,116,139,.6);}
 .ci-btn:hover{border-color:var(--navy-600);}
-.ci-cat-header{padding:9px 14px;background:rgba(220,38,38,.08);font-size:10.5px;font-weight:800;color:var(--fire-400);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.05);}
-.ci-kitchen-tag{display:inline-block;font-size:9.5px;font-weight:700;color:var(--gold-400);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:1px 7px;margin-left:6px;text-transform:none;letter-spacing:0;vertical-align:middle;}
+.ci-cat-header{padding:9px 14px;background:rgba(220,38,38,.08);font-size:11px;font-weight:800;color:var(--fire-400);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.05);}
+.ci-kitchen-tag{display:inline-block;font-size:11px;font-weight:700;color:var(--gold-400);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:1px 7px;margin-left:6px;text-transform:none;letter-spacing:0;vertical-align:middle;}
 
 /* ── Checklist rows (detail / read-only view) ── */
 .ci-view-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);}
@@ -174,7 +175,7 @@ select.input option{background:var(--navy-800);}
 .ci-view-label{font-size:12px;color:var(--slate-300);flex:1;}
 .ci-view-note{font-size:11px;color:var(--navy-500);margin-top:2px;}
 .ci-view-right{flex-shrink:0;text-align:right;}
-.ci-view-cat-header{padding:9px 14px;background:rgba(220,38,38,.08);font-size:10px;font-weight:800;color:var(--fire-400);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.05);}
+.ci-view-cat-header{padding:9px 14px;background:rgba(220,38,38,.08);font-size:11px;font-weight:800;color:var(--fire-400);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.05);}
 
 /* ── Toast ── */
 .toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;}

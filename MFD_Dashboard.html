@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow">
 <title>Mantua Fire Department – Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 <style>
@@ -17,7 +18,7 @@
   .header-inner { padding:14px 24px; display:flex; align-items:center; gap:14px; }
   .shield { flex-shrink:0; width:38px; height:44px; }
   .header-text-block { flex:1; min-width:0; }
-  .header-dept { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-500); }
+  .header-dept { font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-500); }
   .header-title { font-size:17px; font-weight:900; line-height:1.2; }
   .header-subtitle { font-size:11px; color:var(--red); font-weight:600; margin-top:2px; }
   .header-back { display:flex; align-items:center; gap:6px; flex-shrink:0; padding:6px 14px; border-radius:7px; background:rgba(255,255,255,.05);
@@ -29,7 +30,7 @@
     border-bottom:3px solid transparent; font-size:.875rem; font-weight:700; color:var(--ink-500); background:transparent; cursor:pointer;
     transition:all .2s; font-family:inherit; flex:0 0 auto; }
   .module-tab:hover { color:var(--ink-100); background:rgba(255,255,255,.04); }
-  .module-tab.active { color:var(--red); background:rgba(220,38,38,.1); border-bottom:3px solid var(--red); }
+  .module-tab.active { color:#f87171; background:rgba(220,38,38,.1); border-bottom:3px solid var(--red); }
   .frame-wrap { position:relative; flex:1; min-height:0; }
   .dash-frame { position:absolute; inset:0; width:100%; height:100%; border:none; display:none; background:var(--navy-950); }
   .dash-frame.active { display:block; }
