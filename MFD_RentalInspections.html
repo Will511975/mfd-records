@@ -165,6 +165,14 @@ select.input option{background:var(--navy-800);}
 .ci-btn.no.active{background:rgba(239,68,68,.18);color:var(--fire-400);border-color:rgba(239,68,68,.5);}
 .ci-btn.na.active{background:rgba(100,116,139,.28);color:var(--slate-200);border-color:rgba(100,116,139,.6);}
 .ci-btn:hover{border-color:var(--navy-600);}
+.btn-nocust{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid var(--navy-600,#475569);background:rgba(255,255,255,.03);color:inherit;font:inherit;cursor:pointer;min-height:44px;}
+.btn-nocust:hover{background:rgba(255,255,255,.06);}
+.btn-nocust:focus-visible{outline:2px solid var(--gold-400,#f59e0b);outline-offset:2px;}
+.btn-nocust .nc-box{flex:0 0 20px;height:20px;margin-top:1px;border-radius:5px;border:2px solid var(--slate-400,#94a3b8);display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;color:#fff;}
+.btn-nocust[aria-pressed="true"]{border-color:var(--gold-400,#f59e0b);background:rgba(245,158,11,.10);}
+.btn-nocust[aria-pressed="true"] .nc-box{background:var(--gold-400,#f59e0b);border-color:var(--gold-400,#f59e0b);color:#111;}
+.btn-nocust small{display:block;font-size:11.5px;opacity:.75;margin-top:2px;font-weight:400;}
+.nc-hidden{display:none !important;}
 .ci-cat-header{padding:9px 14px;background:rgba(220,38,38,.08);font-size:11px;font-weight:800;color:var(--fire-400);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid rgba(255,255,255,.05);}
 .ci-kitchen-tag{display:inline-block;font-size:11px;font-weight:700;color:var(--gold-400);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:1px 7px;margin-left:6px;text-transform:none;letter-spacing:0;vertical-align:middle;}
 
@@ -496,6 +504,13 @@ table.pd-t td.pd-empty{text-align:center;color:#777;}
             <option value="preschool">🧸 Preschool / Day Care</option>
           </select>
         </div>
+        <div class="form-group span2" id="fg-nocust" style="display:none;">
+          <button type="button" class="btn-nocust" id="btn-nocust" aria-pressed="false" onclick="toggleNoCustomers()">
+            <span class="nc-box" aria-hidden="true"></span>
+            <span><b>No customers visit this location</b> (home business)
+              <small id="nocust-hint">Press to hide the items that only apply to space open to the public. They are saved as N/A.</small></span>
+          </button>
+        </div>
         <div class="form-group span2" id="fg-bizname" style="display:none;">
           <label class="label" id="if-bizname-label">Business Name *</label>
           <input class="input" id="if-bizname" placeholder="Business name">
@@ -765,6 +780,50 @@ function getFlatItems(type){
   }
   return CHECKLIST_ITEMS;
 }
+
+// Home business with no customers visiting: these parts of the Business
+// checklist only apply to space that is open to the public, so the form can
+// hide them (they are saved as N/A, and the record says why).
+const NO_CUSTOMER_CATS = ['Egress','Fire Alarm & Sprinkler','Commercial Kitchen (Restaurant Only)'];
+const NO_CUSTOMER_IDS  = ['biz_extClassK'];
+function hiddenForNoCustomers(item){ return NO_CUSTOMER_CATS.indexOf(item.cat) >= 0 || NO_CUSTOMER_IDS.indexOf(item.id) >= 0; }
+let noCustomersOn = false;
+function applyNoCustomersUI(){
+  const type = document.getElementById('if-type').value;
+  const biz = type === 'business';
+  if(!biz) noCustomersOn = false;
+  document.getElementById('fg-nocust').style.display = biz ? '' : 'none';
+  const btn = document.getElementById('btn-nocust');
+  btn.setAttribute('aria-pressed', noCustomersOn ? 'true' : 'false');
+  btn.querySelector('.nc-box').textContent = noCustomersOn ? '✓' : '';
+  document.getElementById('nocust-hint').textContent = noCustomersOn
+    ? 'ON — items that only apply to space open to the public are hidden and will be saved as N/A. Press again to show them.'
+    : 'Press to hide the items that only apply to space open to the public. They are saved as N/A.';
+  const hideOcc = biz && noCustomersOn;
+  document.getElementById('fg-occupancy').classList.toggle('nc-hidden', hideOcc);
+  document.getElementById('fg-occupantload').classList.toggle('nc-hidden', hideOcc);
+  document.getElementById('occload-hint').classList.toggle('nc-hidden', hideOcc);
+  // checklist rows and the category headings that become empty
+  document.querySelectorAll('#checklist-form-rows .ci-row').forEach(row=>{
+    const hide = biz && noCustomersOn && row.dataset.nc === '1';
+    if(hide && !row.classList.contains('nc-hidden')){
+      row.dataset.prev = row.dataset.answer || '';
+      const na = row.querySelector('.ci-btn.na'); if(na) setChecklistAnswer(na, 'na');
+    } else if(!hide && row.classList.contains('nc-hidden')){
+      const prev = row.dataset.prev || '';
+      const btnPrev = prev ? row.querySelector('.ci-btn.'+prev) : null;
+      if(btnPrev) setChecklistAnswer(btnPrev, prev);
+      else { row.dataset.answer = ''; row.querySelectorAll('.ci-btn').forEach(b=>b.classList.remove('active')); }
+    }
+    row.classList.toggle('nc-hidden', hide);
+  });
+  document.querySelectorAll('#checklist-form-rows .ci-cat-header').forEach(h=>{
+    const rows = document.querySelectorAll('#checklist-form-rows .ci-row[data-cat="'+h.dataset.cat.replace(/"/g,'&quot;')+'"]');
+    let visible = false; rows.forEach(r=>{ if(!r.classList.contains('nc-hidden')) visible = true; });
+    h.classList.toggle('nc-hidden', !visible);
+  });
+}
+function toggleNoCustomers(){ noCustomersOn = !noCustomersOn; applyNoCustomersUI(); }
 
 // Per-type display info. Business and Preschool/Day Care share the same
 // "business-style" property fields (a name, an occupancy/license type, an
@@ -1060,12 +1119,12 @@ function renderChecklistFormRows(existing, type){
   let lastCat = null;
   items.forEach(item=>{
     if(allowNA && item.cat !== lastCat){
-      html += `<div class="ci-cat-header">${escHtml(item.cat)}</div>`;
+      html += `<div class="ci-cat-header" data-cat="${escHtml(item.cat)}">${escHtml(item.cat)}</div>`;
       lastCat = item.cat;
     }
     const cur = checklist[item.id] || {answer:'', note:''};
     html += `
-    <div class="ci-row" data-item="${item.id}" data-answer="${cur.answer||''}">
+    <div class="ci-row" data-item="${item.id}" data-cat="${escHtml(item.cat||'')}" data-nc="${(type==='business' && hiddenForNoCustomers(item)) ? 1 : 0}" data-answer="${cur.answer||''}">
       <div class="ci-num">${item.num}</div>
       <div class="ci-main">
         <div class="ci-label">${escHtml(item.label)}${item.kitchen ? '<span class="ci-kitchen-tag">🍳 Kitchen</span>' : ''}</div>
@@ -1088,6 +1147,7 @@ function renderChecklistFormRows(existing, type){
     </div>`;
   });
   wrap.innerHTML = html;
+  applyNoCustomersUI();
 }
 function setChecklistAnswer(btn, val){
   const row = btn.closest('.ci-row');
@@ -1136,6 +1196,7 @@ function applyInspectionTypeUI(type){
 }
 function onInspectionTypeChange(){
   const type = document.getElementById('if-type').value;
+  noCustomersOn = false;
   applyInspectionTypeUI(type);
   // Switching type before saving starts that checklist fresh — the two
   // checklists use different item ids, so there's nothing to carry over.
@@ -1178,6 +1239,7 @@ function openInspectionModal(id=null, reinspectFromId=null){
   document.getElementById('if-title').value      = id ? (rec.inspectorTitle||'') : '';
   document.getElementById('if-result').value     = id ? (rec.result||'') : '';
   document.getElementById('if-resultdate').value = id ? (rec.resultDate||'') : '';
+  noCustomersOn = !!(rec && type === 'business' && rec.noCustomers);
   applyInspectionTypeUI(type);
   renderChecklistFormRows(rec, type);
   const banner = document.getElementById('reinspect-banner');
@@ -1207,8 +1269,9 @@ function saveInspection(){
     inspectionType: type,
     owner, address,
     businessName:  isBiz ? bizName : '',
-    occupancyType: isBiz ? document.getElementById('if-occupancy').value.trim() : '',
-    occupantLoad:  isBiz ? document.getElementById('if-occupantload').value.trim() : '',
+    noCustomers:   (type === 'business' && noCustomersOn),
+    occupancyType: (isBiz && !(type==='business' && noCustomersOn)) ? document.getElementById('if-occupancy').value.trim() : '',
+    occupantLoad:  (isBiz && !(type==='business' && noCustomersOn)) ? document.getElementById('if-occupantload').value.trim() : '',
     phone: document.getElementById('if-phone').value.trim(),
     bedrooms: type === 'rental' ? document.getElementById('if-bedrooms').value.trim() : '',
     maxOccupancy: type === 'rental' ? document.getElementById('if-maxoccupancy').value.trim() : '',
@@ -1306,6 +1369,7 @@ function openDetail(id){
       ${!isBiz ? dRow('Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—')) : ''}
       ${!isBiz ? dRow('Max Occupancy (per Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—') + `<div class="ci-legal" style="margin-top:3px;">⚖️ ${escHtml(MAX_OCC_LAW_NOTE)}</div>`) : ''}
       ${dRow('Parking', escHtml(parkingSummary(rec)))}
+      ${type==='business' ? dRow('Customers Visit', rec.noCustomers ? 'No — items for space open to the public are marked N/A' : 'Yes') : ''}
       ${isBiz ? dRow(info.occLabel, escHtml(rec.occupancyType||'—')) : ''}
       ${isBiz ? dRow('Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—') + `<div class="ci-legal" style="margin-top:3px;">⚖️ ${escHtml(occLawNote(type))}</div>`) : ''}
       ${dRow('Date of Inspection', fmtDate(rec.inspectionDate))}
@@ -1554,7 +1618,7 @@ function printRecord(id){
           ${isBiz ? formalInfoRow('Address', escHtml(rec.address), 'Phone', escHtml(rec.phone||'—')) : formalInfoRow('Address', escHtml(rec.address), 'Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—'))}
           ${!isBiz ? formalInfoRow('Max Occupancy (Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—'), '', '') : ''}
           ${isBiz ? formalInfoRow(info.occLabel, escHtml(rec.occupancyType||'—'), 'Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—')) : ''}
-          ${(function(){ const pk=parkingInfo(rec); return formalInfoRow('Parking Needed', pk.needed?'Yes':'No', 'Parking Spots', pk.needed && pk.spaces!=='' ? escHtml(pk.spaces) : '—') + formalInfoRow('Parking Location', pk.needed && pk.loc ? escHtml(pk.loc) : '—', '', ''); })()}
+          ${(function(){ const pk=parkingInfo(rec); return formalInfoRow('Parking Needed', pk.needed?'Yes':'No', 'Parking Spots', pk.needed && pk.spaces!=='' ? escHtml(pk.spaces) : '—') + formalInfoRow('Parking Location', pk.needed && pk.loc ? escHtml(pk.loc) : '—', '', '') + (type==='business' ? formalInfoRow('Customers Visit', rec.noCustomers ? 'No — public-use items N/A' : 'Yes', '', '') : ''); })()}
           ${formalInfoRow('Date of Inspection', fmtDate(rec.inspectionDate), 'Inspected By', escHtml(rec.inspectorName||'—')+(rec.inspectorTitle?', '+escHtml(rec.inspectorTitle):''))}
         </table>
       </div>
@@ -1678,6 +1742,7 @@ function blankFormHtml(type){
             <td style="width:33%;padding:7px 8px;border-bottom:1px solid #ddd;">${blankLine('100%')}</td>
           </tr>
           ${formalBlankInfoRow('Parking Location', '')}
+          ${type==='business' ? `<tr><td style="width:17%;padding:7px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;color:#555;font-size:10px;text-transform:uppercase;letter-spacing:.03em;">Customers Visit</td><td colspan="3" style="padding:7px 8px;border-bottom:1px solid #ddd;font-size:12px;">&#9744; Yes &nbsp;&nbsp; &#9744; No &mdash; home business, no customers visit (mark public-use items N/A)</td></tr>` : ''}
           ${formalBlankInfoRow('Date of Inspection', 'Inspected By')}
         </table>
       </div>
