@@ -712,6 +712,10 @@ const BUSINESS_CHECKLIST = [
     { id:'biz_cookClearance', label:'Clearance between cooking equipment and combustibles.', kitchen:true },
     { id:'biz_lpStorage',   label:'LP/propane tanks stored properly (outside, if applicable).', kitchen:true },
   ]},
+  { cat:'Home Business Only (No Customers)', items:[
+    { id:'biz_homeSmoke', label:'Working smoke alarms installed on every level of the home and outside sleeping areas.', homeOnly:true },
+    { id:'biz_homeCO',    label:'Working carbon monoxide alarms installed on every level of the home.', homeOnly:true },
+  ]},
 ];
 
 // Preschool / Day Care checklist. Utah's own state-level child care licensing
@@ -771,21 +775,36 @@ const PRESCHOOL_CHECKLIST = [
 
 // Flattened, numbered view of whichever checklist applies — used by both the
 // log/edit form and the read-only detail view so the two never drift apart.
-function getFlatItems(type){
+// getFlatItems(type)       -> every item (the log/edit form and the blank field form).
+// getFlatItems(type, rec)  -> the items that apply to that saved record: a home business
+//   with no customers leaves out the public-use items (and adds the home-only ones), and
+//   the remaining items are numbered 1, 2, 3... with no gaps.
+function getFlatItems(type, rec){
   const sections = type === 'business' ? BUSINESS_CHECKLIST : type === 'preschool' ? PRESCHOOL_CHECKLIST : null;
   if(sections){
     const out = []; let n = 0;
-    sections.forEach(sec=>{ sec.items.forEach(it=>{ n++; out.push(Object.assign({num:n, cat:sec.cat}, it)); }); });
+    sections.forEach(sec=>{ sec.items.forEach(it=>{
+      const full = Object.assign({cat:sec.cat}, it);
+      if(rec){
+        const nc = type === 'business' && !!rec.noCustomers;
+        if(it.homeOnly && !nc) return;
+        if(nc && hiddenForNoCustomers(full)) return;
+      }
+      n++; out.push(Object.assign({num:n}, full));
+    }); });
     return out;
   }
   return CHECKLIST_ITEMS;
+}
+function noCustomersSkippedCount(type, rec){
+  return (type === 'business' && rec && rec.noCustomers) ? getFlatItems('business').filter(hiddenForNoCustomers).length : 0;
 }
 
 // Home business with no customers visiting: these parts of the Business
 // checklist only apply to space that is open to the public, so the form can
 // hide them (they are saved as N/A, and the record says why).
-const NO_CUSTOMER_CATS = ['Egress','Fire Alarm & Sprinkler','Commercial Kitchen (Restaurant Only)'];
-const NO_CUSTOMER_IDS  = ['biz_extClassK'];
+const NO_CUSTOMER_CATS = ['Fire Alarm & Sprinkler','Commercial Kitchen (Restaurant Only)'];
+const NO_CUSTOMER_IDS  = ['biz_exitUnlocked','biz_doorSwing','biz_occLoadPosted','biz_extClassK'];
 function hiddenForNoCustomers(item){ return NO_CUSTOMER_CATS.indexOf(item.cat) >= 0 || NO_CUSTOMER_IDS.indexOf(item.id) >= 0; }
 let noCustomersOn = false;
 function applyNoCustomersUI(){
@@ -797,30 +816,42 @@ function applyNoCustomersUI(){
   btn.setAttribute('aria-pressed', noCustomersOn ? 'true' : 'false');
   btn.querySelector('.nc-box').textContent = noCustomersOn ? '✓' : '';
   document.getElementById('nocust-hint').textContent = noCustomersOn
-    ? 'ON — items that only apply to space open to the public are hidden and will be saved as N/A. Press again to show them.'
-    : 'Press to hide the items that only apply to space open to the public. They are saved as N/A.';
+    ? 'ON — items for space open to the public are hidden (saved as N/A) and home smoke / CO alarm items are added. Press again to undo.'
+    : 'Press to hide the items for space open to the public (saved as N/A) and add home smoke / CO alarm items.';
   const hideOcc = biz && noCustomersOn;
   document.getElementById('fg-occupancy').classList.toggle('nc-hidden', hideOcc);
   document.getElementById('fg-occupantload').classList.toggle('nc-hidden', hideOcc);
   document.getElementById('occload-hint').classList.toggle('nc-hidden', hideOcc);
-  // checklist rows and the category headings that become empty
+  // checklist rows (public-use items hide; home-only items show) and the category headings that become empty
+  const on = biz && noCustomersOn;
   document.querySelectorAll('#checklist-form-rows .ci-row').forEach(row=>{
-    const hide = biz && noCustomersOn && row.dataset.nc === '1';
-    if(hide && !row.classList.contains('nc-hidden')){
-      row.dataset.prev = row.dataset.answer || '';
-      const na = row.querySelector('.ci-btn.na'); if(na) setChecklistAnswer(na, 'na');
-    } else if(!hide && row.classList.contains('nc-hidden')){
-      const prev = row.dataset.prev || '';
-      const btnPrev = prev ? row.querySelector('.ci-btn.'+prev) : null;
-      if(btnPrev) setChecklistAnswer(btnPrev, prev);
-      else { row.dataset.answer = ''; row.querySelectorAll('.ci-btn').forEach(b=>b.classList.remove('active')); }
+    if(row.dataset.nc === '1'){
+      if(on && row.dataset.ncapplied !== '1'){
+        row.dataset.prev = row.dataset.answer || '';
+        const na = row.querySelector('.ci-btn.na'); if(na) setChecklistAnswer(na, 'na');
+        row.dataset.ncapplied = '1';
+      } else if(!on && row.dataset.ncapplied === '1'){
+        const prev = row.dataset.prev || '';
+        const btnPrev = prev ? row.querySelector('.ci-btn.'+prev) : null;
+        if(btnPrev) setChecklistAnswer(btnPrev, prev);
+        else { row.dataset.answer = ''; row.querySelectorAll('.ci-btn').forEach(b=>b.classList.remove('active')); }
+        row.dataset.ncapplied = '0';
+      }
+      row.classList.toggle('nc-hidden', on);
+    } else if(row.dataset.hm === '1'){
+      row.classList.toggle('nc-hidden', !on);
     }
-    row.classList.toggle('nc-hidden', hide);
   });
   document.querySelectorAll('#checklist-form-rows .ci-cat-header').forEach(h=>{
     const rows = document.querySelectorAll('#checklist-form-rows .ci-row[data-cat="'+h.dataset.cat.replace(/"/g,'&quot;')+'"]');
     let visible = false; rows.forEach(r=>{ if(!r.classList.contains('nc-hidden')) visible = true; });
     h.classList.toggle('nc-hidden', !visible);
+  });
+  // number the visible items 1, 2, 3... with no gaps
+  let n = 0;
+  document.querySelectorAll('#checklist-form-rows .ci-row').forEach(r=>{
+    if(r.classList.contains('nc-hidden')) return;
+    n++; const num = r.querySelector('.ci-num'); if(num) num.textContent = n;
   });
 }
 function toggleNoCustomers(){ noCustomersOn = !noCustomersOn; applyNoCustomersUI(); }
@@ -1124,7 +1155,7 @@ function renderChecklistFormRows(existing, type){
     }
     const cur = checklist[item.id] || {answer:'', note:''};
     html += `
-    <div class="ci-row" data-item="${item.id}" data-cat="${escHtml(item.cat||'')}" data-nc="${(type==='business' && hiddenForNoCustomers(item)) ? 1 : 0}" data-answer="${cur.answer||''}">
+    <div class="ci-row" data-item="${item.id}" data-cat="${escHtml(item.cat||'')}" data-nc="${(type==='business' && hiddenForNoCustomers(item)) ? 1 : 0}" data-hm="${item.homeOnly ? 1 : 0}"${(type==='business' && hiddenForNoCustomers(item) && noCustomersOn) ? ' data-ncapplied="1" data-prev=""' : ''} data-answer="${cur.answer||''}">
       <div class="ci-num">${item.num}</div>
       <div class="ci-main">
         <div class="ci-label">${escHtml(item.label)}${item.kitchen ? '<span class="ci-kitchen-tag">🍳 Kitchen</span>' : ''}</div>
@@ -1167,6 +1198,7 @@ function setChecklistAnswer(btn, val){
 function readChecklistFromForm(){
   const out = {};
   document.querySelectorAll('#checklist-form-rows .ci-row').forEach(row=>{
+    if(row.dataset.hm === '1' && row.classList.contains('nc-hidden')) return; // home-only item while the button is off
     const id = row.dataset.item;
     const noteInput = row.querySelector('.ci-note-input');
     out[id] = { answer: row.dataset.answer || '', note: noteInput ? noteInput.value.trim() : '' };
@@ -1325,8 +1357,9 @@ function openDetail(id){
   const type = rec.inspectionType || 'rental';
   const isBiz = isBizLike(type);
   const info = TYPE_INFO[type] || TYPE_INFO.rental;
-  const items = getFlatItems(type);
+  const items = getFlatItems(type, rec);
   let lastCat = null;
+  const skipped = noCustomersSkippedCount(type, rec);
   const checklistHtml = items.map(item=>{
     const cur = (rec.checklist && rec.checklist[item.id]) || {};
     const ansBadge = cur.answer==='yes' ? `<span class="badge badge-yes">Pass</span>`
@@ -1339,7 +1372,7 @@ function openDetail(id){
       <div class="ci-view-label">${item.num}. ${escHtml(item.label)}${item.kitchen ? '<span class="ci-kitchen-tag">🍳</span>' : ''}${cur.note ? `<div class="ci-view-note">${escHtml(item.noteLabel||'Note')}: ${escHtml(cur.note)}</div>` : ''}</div>
       <div class="ci-view-right">${ansBadge}</div>
     </div>`;
-  }).join('');
+  }).join('') + (skipped ? `<div class="ci-view-row"><div class="ci-view-label" style="font-style:italic;opacity:.85;">${skipped} items for space open to the public are not applicable &mdash; no customers visit this location.</div><div class="ci-view-right"><span class="badge badge-na">N/A</span></div></div>` : '');
 
   const siblings = inspections.filter(x=>x.id!==rec.id && normalizeAddr(x.address)===normalizeAddr(rec.address))
     .sort((a,b)=> (b.inspectionDate||'').localeCompare(a.inspectionDate||''));
@@ -1584,7 +1617,8 @@ function printRecord(id){
   const type = rec.inspectionType || 'rental';
   const isBiz = isBizLike(type);
   const info = TYPE_INFO[type] || TYPE_INFO.rental;
-  const items = getFlatItems(type);
+  const items = getFlatItems(type, rec);
+  const skippedN = noCustomersSkippedCount(type, rec);
   const checklist = rec.checklist || {};
   const st = reinspectionStatus(rec);
   const reText = !st.due ? 'Not scheduled'
@@ -1631,7 +1665,7 @@ function printRecord(id){
           <th style="border:1px solid #999;background:#eee;padding:5px 6px;font-size:10px;text-align:left;">Item</th>
           <th style="width:150px;border:1px solid #999;background:#eee;padding:5px 6px;font-size:10px;">Result</th>
         </tr></thead>
-        <tbody>${formalChecklistRows(items, checklist, isBiz)}</tbody>
+        <tbody>${formalChecklistRows(items, checklist, isBiz)}${skippedN ? `<tr><td colspan="3" style="border:1px solid #ccc;padding:6px 8px;font-size:10.5px;font-style:italic;color:#444;">${skippedN} items for space open to the public are not applicable &mdash; no customers visit this location.</td></tr>` : ''}</tbody>
       </table>
 
       <div style="display:flex;gap:14px;margin-bottom:16px;">
