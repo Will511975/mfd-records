@@ -51,6 +51,9 @@
     table.who { width:100%; border-collapse:collapse; margin:8px 0; font-size:13px; }
     table.who th, table.who td { border:1px solid var(--navy-700); padding:7px 9px; text-align:left; vertical-align:top; color:var(--ink-300); }
     table.who th { background:var(--navy-800); color:#fff; font-size:12px; }
+    .hist-date { font-size:14px; font-weight:800; color:#fff; margin:16px 0 2px; padding-top:12px; border-top:1px solid var(--navy-700); }
+    .hist-date:first-of-type { border-top:0; padding-top:0; margin-top:8px; }
+    .hist-date span { font-weight:600; font-size:12px; color:var(--ink-500); margin-left:6px; }
     .hs.hidden, .toc a.hidden { display:none; }
     mark { background:#fde047; color:#000; border-radius:3px; padding:0 2px; }
     @media (max-width: 860px) {
@@ -273,6 +276,82 @@
       <p>That is intended. The phone view is read-only so numbers are quick to find and call. Use a computer or tablet for full details.</p>
       <h3>I deleted something by mistake.</h3>
       <p>Press Undo right away if the bar is still showing. Otherwise ask an Admin to restore from a backup.</p>
+    </section>
+
+    <section class="hs" id="updates" data-title="Update history">
+      <h2>Update history</h2>
+      <p>The newest changes are first. Entries up to early November are described from the record of which pages changed on each date, so the older ones are less detailed than the recent ones.</p>
+      <div class="hist-date">November 23, 2026<span>Login security, accessibility and clean-up</span></div>
+      <ul>
+        <li><b>Real sign-in security.</b> Sign-in now uses your last name and a personal password checked by the online service, not a password stored in the pages. Your session ends when you close the browser.</li>
+        <li><b>Only approved members can open the data.</b> The shared database is now locked so that only members an Admin has approved can read or change records. Anyone else is refused.</li>
+        <li><b>Roster &rarr; Login Access.</b> Admins can give a member a password, make a temporary password, change a member's access level, or remove their login. Removing or deleting a member also removes their login.</li>
+        <li><b>Backup &rarr; Member Logins.</b> A new card created a login with a temporary password for each member who needed one, with a Print/Copy list. Members change the temporary password after they first sign in (a reminder banner shows until they do).</li>
+        <li><b>Change Password and "I can't sign in"</b> help text updated to match the new sign-in.</li>
+        <li><b>Accessibility and clean-up pass on every page:</b> page landmarks and headings for screen readers, larger tap targets on phones, safer handling of special characters in names and notes, consistent date handling, and pages marked so search engines do not list them.</li>
+        <li>A stray test file (<b>business_restaurant_comparison.html</b>) was removed from the site.</li>
+        <li><b>This Update history list was added to the Help page.</b></li>
+      </ul>
+      <div class="hist-date">November 21, 2026<span>Hub</span></div>
+      <ul>
+        <li><b>Needs attention</b> items on the hub are now links. A certification item opens that member in the Roster.</li>
+        <li><b>New checks:</b> Needs attention now also flags time cards with a missing call number or a call with no members listed (this year only).</li>
+      </ul>
+      <div class="hist-date">November 9, 2026<span>Usability batch (all-day set of updates)</span></div>
+      <ul>
+        <li><b>Dashboard page added</b> with a choice of period and a Print Summary.</li>
+        <li><b>This Help &amp; User Guide was added</b>, with a topic list and a search box.</li>
+        <li><b>Hub search box and Needs attention panel</b> (expired and expiring certifications, and more).</li>
+        <li>Easier date entry and an <b>Undo bar</b> after deleting in the Roster, Time Card, Budget, Rental Inspections and other pages.</li>
+        <li>Refinements to the Roster &amp; Time Card, Budget Tracker, Rental Inspections, Apparatus Inventory and Supply Locker pages, plus changes to the shared sign-in file.</li>
+        <li>Several Roster &amp; Time Card updates through the afternoon (nine updates in all that day).</li>
+      </ul>
+      <div class="hist-date">October 22&ndash;23, 2026<span>Roster and cross-page updates</span></div>
+      <ul>
+        <li>Updates to the Roster &amp; Time Card page (six uploads over the two days) and to Apparatus Inventory, Budget Tracker and Rental Inspections, with changes to the shared sign-in file (Oct 22).</li>
+      </ul>
+      <div class="hist-date">October 17, 2026<span></span></div>
+      <ul>
+        <li>Apparatus Inventory update.</li>
+      </ul>
+      <div class="hist-date">October 12, 2026<span></span></div>
+      <ul>
+        <li>Supply Locker update.</li>
+      </ul>
+      <div class="hist-date">October 7&ndash;8, 2026<span>Backup and Supply Locker</span></div>
+      <ul>
+        <li><b>Backup &amp; Restore page added</b> (Oct 7), with several follow-up fixes the same afternoon.</li>
+        <li><b>Supply Locker page added</b> (Oct 7) and linked from the hub, with about a dozen refinements over Oct 7&ndash;8. Apparatus Inventory was updated alongside it.</li>
+        <li>Roster &amp; Time Card updates (Oct 7 and 8), and a shared sign-in file change (Oct 8).</li>
+      </ul>
+      <div class="hist-date">October 4, 2026<span>Budget Tracker</span></div>
+      <ul>
+        <li>Three Budget Tracker updates, plus a hub (index) update.</li>
+      </ul>
+      <div class="hist-date">October 1&ndash;2, 2026<span>Roster</span></div>
+      <ul>
+        <li>Five Roster &amp; Time Card updates.</li>
+      </ul>
+      <div class="hist-date">September 16, 2026<span></span></div>
+      <ul>
+        <li>Rental Inspections update.</li>
+      </ul>
+      <div class="hist-date">September 8, 2026<span></span></div>
+      <ul>
+        <li>Three Rental Inspections updates.</li>
+      </ul>
+      <div class="hist-date">September 3, 2026<span>Rental Inspections added</span></div>
+      <ul>
+        <li><b>Rental Inspections page added</b> and linked from the hub; refined several times that evening.</li>
+        <li>Fixed the print menu closing itself when opened.</li>
+        <li>Phone numbers are now shown the same way in Rental Inspections, Budget Tracker and the Roster.</li>
+        <li>Fixed: starting a New Vehicle Inspection no longer requires the Admin unlock.</li>
+      </ul>
+      <div class="hist-date">August 29, 2026<span>First version</span></div>
+      <ul>
+        <li><b>MFD Records System first put online:</b> the hub, Roster &amp; Time Card, Budget Tracker, Apparatus Inventory and the sign-in page.</li>
+        <li>Same evening: shared online storage added (so records sync between devices), and several Apparatus, Budget and Roster updates.</li>
+      </ul>
     </section>
   </div>
 </div>
