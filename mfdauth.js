@@ -3,12 +3,13 @@
    Shared across all module pages (same-origin localStorage).
 
    - Login is per-person: username = last name (from the Roster),
-     password = whatever that person's Admin sets on their profile.
+     password = set by an Admin (temporary), then changed by the person.
    - Roles: "admin" (full access everywhere) and "personnel"
      (view everything, no editing anywhere; can add a Report only
      from the Timecards page; can view Reports everywhere).
-   - First-ever login on a browser with no accounts set up yet
-     walks through a one-time "create the first Admin" step.
+   - Sign-in is a real Firebase account (see mfd-sync.js). The first
+     Admin is created by hand in the Firebase console; every other
+     login is created by an Admin from the Roster.
    - Session stays unlocked while navigating between pages/tabs;
      closing the browser/tab clears it (sessionStorage).
    ============================================================ */
@@ -57,12 +58,6 @@
   const MEMBERS_KEY = 'mfd_members_v5';
   const SESSION_KEY = 'mfd_authSession';       // sessionStorage
   const REPORTS_KEY = 'mfd_reports_v1';        // localStorage
-
-  async function sha256(text) {
-    const enc = new TextEncoder().encode(text);
-    const buf = await crypto.subtle.digest('SHA-256', enc);
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-  }
 
   function getMembers() {
     try { return JSON.parse(localStorage.getItem(MEMBERS_KEY)) || []; }
@@ -297,10 +292,74 @@
       observer.observe(document.body, { childList: true, subtree: true });
     }
 
-    function setSession(member) {
-      const session = { memberId: member.id, name: member.name, lastName: lastNameOf(member.name), role: member.authRole || 'personnel' };
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-      window.MFD_AUTH = session;
+    function escH(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+    // Turn the approved-account record into the session the pages use
+    // (window.MFD_AUTH). The role comes from the approved-accounts list in the
+    // database, which only Admins can change.
+    function slugOf(x) { return window.MFD_FB ? window.MFD_FB.slugify(x) : String(x || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+    // Members whose last name matches this account's address (used only when the
+    // account was created by hand and is not linked to a roster member yet).
+    function sameNameMembers(user) {
+      const wanted = user && user.email ? user.email.split('@')[0].split('.')[0] : '';
+      return getMembers().filter(m => wanted && slugOf(lastNameOf(m.name)) === wanted);
+    }
+
+    function applyAccount(acc, user) {
+      const members = getMembers();
+      let me = members.find(m => m.id && m.id === acc.memberId);
+      if (!me) { const same = sameNameMembers(user); if (same.length === 1) me = same[0]; }
+      const name = me ? me.name : (acc.name || 'Member');
+      window.MFD_AUTH = { memberId: me ? me.id : (acc.memberId || ''), name: name, lastName: lastNameOf(name), role: acc.role === 'admin' ? 'admin' : 'personnel', uid: acc.uid, tempPassword: !!acc.tempPassword };
+      return window.MFD_AUTH;
+    }
+
+    function gateMessage(title, text, withLogout) {
+      gate.innerHTML = `
+        <div class="mfd-gate-box">
+          <div class="mfd-gate-shield">🛡️</div>
+          <h2>${escH(title)}</h2>
+          ${text ? '<p>' + escH(text) + '</p>' : ''}
+          ${withLogout ? '<button type="button" id="mfdGateBack">Back to sign in</button>' : ''}
+        </div>`;
+      const back = document.getElementById('mfdGateBack');
+      if (back) back.addEventListener('click', function () {
+        (window.MFD_FB && window.MFD_FB.signOut ? window.MFD_FB.signOut() : Promise.resolve()).catch(function () {}).then(function () { location.reload(); });
+      });
+    }
+
+    const SIGNIN_ERRORS = {
+      'auth/invalid-credential': 'Last name or password is incorrect.',
+      'auth/wrong-password': 'Last name or password is incorrect.',
+      'auth/user-not-found': 'Last name or password is incorrect.',
+      'auth/invalid-email': 'Last name or password is incorrect.',
+      'auth/too-many-requests': 'Too many tries. Wait a few minutes and try again.',
+      'auth/network-request-failed': 'Cannot reach the sign-in service. Check your internet connection and try again.',
+      'auth/user-disabled': 'This account has been turned off. Ask an Admin.',
+      'auth/operation-not-allowed': 'Sign-in is not switched on yet in the department database. Ask the person who manages it.'
+    };
+
+    // First-Admin set-up: the login was created by hand and several members share the
+    // last name (or none match), so ask once which roster member this is.
+    function buildLinkPicker(acc, user, onDone) {
+      let list = sameNameMembers(user); if (!list.length) list = getMembers();
+      gate.innerHTML = `
+        <div class="mfd-gate-box">
+          <div class="mfd-gate-shield">🛡️</div>
+          <h2>Which member are you?</h2>
+          <p>This login is not linked to a roster member yet. Pick yourself once and it will be remembered.</p>
+          <form id="mfdGateForm">
+            <label class="mfd-field-label" for="mfdLinkSel">Your name</label>
+            <select id="mfdLinkSel">${list.map(m => `<option value="${escH(m.id)}">${escH(m.name)}</option>`).join('')}</select>
+            <button type="submit">Continue</button>
+          </form>
+          <div id="mfdGateError" class="mfd-gate-error" role="alert"></div>
+        </div>`;
+      document.getElementById('mfdGateForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        try { await window.MFD_FB.linkMember(document.getElementById('mfdLinkSel').value); onDone(); }
+        catch (err) { document.getElementById('mfdGateError').textContent = 'Could not save that. Try again.'; }
+      });
     }
 
     // ---------- Login screen ----------
@@ -310,14 +369,14 @@
           <div class="mfd-gate-shield">🛡️</div>
           <h2>Sign In</h2>
           <p>Enter your last name and password to access the MFD records system.</p>
-          <form id="mfdGateForm" autocomplete="off">
-            <label class="mfd-field-label">Last Name</label>
-            <input type="text" id="mfdLastName" autocomplete="username" />
-            <label class="mfd-field-label">Password</label>
-            <input type="password" id="mfdPass1" autocomplete="current-password" />
+          <form id="mfdGateForm" autocomplete="on">
+            <label class="mfd-field-label" for="mfdLastName">Last Name</label>
+            <input type="text" id="mfdLastName" name="username" autocomplete="username" autocapitalize="off" />
+            <label class="mfd-field-label" for="mfdPass1">Password</label>
+            <input type="password" id="mfdPass1" name="password" autocomplete="current-password" />
             <button type="submit">Unlock</button>
           </form>
-          <div id="mfdGateError" class="mfd-gate-error">${errText || ''}</div>
+          <div id="mfdGateError" class="mfd-gate-error" role="alert">${escH(errText || '')}</div>
         </div>
       `;
       document.getElementById('mfdLastName').focus();
@@ -325,24 +384,23 @@
       document.getElementById('mfdGateForm').addEventListener('submit', async function (e) {
         e.preventDefault();
         const errEl = document.getElementById('mfdGateError');
+        const btn = gate.querySelector('button[type=submit]');
         errEl.textContent = '';
         const lastName = document.getElementById('mfdLastName').value.trim();
         const password = document.getElementById('mfdPass1').value;
         if (!lastName || !password) { errEl.textContent = 'Enter both your last name and password.'; return; }
-
-        const hash = await sha256(password);
-        const members = getMembers();
-        const match = members.find(m =>
-          m.authPasswordHash &&
-          lastNameOf(m.name).toLowerCase() === lastName.toLowerCase() &&
-          m.authPasswordHash === hash
-        );
-
-        if (match) {
-          setSession(match);
-          showContent();
-        } else {
-          errEl.textContent = 'Last name or password is incorrect.';
+        const FB = window.MFD_FB;
+        if (!FB || !FB.available) { errEl.textContent = SIGNIN_ERRORS['auth/network-request-failed']; return; }
+        btn.disabled = true; btn.textContent = 'Signing in…';
+        try {
+          await FB.signIn(lastName, password);
+          // Signed in. mfd-sync.js now checks the account is approved, downloads the
+          // shared data and reloads this page. Show progress meanwhile.
+          gateMessage('Signing in…', 'Loading the department data.', false);
+          waitForSignedInData();
+        } catch (err) {
+          btn.disabled = false; btn.textContent = 'Unlock';
+          errEl.textContent = SIGNIN_ERRORS[err && err.code] || 'Could not sign in. Try again.';
           const box = gate.querySelector('.mfd-gate-box');
           box.classList.add('mfd-gate-shake');
           setTimeout(() => box.classList.remove('mfd-gate-shake'), 400);
@@ -352,73 +410,18 @@
       });
     }
 
-    // ---------- First-time setup (no admin account exists yet) ----------
-    function buildBootstrapUI() {
-      const members = getMembers();
-      const hasMembers = members.length > 0;
-      gate.innerHTML = `
-        <div class="mfd-gate-box">
-          <div class="mfd-gate-shield">🛡️</div>
-          <h2>First-Time Setup</h2>
-          <p>No login has been set up yet on this system. Create the first Admin account to get started — you can add passwords for everyone else later from the Roster page.</p>
-          <form id="mfdGateForm" autocomplete="off">
-            ${hasMembers ? `
-              <label class="mfd-field-label">Select Your Name</label>
-              <select id="mfdBootMemberSelect">
-                ${members.map(m => `<option value="${m.id}">${m.name.replace(/</g,'&lt;')}</option>`).join('')}
-              </select>
-            ` : `
-              <label class="mfd-field-label">Your Full Name</label>
-              <input type="text" id="mfdBootFullName" placeholder="John Doe" />
-            `}
-            <label class="mfd-field-label">New Password</label>
-            <input type="password" id="mfdPass1" autocomplete="new-password" />
-            <label class="mfd-field-label">Confirm Password</label>
-            <input type="password" id="mfdPass2" autocomplete="new-password" />
-            <button type="submit">Create Admin Account & Continue</button>
-          </form>
-          <div id="mfdGateError" class="mfd-gate-error"></div>
-          <div class="mfd-gate-note">This account will have full Admin access. Everyone else's login (username + password + role) is added from the Roster page afterward.</div>
-        </div>
-      `;
-
-      document.getElementById('mfdGateForm').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const errEl = document.getElementById('mfdGateError');
-        errEl.textContent = '';
-        const p1 = document.getElementById('mfdPass1').value;
-        const p2 = document.getElementById('mfdPass2').value;
-        if (!p1 || p1.length < 4) { errEl.textContent = 'Password must be at least 4 characters.'; return; }
-        if (p1 !== p2) { errEl.textContent = 'Passwords do not match.'; return; }
-
-        const hash = await sha256(p1);
-        let members = getMembers();
-        let member;
-
-        if (hasMembers) {
-          const id = document.getElementById('mfdBootMemberSelect').value;
-          member = members.find(m => m.id === id);
-          if (!member) { errEl.textContent = 'Could not find that member — try again.'; return; }
-          member.authRole = 'admin';
-          member.authPasswordHash = hash;
-        } else {
-          const fullName = (document.getElementById('mfdBootFullName').value || '').trim();
-          if (!fullName) { errEl.textContent = 'Enter your full name.'; return; }
-          member = {
-            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
-            name: fullName,
-            callSign: '—',
-            rank: 'Probationary',
-            status: 'Active',
-            phone: '', email: '', address: '', joinDate: new Date().toISOString().split('T')[0],
-            gearSizes: {}, emergencyContact: { name:'', relationship:'', phone:'', altPhone:'' }, notes: '',
-            authRole: 'admin', authPasswordHash: hash
-          };
-          members.push(member);
-        }
-        saveMembers(members);
-        setSession(member);
-        showContent();
+    // After a successful sign-in, wait for the account check / data download.
+    // Normally the page just reloads. These cover the failure cases.
+    let waiting = false;
+    function waitForSignedInData() {
+      if (waiting) return; waiting = true;
+      const t = setTimeout(function () {
+        gateMessage('Taking too long', 'The department data did not load. Check your connection and try again.', true);
+      }, 30000);
+      window.addEventListener('mfd-fb-state', function (ev) {
+        const st = ev.detail && ev.detail.state;
+        if (st === 'no-access') { clearTimeout(t); gateMessage('No access', 'Your sign-in worked, but an Admin has not approved this account yet. Ask an Admin to set up your login in the Roster.', true); }
+        else if (st === 'hydrate-failed' || st === 'error') { clearTimeout(t); gateMessage('Could not load data', 'You are signed in, but the shared data could not be loaded. Try again, or ask an Admin.', true); }
       });
     }
 
@@ -432,7 +435,7 @@
       leftBar.id = 'mfdAccountBar';
       leftBar.innerHTML = `
         <button class="mfd-pill-btn ${auth.role === 'admin' ? 'mfd-role-admin' : ''}" id="mfdWhoAmI" title="Signed in">
-          ${auth.role === 'admin' ? '⭐' : '👤'} ${auth.name} (${auth.role === 'admin' ? 'Admin' : 'Personnel'})
+          ${auth.role === 'admin' ? '⭐' : '👤'} ${escH(auth.name)} (${auth.role === 'admin' ? 'Admin' : 'Personnel'})
         </button>
         <button class="mfd-pill-btn" id="mfdChangePassBtn" title="Change Password" aria-label="Change Password">🔑<span class="mfd-lbl"> Change Password</span></button>
         <button class="mfd-pill-btn" id="mfdLogoutBtn" title="Log Out" aria-label="Log Out">🚪<span class="mfd-lbl"> Log Out</span></button>
@@ -462,7 +465,7 @@
       document.getElementById('mfdLogoutBtn').addEventListener('click', function () {
         if (!confirm('Log out of the MFD records system?')) return;
         sessionStorage.removeItem(SESSION_KEY);
-        location.reload();
+        (window.MFD_FB && window.MFD_FB.signOut ? window.MFD_FB.signOut() : Promise.resolve()).catch(function () {}).then(function () { location.reload(); });
       });
       document.getElementById('mfdReportsBtn').addEventListener('click', openReportsModal);
       document.getElementById('mfdReportsCloseBtn').addEventListener('click', function () {
@@ -510,48 +513,70 @@
     }
 
     async function changePasswordFlow() {
+      const FB = window.MFD_FB;
+      if (!FB || !FB.changePassword) { alert('Password change is not available right now.'); return; }
       const current = prompt('Enter your current password:');
       if (current === null) return;
-      const currentHash = await sha256(current);
-      const members = getMembers();
-      const me = members.find(m => m.id === window.MFD_AUTH.memberId);
-      if (!me || me.authPasswordHash !== currentHash) { alert('Incorrect current password.'); return; }
-
-      const p1 = prompt('Enter new password (at least 4 characters):');
+      const p1 = prompt('Enter new password (at least ' + FB.minPassword + ' characters):');
       if (p1 === null) return;
-      if (!p1 || p1.length < 4) { alert('Password must be at least 4 characters. Nothing was changed.'); return; }
+      if (!p1 || p1.length < FB.minPassword) { alert('Password must be at least ' + FB.minPassword + ' characters. Nothing was changed.'); return; }
       const p2 = prompt('Confirm new password:');
       if (p1 !== p2) { alert('Passwords did not match. Nothing was changed.'); return; }
-
-      me.authPasswordHash = await sha256(p1);
-      saveMembers(members);
-      alert('Your password has been updated.');
+      try {
+        await FB.changePassword(current, p1);
+        const tb = document.getElementById('mfdTempBanner'); if (tb) tb.remove();
+        alert('Your password has been updated.');
+      } catch (e) {
+        const c = e && e.code;
+        alert(c === 'auth/invalid-credential' || c === 'auth/wrong-password' ? 'Incorrect current password. Nothing was changed.'
+            : c === 'auth/weak-password' ? 'That password is too weak. Nothing was changed.'
+            : c === 'auth/too-many-requests' ? 'Too many tries. Wait a few minutes and try again.'
+            : 'Could not change the password. Nothing was changed.');
+      }
     }
+
+    function showTempPasswordBanner() {
+      if (!window.MFD_AUTH || !window.MFD_AUTH.tempPassword || document.getElementById('mfdTempBanner')) return;
+      if (/[?&]dash=/.test(location.search)) return;
+      const b = document.createElement('div');
+      b.id = 'mfdTempBanner'; b.setAttribute('role', 'status');
+      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147482000;background:#92400e;color:#fff;font:600 13px/1.3 Inter,system-ui,sans-serif;padding:8px 40px 8px 12px;text-align:center';
+      b.innerHTML = 'You are using a temporary password. Tap <b>Change Password</b> at the bottom of the screen to choose your own. ';
+      const x = document.createElement('button'); x.type = 'button'; x.textContent = '✕'; x.setAttribute('aria-label', 'Dismiss');
+      x.style.cssText = 'position:absolute;right:8px;top:4px;background:none;border:0;color:#fff;font-size:16px;cursor:pointer;min-height:0';
+      x.addEventListener('click', function () { b.remove(); });
+      b.appendChild(x); document.body.appendChild(b);
+    }
+    window.addEventListener('mfd-auth-ready', showTempPasswordBanner);
 
     // ---------- Init ----------
     function init() {
-      const members = getMembers();
-      const anyAccountExists = members.some(m => m.authPasswordHash);
-      const sessionRaw = sessionStorage.getItem(SESSION_KEY);
-
-      if (sessionRaw) {
-        try {
-          const session = JSON.parse(sessionRaw);
-          // Re-validate the session against current member data (role/password could have changed).
-          const me = members.find(m => m.id === session.memberId);
-          if (me && me.authPasswordHash) {
-            window.MFD_AUTH = { memberId: me.id, name: me.name, lastName: lastNameOf(me.name), role: me.authRole || 'personnel' };
-            showContent();
+      const FB = window.MFD_FB;
+      if (!FB) { buildLoginUI('The sign-in service did not start. Refresh the page.'); return; }
+      gateMessage('Checking sign-in…', '', false);
+      const timeout = new Promise(function (res) { setTimeout(function () { res({ user: null, error: 'sdk' }); }, 20000); });
+      Promise.race([FB.ready, timeout]).then(function (r) {
+        if (r && r.user && r.account) {
+          if (!r.account.memberId && r.account.role === 'admin' && !FB.needsHydrate()) {
+            const same = sameNameMembers(r.user);
+            if (same.length !== 1) { buildLinkPicker(r.account, r.user, function () { location.reload(); }); return; }
+          }
+          applyAccount(r.account, r.user);
+          if (FB.needsHydrate()) {
+            // Signed in but the shared data has not been downloaded in this tab yet:
+            // mfd-sync.js is doing that and will reload the page.
+            gateMessage('Signing in…', 'Loading the department data.', false);
+            waitForSignedInData();
             return;
           }
-        } catch (e) { /* fall through to login */ }
-      }
-
-      if (!anyAccountExists) {
-        buildBootstrapUI();
-      } else {
-        buildLoginUI();
-      }
+          showContent();
+          return;
+        }
+        if (r && r.error === 'no-access') { buildLoginUI('Your sign-in worked, but an Admin has not approved this account yet. Ask an Admin to set up your login.'); return; }
+        if (r && r.error === 'sdk') { buildLoginUI('Cannot reach the sign-in service. Check your internet connection, then refresh the page.'); return; }
+        if (r && r.error) { buildLoginUI('Could not check your account. Try again.'); return; }
+        buildLoginUI('');
+      });
     }
 
     init();

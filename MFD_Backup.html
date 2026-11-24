@@ -274,6 +274,17 @@
     <div class="backup-status" id="pagesStatus"></div>
   </div>
 
+  <div class="backup-bar" style="border-left-color: #16a34a; flex-wrap: wrap;">
+    <div class="backup-bar-text">
+      <div class="backup-title">Member Logins</div>
+      <div class="backup-sub" id="loginSummary">Checking&hellip;</div>
+    </div>
+    <button class="backup-btn" id="btnMigrateLogins" data-mfd-locked="skip" style="display:none;">&#128273; Create logins for everyone who had one</button>
+    <button class="backup-btn" id="btnStripOld" data-mfd-locked="skip" style="display:none;background:#334155;">Remove old password data</button>
+    <div class="backup-status" id="loginStatus" style="width:100%;"></div>
+    <div id="loginResult" style="width:100%;display:none;"></div>
+  </div>
+
   <div class="restore-bar">
     <div class="restore-title">Restore From Backup</div>
     <div class="restore-sub">Drag one or more .json backup files here to load them back into this browser. The combined apparatus file and the combined Roster &amp; Time Card file are matched by their contents; every other module is matched by filename &mdash; use files straight from Backup All or a module's own Export button. (Page files are not restored here &mdash; they are re-published through GitHub.)</div>
@@ -678,6 +689,105 @@ function handleRestoreFiles(fileList){
 }
 </script>
 
+
+<script>
+/* ---------- Member logins (Admin only) ----------
+   Real sign-ins live in Firebase; this card creates them in one go for the
+   members who had an old-style login, and later removes the old password
+   fingerprints that are still stored in the member list. */
+(function(){
+  const KEY = 'mfd_members_v5';
+  const $ = id => document.getElementById(id);
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const lastOf = n => { const p = String(n||'').trim().split(/\s+/); return p[p.length-1] || ''; };
+  const getM = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } };
+  const saveM = list => localStorage.setItem(KEY, JSON.stringify(list));
+  function genPw(){
+    const chars = 'abcdefghjkmnpqrstuvwxyz23456789'; const b = new Uint8Array(8); crypto.getRandomValues(b);
+    return Array.from(b, x => chars[x % chars.length]).join('');
+  }
+  function summary(){
+    const ms = getM();
+    const withAcct = ms.filter(m => m.authUid).length;
+    const oldOnly = ms.filter(m => m.authPasswordHash && !m.authUid);
+    const oldAny = ms.filter(m => m.authPasswordHash).length;
+    let t = withAcct + ' member' + (withAcct===1?'':'s') + ' with a working login.';
+    if (oldOnly.length) t += ' ' + oldOnly.length + ' still on the old login (' + oldOnly.map(m => esc(m.name)).join(', ') + ') and cannot sign in until a new one is made.';
+    if (!oldOnly.length && oldAny) t += ' Old password data is still stored for ' + oldAny + ' member' + (oldAny===1?'':'s') + ' and can be removed.';
+    if (!oldAny) t += ' No old password data is stored.';
+    $('loginSummary').innerHTML = t;
+    $('btnMigrateLogins').style.display = oldOnly.length ? '' : 'none';
+    $('btnStripOld').style.display = oldAny ? '' : 'none';
+    return oldOnly;
+  }
+  function showResult(rows){
+    const box = $('loginResult');
+    box.style.display = '';
+    box.innerHTML = '<div style="margin:10px 0 6px;font-weight:700;color:#f1f5f9;">Temporary passwords &mdash; shown only now. Give each person theirs; they choose their own after signing in.</div>' +
+      '<table style="border-collapse:collapse;font-size:13px;width:100%;max-width:560px;">' +
+      '<tr><th style="text-align:left;padding:4px 10px 4px 0;">Name</th><th style="text-align:left;padding:4px 10px;">Sign in with last name</th><th style="text-align:left;padding:4px 10px;">Temporary password</th></tr>' +
+      rows.map(r => '<tr><td style="padding:4px 10px 4px 0;">' + esc(r.name) + '</td><td style="padding:4px 10px;">' + esc(r.last) + '</td><td style="padding:4px 10px;font-family:monospace;font-size:15px;">' + esc(r.pw) + '</td></tr>').join('') +
+      '</table><div style="margin-top:10px;display:flex;gap:8px;"><button class="backup-btn" id="btnPrintLogins" data-mfd-locked="skip" style="background:#334155;">Print this list</button><button class="backup-btn" id="btnCopyLogins" data-mfd-locked="skip" style="background:#334155;">Copy</button></div>';
+    $('btnPrintLogins').onclick = function(){
+      const w = window.open('', '_blank'); if (!w) { alert('Allow pop-ups to print, or use Copy.'); return; }
+      w.document.write('<title>MFD temporary passwords</title><body style="font:14px sans-serif"><h2>MFD Records &mdash; temporary passwords</h2><p>Sign in with your last name and this password, then tap Change Password.</p><table cellpadding="6" border="1" style="border-collapse:collapse">' +
+        '<tr><th>Name</th><th>Last name</th><th>Temporary password</th></tr>' + rows.map(r => '<tr><td>' + esc(r.name) + '</td><td>' + esc(r.last) + '</td><td style="font-family:monospace;font-size:16px">' + esc(r.pw) + '</td></tr>').join('') + '</table>');
+      w.document.close(); w.print();
+    };
+    $('btnCopyLogins').onclick = function(){
+      const txt = rows.map(r => r.name + '\t' + r.last + '\t' + r.pw).join('\n');
+      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => { $('loginStatus').textContent = 'Copied.'; }, () => { $('loginStatus').textContent = 'Could not copy — use Print instead.'; });
+    };
+  }
+  async function migrate(){
+    const FB = window.MFD_FB;
+    if (!FB || !FB.account || FB.account.role !== 'admin') { $('loginStatus').textContent = 'Sign in as an Admin first.'; return; }
+    const todo = summary();
+    if (!todo.length) return;
+    if (!confirm('Create a new login with a temporary password for ' + todo.length + ' member(s)? Their old passwords stop being used.')) return;
+    $('btnMigrateLogins').disabled = true;
+    const rows = [], failed = [];
+    const myId = window.MFD_AUTH && window.MFD_AUTH.memberId;
+    for (const m of todo) {
+      $('loginStatus').textContent = 'Creating logins… ' + (rows.length + failed.length + 1) + ' of ' + todo.length;
+      try {
+        if (m.id === myId) { // the Admin running this already has a login (created in the Firebase console): just link it
+          const all = getM(); const x = all.find(q => q.id === m.id);
+          x.authUid = FB.account.uid; x.authEmail = FB.user.email; delete x.authPasswordHash; x.authRole = 'admin'; saveM(all);
+          continue;
+        }
+        const pw = genPw();
+        const r = await FB.createAccount({ memberId: m.id, name: m.name, lastName: lastOf(m.name), role: m.authRole === 'admin' ? 'admin' : 'personnel', password: pw, temp: true });
+        const all = getM(); const x = all.find(q => q.id === m.id);
+        x.authUid = r.uid; x.authEmail = r.email; delete x.authPasswordHash; saveM(all);
+        rows.push({ name: m.name, last: lastOf(m.name), pw });
+      } catch (e) {
+        failed.push(m.name + ' (' + ((e && (e.code || e.message)) || 'error') + ')');
+      }
+    }
+    $('btnMigrateLogins').disabled = false;
+    $('loginStatus').textContent = 'Done: ' + rows.length + ' created' + (failed.length ? '; could not create: ' + failed.join(', ') : '.');
+    if (rows.length) showResult(rows);
+    summary();
+  }
+  function strip(){
+    const ms = getM(); const n = ms.filter(m => m.authPasswordHash).length;
+    if (!n) return;
+    if (!confirm('Delete the old stored password data for ' + n + ' member(s)? Anyone who still has no new login cannot sign in until an Admin makes one.')) return;
+    ms.forEach(m => { delete m.authPasswordHash; });
+    saveM(ms);
+    $('loginStatus').textContent = 'Old password data removed.';
+    summary();
+  }
+  function init(){
+    if (!window.MFD_AUTH || window.MFD_AUTH.role !== 'admin') return;
+    summary();
+    $('btnMigrateLogins').addEventListener('click', migrate);
+    $('btnStripOld').addEventListener('click', strip);
+  }
+  window.addEventListener('mfd-auth-ready', init);
+})();
+</script>
 </div>
 <script src="mfd-sync.js"></script>
 <script src="mfdauth.js"></script>
