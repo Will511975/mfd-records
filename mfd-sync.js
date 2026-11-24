@@ -72,6 +72,112 @@
     } catch (e) { return Math.random().toString(36).slice(2, 6); }
   }
 
+
+  // ---------- merging two people's changes ----------
+  // The app keeps each list (time cards, members, expenses...) as ONE
+  // saved value. Without care, when two people save at nearly the same
+  // time the later save silently replaces the earlier one and an entry is
+  // lost. So before a save is sent, it is merged with what is already in
+  // the shared database using the last version this device saw (the
+  // "base"): records added by either side are kept, records deleted by
+  // one side are removed, and edits to different records or different
+  // fields both survive. Lists whose items have no "id" (or plain values)
+  // keep the old rule: the latest save wins.
+  function canon(x) {
+    if (Array.isArray(x)) return x.map(canon);
+    if (x && typeof x === 'object') { var o = {}; Object.keys(x).sort().forEach(function (k) { o[k] = canon(x[k]); }); return o; }
+    return x;
+  }
+  function deepEq(a, b) { return JSON.stringify(canon(a)) === JSON.stringify(canon(b)); }
+  function isObj(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
+  function isIdArray(a) {
+    return Array.isArray(a) && a.every(function (e) { return isObj(e) && e.id !== undefined && e.id !== null; });
+  }
+  function clone(x) { return JSON.parse(JSON.stringify(x)); }
+  var baseKnownFlag = true;
+
+  function mergeIdArrays(b, l, r) {
+    var bm = {}, lm = {}, rm = {}, i;
+    for (i = 0; i < l.length; i++) lm[String(l[i].id)] = l[i];
+    for (i = 0; i < r.length; i++) rm[String(r[i].id)] = r[i];
+    if (baseKnownFlag) {
+      for (i = 0; i < b.length; i++) bm[String(b[i].id)] = b[i];
+    } else {
+      // No saved base: only treat records present on both sides as "known", so nothing is ever inferred as deleted.
+      Object.keys(lm).forEach(function (id) { if (rm[id] !== undefined) bm[id] = rm[id]; });
+    }
+    var maxNum = 0;
+    l.concat(r).forEach(function (e) { if (typeof e.id === 'number' && e.id > maxNum) maxNum = e.id; });
+    function freshId(old) {
+      if (typeof old === 'number') return ++maxNum;
+      return String(old) + '-' + Math.random().toString(36).slice(2, 6);
+    }
+    var out = [], seen = {};
+    r.forEach(function (re) {
+      var id = String(re.id), le = lm[id], be = bm[id];
+      seen[id] = 1;
+      if (le !== undefined) {
+        if (be === undefined && !deepEq(le, re)) {
+          // Two different new records were given the same id on two devices: keep both.
+          out.push(re);
+          var ne = clone(le); ne.id = freshId(le.id); out.push(ne);
+        } else {
+          out.push(mergeNode(be, le, re));
+        }
+      } else if (be !== undefined) {
+        if (!deepEq(be, re)) out.push(re);     // deleted here, but edited by the other person: keep the edit
+      } else {
+        out.push(re);                          // added by the other person
+      }
+    });
+    l.forEach(function (le) {
+      var id = String(le.id), be = bm[id];
+      if (seen[id]) return;
+      if (be !== undefined) {
+        if (!deepEq(be, le)) out.push(le);     // deleted by the other person, but edited here: keep the edit
+      } else {
+        out.push(le);                          // added here
+      }
+    });
+    return out;
+  }
+
+  function mergeNode(b, l, r) {
+    if (deepEq(l, r)) return l;
+    if (deepEq(l, b)) return r;
+    if (deepEq(r, b)) return l;
+    if (isIdArray(l) && isIdArray(r) && (b === undefined || isIdArray(b))) return mergeIdArrays(b || [], l, r);
+    if (isObj(l) && isObj(r)) {
+      var bb = isObj(b) ? b : {}, out = {}, keys = Object.keys(r);
+      Object.keys(l).forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); });
+      keys.forEach(function (k) {
+        var inL = Object.prototype.hasOwnProperty.call(l, k), inR = Object.prototype.hasOwnProperty.call(r, k);
+        var inB = Object.prototype.hasOwnProperty.call(bb, k);
+        if (inL && inR) out[k] = mergeNode(bb[k], l[k], r[k]);
+        else if (inR) { if (!(inB && deepEq(bb[k], r[k]))) out[k] = r[k]; }   // dropped here unless the other side changed it
+        else { if (!(inB && deepEq(bb[k], l[k]))) out[k] = l[k]; }
+      });
+      return out;
+    }
+    return l; // both changed something we can't combine: this device's save wins
+  }
+
+  // Returns the text to store, given the last-synced text (or null if unknown),
+  // this device's text, and the shared database's current text.
+  function mergeValues(baseStr, localStr, remoteStr) {
+    try {
+      var l = JSON.parse(localStr), r = JSON.parse(remoteStr), b;
+      baseKnownFlag = (baseStr !== null && baseStr !== undefined);
+      if (baseKnownFlag) { try { b = JSON.parse(baseStr); } catch (e) { baseKnownFlag = false; b = undefined; } }
+      var m = mergeNode(b, l, r);
+      if (deepEq(m, l)) return localStr;
+      if (deepEq(m, r)) return remoteStr;
+      return JSON.stringify(m);
+    } catch (e) {
+      return localStr;
+    }
+  }
+
   function fail(code, message) { var e = new Error(message || code); e.code = code; return e; }
 
   var FB = window.MFD_FB = {
@@ -79,6 +185,7 @@
     emailDomain: EMAIL_DOMAIN,
     minPassword: MIN_PASSWORD,
     slugify: slugify,
+    _merge: mergeValues,       // exposed for testing
     user: null,
     account: null,            // the signed-in member's approved-account record
     available: false,         // true once the Firebase SDK has loaded
@@ -110,11 +217,46 @@
     var syncStarted = false;
 
     // ---------- data sync (unchanged behaviour) ----------
+    // Unsent saves are remembered across reloads/closing the tab (these two
+    // storage names deliberately don't start with a synced prefix, so they
+    // never go to the shared database themselves).
+    var PENDING_KEY = 'sync_pending', BASE_PREFIX = 'sync_base:';
+    var bases = {};      // last text of each key known to match the shared database
+    var pending = {};    // keys with saves not yet confirmed by the shared database
+    var flushing = {}, again = {}, retryTimer = null;
+
+    function loadPending() {
+      try { return JSON.parse(window.localStorage.getItem(PENDING_KEY) || '{}') || {}; } catch (e) { return {}; }
+    }
+    function savePending() {
+      try {
+        if (Object.keys(pending).length) window.localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+        else window.localStorage.removeItem(PENDING_KEY);
+      } catch (e) { /* ignore */ }
+    }
+    function saveBase(key, val) {
+      try {
+        if (val === null || val === undefined) window.localStorage.removeItem(BASE_PREFIX + key);
+        else window.localStorage.setItem(BASE_PREFIX + key, val);
+      } catch (e) { /* too big to keep a copy: the merge then just avoids deleting anything */ }
+    }
+    function markPending(key) {
+      if (!pending[key]) { pending[key] = 1; savePending(); saveBase(key, bases[key]); }
+    }
+    function clearPending(key) {
+      if (pending[key]) { delete pending[key]; savePending(); }
+      saveBase(key, null);
+    }
+
     function primeKnownValues() {
+      pending = loadPending();
       try {
         for (var i = 0; i < window.localStorage.length; i++) {
           var k = window.localStorage.key(i);
-          if (shouldSync(k)) knownValues[k] = window.localStorage.getItem(k);
+          if (!shouldSync(k)) continue;
+          knownValues[k] = window.localStorage.getItem(k);
+          if (pending[k]) { var bv = window.localStorage.getItem(BASE_PREFIX + k); bases[k] = bv === null ? undefined : bv; }
+          else bases[k] = knownValues[k];
         }
       } catch (e) { /* ignore */ }
     }
@@ -133,19 +275,81 @@
       }
     }
 
+    // A save is queued first (so it survives a closed tab or a dropped
+    // connection), then sent in a way that merges with anything another
+    // person saved in the meantime.
     function pushToFirestore(key, value) {
       if (applyingRemote) return;
       knownValues[key] = value === undefined ? null : value;
-      var ref = fsMod.doc(db, COLLECTION, key);
-      fsMod.setDoc(ref, {
-        value: value === undefined ? null : value,
-        deleted: value === null || value === undefined,
-        updatedAt: fsMod.serverTimestamp()
-      }).catch(function (err) {
-        console.error("MFD sync: failed to save '" + key + "' to the shared database.", err);
-        if (err && err.code === 'permission-denied') kickOut();
-      });
+      markPending(key);
+      flushKey(key);
     }
+
+    function flushKey(key) {
+      if (flushing[key]) { again[key] = true; return flushing[key]; }
+      var p = doFlush(key).catch(function (err) {
+        console.error("MFD sync: could not save '" + key + "' yet — it will be retried.", err);
+        if (err && err.code === 'permission-denied') { kickOut(); return; }
+        scheduleRetry();
+      }).then(function () {
+        flushing[key] = null;
+        if (again[key]) { again[key] = false; return flushKey(key); }
+      });
+      flushing[key] = p;
+      return p;
+    }
+
+    function doFlush(key) {
+      var localSnap = window.localStorage.getItem(key);
+      var ref = fsMod.doc(db, COLLECTION, key);
+      if (localSnap === null) {
+        return fsMod.setDoc(ref, { value: null, deleted: true, updatedAt: fsMod.serverTimestamp() }).then(function () {
+          if (window.localStorage.getItem(key) === null) { bases[key] = null; clearPending(key); }
+        });
+      }
+      var base = bases[key];
+      return fsMod.runTransaction(db, function (tx) {
+        return tx.get(ref).then(function (s) {
+          var d = s.exists() ? s.data() : null;
+          var remote = (d && !d.deleted && typeof d.value === 'string') ? d.value : null;
+          var merged = remote === null ? localSnap : mergeValues(base, localSnap, remote);
+          if (merged !== remote) tx.set(ref, { value: merged, deleted: false, updatedAt: fsMod.serverTimestamp() });
+          return merged;
+        });
+      }).then(function (merged) { finishFlush(key, localSnap, merged); });
+    }
+
+    function finishFlush(key, localSnap, merged) {
+      var cur = window.localStorage.getItem(key), mustReload = false;
+      knownValues[key] = merged;
+      bases[key] = merged;
+      if (cur === localSnap) {
+        if (merged !== localSnap) { writeLocalOnly(key, merged); mustReload = true; } // someone else's changes were merged in
+        clearPending(key);
+      } else {
+        // This device saved again while that save was in flight: fold the newer edits into the merged result and send again.
+        if (cur !== null) {
+          var next = mergeValues(localSnap, cur, merged);
+          if (next !== cur) { writeLocalOnly(key, next); mustReload = true; }
+          knownValues[key] = next;
+        }
+        saveBase(key, merged);
+        again[key] = true;
+      }
+      if (mustReload) safeReload();
+    }
+
+    function flushAllPending() {
+      var ks = Object.keys(pending);
+      return Promise.all(ks.map(flushKey));
+    }
+    function scheduleRetry() {
+      if (retryTimer) return;
+      retryTimer = setTimeout(function () { retryTimer = null; if (Object.keys(pending).length) flushAllPending(); }, 15000);
+    }
+    window.addEventListener('online', function () { if (syncStarted) flushAllPending(); });
+    window.addEventListener('focus', function () { if (syncStarted && Object.keys(pending).length) flushAllPending(); });
+    document.addEventListener('visibilitychange', function () { if (syncStarted && !document.hidden && Object.keys(pending).length) flushAllPending(); });
 
     function patchStorage() {
       var origSetItem = window.localStorage.setItem.bind(window.localStorage);
@@ -166,6 +370,7 @@
         snap.forEach(function (docSnap) {
           var key = docSnap.id;
           if (!shouldSync(key)) return;
+          if (pending[key]) return; // an unsent save on this device is never overwritten
           var data = docSnap.data();
           if (data.deleted) {
             window.localStorage.removeItem(key);
@@ -188,10 +393,12 @@
           if (change.doc.metadata.hasPendingWrites) return; // our own local write echoing back
           var key = change.doc.id;
           if (!shouldSync(key)) return;
+          if (pending[key]) return; // this device has an unsent save: it gets merged with this when it is sent
           var data = change.doc.data();
           var newValue = data.deleted ? null : data.value;
           if (knownValues[key] === newValue) return; // nothing actually changed
           writeLocalOnly(key, newValue);
+          bases[key] = newValue;
           changed = true;
         });
         if (changed) safeReload();
@@ -251,7 +458,11 @@
     };
 
     FB.signOut = function () {
-      var p = fsMod.waitForPendingWrites ? fsMod.waitForPendingWrites(db).catch(function () {}) : Promise.resolve();
+      var sent = Promise.race([
+        Object.keys(pending).length ? flushAllPending().catch(function () {}) : Promise.resolve(),
+        new Promise(function (res) { setTimeout(res, 8000); })
+      ]);
+      var p = sent.then(function () { return fsMod.waitForPendingWrites ? fsMod.waitForPendingWrites(db).catch(function () {}) : null; });
       return p.then(function () {
         window.sessionStorage.removeItem(BOOTSTRAP_FLAG);
         return authMod.signOut(auth);
@@ -343,13 +554,18 @@
     // ---------- start-up ----------
     function startSync() {
       if (syncStarted) return; syncStarted = true;
-      if (FB.needsHydrate()) {
-        hydrateThenReload();
-      } else {
-        primeKnownValues();
-        patchStorage();
-        listenForRemoteChanges();
-      }
+      pending = loadPending();
+      // Send anything left unsent from earlier (closed tab, no signal) before loading shared data.
+      var pre = Object.keys(pending).length ? flushAllPending().catch(function () {}) : Promise.resolve();
+      pre.then(function () {
+        if (FB.needsHydrate()) {
+          hydrateThenReload();
+        } else {
+          primeKnownValues();
+          patchStorage();
+          listenForRemoteChanges();
+        }
+      });
     }
 
     // Keep the sign-in for this browser tab only (same as before: closing the
