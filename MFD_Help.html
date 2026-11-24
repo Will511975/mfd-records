@@ -127,7 +127,7 @@
       <ul>
         <li><b>Members</b> by name, call sign, rank or phone number. Phone numbers are tap-to-call on a phone.</li>
         <li><b>Incidents</b> by incident number, location or type. Choosing one opens the Time Card search with that incident.</li>
-        <li><b>Addresses</b> for rental and business inspections, or owner names. Choosing one opens Rental Inspections filtered to that address.</li>
+        <li><b>Addresses</b> for rental and business inspections, or owner names. Choosing one opens Inspections filtered to that address.</li>
       </ul>
       <h3>Needs attention <span class="tag all">Everyone</span></h3>
       <p>This strip on the hub lists things that are due or overdue, so nothing slips. It covers:</p>
@@ -143,7 +143,7 @@
 
     <section class="hs" id="dashboard" data-title="Dashboard">
       <h2>Dashboard <span class="tag all">Everyone</span></h2>
-      <p>The Dashboard has four tabs: <b>Call Outs</b>, <b>Roster</b>, <b>Budget &amp; Finance</b> and <b>Rental Inspections</b>. Each gives an at-a-glance summary of that area.</p>
+      <p>The Dashboard has four tabs: <b>Call Outs</b>, <b>Roster</b>, <b>Budget &amp; Finance</b> and <b>Inspections</b>. Each gives an at-a-glance summary of that area.</p>
       <h3>Choosing a period</h3>
       <p>On Call Outs, use the shortcut buttons (This Month, Last Month, Last 3 Months, Last 12 Months, Year to Date, Last Year, This Fiscal Year, Last Fiscal Year, All Time) or set your own From and To months. The fiscal year runs <b>July 1 to June 30</b>.</p>
       <h3>Print Summary</h3>
@@ -213,15 +213,15 @@
       <p>Structural changes (shelves, bags, kits, sets, renaming, reset) need an Admin account. Deletes ask for confirmation and then offer Undo.</p>
     </section>
 
-    <section class="hs" id="rental" data-title="Rental Inspections">
-      <h2>Rental Inspections</h2>
-      <p>Records the Town rental and business fire and safety inspections. Tabs: <b>Dashboard</b> and <b>Inspections</b>.</p>
+    <section class="hs" id="rental" data-title="Inspections">
+      <h2>Inspections</h2>
+      <p>Records the Town rental, business and preschool / day care fire and safety inspections (this page used to be called Rental Inspections). Tabs: <b>Dashboard</b> and <b>Inspections</b>.</p>
       <h3>Logging an inspection <span class="tag all">Everyone</span></h3>
-      <p>Press <b>Log Inspection</b>. Choose the type (rental or business), enter the owner, address and date, work through the checklist (Pass, Not Passed or N/A), add notes and who inspected, choose the result, and press <b>Save Inspection</b>.</p>
+      <p>Press <b>Log Inspection</b>. Choose the type (rental, business or preschool / day care), enter the owner, address and date, tick <b>Parking spots needed</b> if the property needs parking (then enter the <b>number of parking spots</b> and the <b>parking location</b>), work through the checklist (Pass, Not Passed or N/A), add notes and who inspected, choose the result, and press <b>Save Inspection</b>.</p>
       <h3>Reinspections</h3>
       <p>A property is due for reinspection 365 days after its latest inspection. Open an inspection and press <b>Reinspect</b> to start a new one for the same address. The detail view also lists other inspections at the same address. Overdue and soon-due reinspections show on the hub.</p>
       <h3>Printing</h3>
-      <p>Use <b>Print</b> in an inspection's detail view for the paper form and results.</p>
+      <p>Use <b>Print</b> in an inspection's detail view for the paper form and results. The printed report and the blank field form both include the parking line (needed, number of spots and location).</p>
       <h3>Editing and deleting <span class="tag admin">Admin</span></h3>
       <p>Editing or deleting a saved inspection needs an Admin account. Deleting offers Undo.</p>
     </section>
@@ -234,7 +234,7 @@
 
     <section class="hs" id="print" data-title="Printing">
       <h2>Printing</h2>
-      <p>Printing opens your browser's normal print window, so you can print to paper or save as a PDF. Dashboards, the Roster, the Time Card, Budget and Rental all have a <b>Print</b> or <b>Print Summary</b> button. Use <b>Portrait</b> for summaries; the Roster list prints best in <b>Landscape</b>.</p>
+      <p>Printing opens your browser's normal print window, so you can print to paper or save as a PDF. Dashboards, the Roster, the Time Card, Budget and Inspections all have a <b>Print</b> or <b>Print Summary</b> button. Use <b>Portrait</b> for summaries; the Roster list prints best in <b>Landscape</b>.</p>
     </section>
 
     <section class="hs" id="backup" data-title="Backup &amp; Restore">
@@ -258,7 +258,7 @@
           <tr><td>Budget</td><td>Log expenses</td><td>Allocations, grants, edit or delete expenses and vendors</td></tr>
           <tr><td>Apparatus</td><td>Inventory counts, vehicle inspections, resupply</td><td>Layout, compartments, checklist, reset</td></tr>
           <tr><td>Supply Locker</td><td>Inventory counting and scanning</td><td>Item Database changes, shelves, bags and kits, CSV import</td></tr>
-          <tr><td>Rental Inspections</td><td>Log inspections</td><td>Edit or delete inspections</td></tr>
+          <tr><td>Inspections</td><td>Log inspections</td><td>Edit or delete inspections</td></tr>
           <tr><td>Backup &amp; Restore</td><td>&mdash;</td><td>Everything</td></tr>
         </tbody>
       </table>
@@ -283,6 +283,8 @@
       <p>The newest changes are first. Entries up to early November are described from the record of which pages changed on each date, so the older ones are less detailed than the recent ones.</p>
       <div class="hist-date">November 23, 2026<span>Login security, accessibility and clean-up</span></div>
       <ul>
+        <li><b>"Rental Inspections" is now just "Inspections"</b> on the hub, the Dashboard tab and this guide (the page address stays the same).</li>
+        <li><b>Parking on all inspection forms.</b> Every inspection type (rental, business, preschool / day care) now has a <b>Parking spots needed</b> checkbox. When ticked, you enter the <b>number of parking spots</b> and the <b>parking location</b>. It shows in the inspection details, the printed report and the blank field form. Older rental records that had a parking number show as needing parking.</li>
         <li><b>Real sign-in security.</b> Sign-in now uses your last name and a personal password checked by the online service, not a password stored in the pages. Your session ends when you close the browser.</li>
         <li><b>Only approved members can open the data.</b> The shared database is now locked so that only members an Admin has approved can read or change records. Anyone else is refused.</li>
         <li><b>Roster &rarr; Login Access.</b> Admins can give a member a password, make a temporary password, change a member's access level, or remove their login. Removing or deleting a member also removes their login.</li>

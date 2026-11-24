@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="robots" content="noindex, nofollow">
 <meta name="color-scheme" content="dark" />
-<title>Mantua Fire Department – Rental Inspections</title>
+<title>Mantua Fire Department – Inspections</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 <style>
 :root {
@@ -329,8 +329,8 @@ table.pd-t td.pd-empty{text-align:center;color:#777;}
     </svg>
     <div class="mfd-header-text-block">
       <div class="dept">Mantua Township</div>
-      <div class="title">🏠 Rental Inspections</div>
-      <div class="subtitle">Rental &amp; Business Inspections</div>
+      <div class="title">🏠 Inspections</div>
+      <div class="subtitle">Rental, Business &amp; Day Care Inspections</div>
     </div>
     <a href="index.html" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:7px;background:rgba(255,255,255,0.05);border:1px solid var(--navy-700);color:var(--slate-400);font-size:12px;font-weight:600;text-decoration:none;transition:all .2s;flex-shrink:0;"
        onmouseover="this.style.color='#f1f5f9';this.style.background='rgba(255,255,255,0.09)'"
@@ -367,7 +367,7 @@ table.pd-t td.pd-empty{text-align:center;color:#777;}
   <div class="topbar">
     <div>
       <div class="topbar-title" id="page-title">Dashboard</div>
-      <div class="topbar-sub" id="page-sub">Overview of rental inspections</div>
+      <div class="topbar-sub" id="page-sub">Overview of inspections</div>
     </div>
     <div class="topbar-actions">
       <button class="btn btn-primary btn-sm" onclick="openInspectionModal()">➕ Log Inspection</button>
@@ -469,7 +469,7 @@ table.pd-t td.pd-empty{text-align:center;color:#777;}
           </tr>
         </thead>
         <tbody id="insp-tbody">
-          <tr><td colspan="8"><div class="empty-state"><div class="es-icon">🏠</div><div class="es-title">No inspections yet</div><div class="es-sub">Log your first rental inspection to get started</div></div></td></tr>
+          <tr><td colspan="8"><div class="empty-state"><div class="es-icon">🏠</div><div class="es-title">No inspections yet</div><div class="es-sub">Log your first inspection to get started</div></div></td></tr>
         </tbody>
       </table>
     </div>
@@ -520,9 +520,21 @@ table.pd-t td.pd-empty{text-align:center;color:#777;}
           <label class="label" title="Utah's adopted property maintenance code sets sleeping-room occupancy by floor area: 70 sq. ft. for 1 person, plus 50 sq. ft. for each additional occupant — the same standard behind item 1's 100 sq. ft. minimum for 2 occupants. Record the maximum the space supports.">Max Occupancy (per Utah law)</label>
           <input class="input" type="number" min="0" id="if-maxoccupancy" placeholder="0">
         </div>
-        <div class="form-group" id="fg-parking">
-          <label class="label">Number of Car Parking Spaces</label>
-          <input class="input" type="number" min="0" id="if-parking" placeholder="0">
+        <div class="form-group span2" id="fg-parking">
+          <label class="label" for="if-parking-needed" style="display:flex;align-items:center;gap:8px;cursor:pointer;text-transform:none;font-size:13px;">
+            <input type="checkbox" id="if-parking-needed" onchange="onParkingToggle()" style="width:18px;height:18px;accent-color:var(--red-500,#dc2626);">
+            Parking spots needed
+          </label>
+          <div id="parking-detail" style="display:none;grid-template-columns:1fr 2fr;gap:10px;margin-top:8px;">
+            <div>
+              <label class="label" for="if-parking">Number of Parking Spots</label>
+              <input class="input" type="number" min="0" id="if-parking" placeholder="0">
+            </div>
+            <div>
+              <label class="label" for="if-parking-loc">Parking Location</label>
+              <input class="input" id="if-parking-loc" placeholder="e.g. Rear lot, street in front, side of building">
+            </div>
+          </div>
         </div>
         <div class="form-group" id="fg-occupancy" style="display:none;">
           <label class="label" id="if-occupancy-label">Occupancy Type</label>
@@ -840,8 +852,8 @@ function requireUnlock(action){
 //  NAV & PAGES
 // ══════════════════════════════════════════
 const PAGE_META = {
-  dashboard:{title:'Dashboard', sub:'Overview of rental inspections'},
-  inspections:{title:'Inspections', sub:'All logged rental inspections'},
+  dashboard:{title:'Dashboard', sub:'Overview of inspections'},
+  inspections:{title:'Inspections', sub:'All logged inspections'},
 };
 function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1110,7 +1122,6 @@ function applyInspectionTypeUI(type){
   document.getElementById('fg-occupantload').style.display = isBiz ? '' : 'none';
   document.getElementById('fg-bedrooms').style.display       = type === 'rental' ? '' : 'none';
   document.getElementById('fg-maxoccupancy').style.display   = type === 'rental' ? '' : 'none';
-  document.getElementById('fg-parking').style.display        = type === 'rental' ? '' : 'none';
   document.getElementById('maxocc-hint').style.display       = type === 'rental' ? '' : 'none';
   const occloadHint = document.getElementById('occload-hint');
   occloadHint.style.display = isBiz ? '' : 'none';
@@ -1150,14 +1161,18 @@ function openInspectionModal(id=null, reinspectFromId=null){
   document.getElementById('if-phone').value      = rec ? formatPhone(rec.phone||'') : '';
   document.getElementById('if-bedrooms').value   = rec ? (rec.bedrooms!==undefined?rec.bedrooms:'') : '';
   document.getElementById('if-maxoccupancy').value = rec ? (rec.maxOccupancy!==undefined?rec.maxOccupancy:'') : '';
-  document.getElementById('if-parking').value       = rec ? (rec.parkingSpaces!==undefined?rec.parkingSpaces:'') : '';
+  { const pk = parkingInfo(rec);
+    document.getElementById('if-parking-needed').checked = pk.needed;
+    document.getElementById('if-parking').value     = pk.needed ? pk.spaces : '';
+    document.getElementById('if-parking-loc').value = pk.needed ? pk.loc : '';
+    onParkingToggle(); }
   document.getElementById('if-occupancy').value      = rec ? (rec.occupancyType||'') : '';
   document.getElementById('if-occupantload').value   = rec ? (rec.occupantLoad!==undefined?rec.occupantLoad:'') : '';
   // Date and result always start fresh on a reinspection (today's date,
   // no result yet) even though the rest of the form is prefilled — an
   // inspector has to actually look at the property again and pick
   // Pass/Not Passed, not inherit the old verdict.
-  document.getElementById('if-date').value       = id ? rec.inspectionDate : new Date().toISOString().slice(0,10);
+  document.getElementById('if-date').value       = id ? rec.inspectionDate : (function(){ const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); })();
   document.getElementById('if-notes').value      = rec ? (rec.notes||'') : '';
   document.getElementById('if-inspector').value  = id ? (rec.inspectorName||'') : (window.MFD_AUTH ? window.MFD_AUTH.name : '');
   document.getElementById('if-title').value      = id ? (rec.inspectorTitle||'') : '';
@@ -1197,7 +1212,9 @@ function saveInspection(){
     phone: document.getElementById('if-phone').value.trim(),
     bedrooms: type === 'rental' ? document.getElementById('if-bedrooms').value.trim() : '',
     maxOccupancy: type === 'rental' ? document.getElementById('if-maxoccupancy').value.trim() : '',
-    parkingSpaces: type === 'rental' ? document.getElementById('if-parking').value.trim() : '',
+    parkingNeeded: document.getElementById('if-parking-needed').checked,
+    parkingSpaces: document.getElementById('if-parking-needed').checked ? document.getElementById('if-parking').value.trim() : '',
+    parkingLocation: document.getElementById('if-parking-needed').checked ? document.getElementById('if-parking-loc').value.trim() : '',
     inspectionDate: date,
     checklist: readChecklistFromForm(),
     notes: document.getElementById('if-notes').value.trim(),
@@ -1288,7 +1305,7 @@ function openDetail(id){
       ${dRow('Phone', escHtml(rec.phone||'—'))}
       ${!isBiz ? dRow('Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—')) : ''}
       ${!isBiz ? dRow('Max Occupancy (per Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—') + `<div class="ci-legal" style="margin-top:3px;">⚖️ ${escHtml(MAX_OCC_LAW_NOTE)}</div>`) : ''}
-      ${!isBiz ? dRow('Car Parking Spaces', escHtml(rec.parkingSpaces!==undefined && rec.parkingSpaces!=='' ? rec.parkingSpaces : '—')) : ''}
+      ${dRow('Parking', escHtml(parkingSummary(rec)))}
       ${isBiz ? dRow(info.occLabel, escHtml(rec.occupancyType||'—')) : ''}
       ${isBiz ? dRow('Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—') + `<div class="ci-legal" style="margin-top:3px;">⚖️ ${escHtml(occLawNote(type))}</div>`) : ''}
       ${dRow('Date of Inspection', fmtDate(rec.inspectionDate))}
@@ -1334,6 +1351,24 @@ function openDetail(id){
 function reinspectInspection(id){
   closeModal('detail-modal');
   openInspectionModal(null, id);
+}
+// Parking: a record "needs parking" when its box was ticked. Records saved
+// before the checkbox existed (rentals only, a bare spaces number) count as
+// needing parking when they have a non-zero number.
+function parkingInfo(rec){
+  rec = rec || {};
+  const spaces = (rec.parkingSpaces===undefined || rec.parkingSpaces===null) ? '' : String(rec.parkingSpaces).trim();
+  const needed = rec.parkingNeeded===undefined ? (spaces!=='' && spaces!=='0') : !!rec.parkingNeeded;
+  return { needed, spaces, loc: String(rec.parkingLocation||'').trim() };
+}
+function onParkingToggle(){
+  const on = document.getElementById('if-parking-needed').checked;
+  document.getElementById('parking-detail').style.display = on ? 'grid' : 'none';
+}
+function parkingSummary(rec){
+  const pk = parkingInfo(rec);
+  if(!pk.needed) return 'Not needed';
+  return 'Needed' + (pk.spaces!=='' ? ' — '+pk.spaces+(pk.spaces==='1'?' spot':' spots') : '') + (pk.loc ? ' — '+pk.loc : '');
 }
 function dRow(label, val){
   return `<div><label class="label">${label}</label><div style="margin-top:4px;font-size:13px;color:var(--slate-300);">${val}</div></div>`;
@@ -1434,7 +1469,7 @@ function printAllRecords(){
 
   document.getElementById('print-report').innerHTML = `
     <div style="font-family:Arial,Helvetica,sans-serif;color:#000;">
-      ${printHeader('Rental & Business Inspection Records')}
+      ${printHeader('Inspection Records')}
       <div style="font-size:11px;color:#555;margin-bottom:10px;">${total} record${total===1?'':'s'} on file — ${passed} passed, ${failed} not passed. Reinspection dates are a department 1-year scheduling policy, not a state or county legal mandate.</div>
       <table style="width:100%;border-collapse:collapse;font-size:11px;">
         <thead><tr>
@@ -1517,8 +1552,9 @@ function printRecord(id){
             ? formalInfoRow(info.nameLabel, escHtml(rec.businessName||'—'), info.ownerLabel, escHtml(rec.owner))
             : formalInfoRow('Owner', escHtml(rec.owner), 'Phone', escHtml(rec.phone||'—'))}
           ${isBiz ? formalInfoRow('Address', escHtml(rec.address), 'Phone', escHtml(rec.phone||'—')) : formalInfoRow('Address', escHtml(rec.address), 'Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—'))}
-          ${!isBiz ? formalInfoRow('Max Occupancy (Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—'), 'Car Parking Spaces', escHtml(rec.parkingSpaces!==undefined && rec.parkingSpaces!=='' ? rec.parkingSpaces : '—')) : ''}
+          ${!isBiz ? formalInfoRow('Max Occupancy (Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—'), '', '') : ''}
           ${isBiz ? formalInfoRow(info.occLabel, escHtml(rec.occupancyType||'—'), 'Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—')) : ''}
+          ${(function(){ const pk=parkingInfo(rec); return formalInfoRow('Parking Needed', pk.needed?'Yes':'No', 'Parking Spots', pk.needed && pk.spaces!=='' ? escHtml(pk.spaces) : '—') + formalInfoRow('Parking Location', pk.needed && pk.loc ? escHtml(pk.loc) : '—', '', ''); })()}
           ${formalInfoRow('Date of Inspection', fmtDate(rec.inspectionDate), 'Inspected By', escHtml(rec.inspectorName||'—')+(rec.inspectorTitle?', '+escHtml(rec.inspectorTitle):''))}
         </table>
       </div>
@@ -1633,8 +1669,15 @@ function blankFormHtml(type){
             ? formalBlankInfoRow(info.nameLabel, info.ownerLabel)
             : formalBlankInfoRow('Owner', 'Phone')}
           ${isBiz ? formalBlankInfoRow('Address', 'Phone') : formalBlankInfoRow('Address', 'Bedrooms')}
-          ${!isBiz ? formalBlankInfoRow('Max Occupancy (Utah law)', 'Car Parking Spaces') : ''}
+          ${!isBiz ? formalBlankInfoRow('Max Occupancy (Utah law)', '') : ''}
           ${isBiz ? formalBlankInfoRow(info.occLabel, 'Occupant Load') : ''}
+          <tr>
+            <td style="width:17%;padding:7px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;color:#555;font-size:10px;text-transform:uppercase;letter-spacing:.03em;">Parking Needed</td>
+            <td style="width:33%;padding:7px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;font-size:12px;">&#9744; Yes &nbsp;&nbsp; &#9744; No</td>
+            <td style="width:17%;padding:7px 8px;border-right:1px solid #ddd;border-bottom:1px solid #ddd;color:#555;font-size:10px;text-transform:uppercase;letter-spacing:.03em;">Parking Spots</td>
+            <td style="width:33%;padding:7px 8px;border-bottom:1px solid #ddd;">${blankLine('100%')}</td>
+          </tr>
+          ${formalBlankInfoRow('Parking Location', '')}
           ${formalBlankInfoRow('Date of Inspection', 'Inspected By')}
         </table>
       </div>
@@ -1826,7 +1869,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 <script>
 var PD = {
   key: 'rental',
-  title: 'Rental & Business Inspections Summary',
+  title: 'Inspections Summary',
   period: function(){ return 'All inspections on file &middot; as of <strong>'+pdEsc(new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}))+'</strong>'; },
   intro: 'Built from every logged inspection (rental, business and preschool / day care). <strong>Pass rate</strong> is inspections passed &divide; all inspections. A property&rsquo;s <strong>reinspection date</strong> is 1 year after its most recent inspection &mdash; a department scheduling reminder, not a state or county requirement.',
   sections: [

@@ -342,7 +342,7 @@
 
   <div class="card-grid">
 
-    <!-- Dashboard (Call Outs, Roster, Budget & Rental Inspections dashboards) -->
+    <!-- Dashboard (Call Outs, Roster, Budget & Inspections dashboards) -->
     <a class="card" href="MFD_Dashboard.html">
       <div class="card-icon">
         <svg viewBox="0 0 24 24">
@@ -354,7 +354,7 @@
       </div>
       <div class="card-body">
         <div class="card-title">Dashboard</div>
-        <div class="card-subtitle">MFD_Dashboard.html &mdash; Call Outs, Roster, Budget &amp; Rental Inspections dashboards</div>
+        <div class="card-subtitle">MFD_Dashboard.html &mdash; Call Outs, Roster, Budget &amp; Inspections dashboards</div>
       </div>
       <span class="card-arrow">&rsaquo;</span>
     </a>
@@ -429,7 +429,7 @@
       <span class="card-arrow">&rsaquo;</span>
     </a>
 
-    <!-- Rental Inspections -->
+    <!-- Inspections -->
     <a class="card" href="MFD_RentalInspections.html">
       <div class="card-icon">
         <svg viewBox="0 0 24 24">
@@ -438,8 +438,8 @@
         </svg>
       </div>
       <div class="card-body">
-        <div class="card-title">Rental Inspections</div>
-        <div class="card-subtitle">MFD_RentalInspections.html — Town Rental Fire &amp; Safety Checklist</div>
+        <div class="card-title">Inspections</div>
+        <div class="card-subtitle">MFD_RentalInspections.html — Rental, Business &amp; Day Care Fire &amp; Safety Inspections</div>
       </div>
       <span class="card-arrow">›</span>
     </a>
@@ -648,8 +648,8 @@ window.addEventListener('mfd-auth-ready', function(){
         else if(left <= REINSPECT_SOON) soonR.push({left:left, href:rhref, h: label+' <span>due '+fmt(due)+' (in '+plural(left,'day')+')</span>'});
       });
       over.sort(function(a,b){ return a.left - b.left; }); soonR.sort(function(a,b){ return a.left - b.left; });
-      if(over.length) out.push({sev:'red', n:over.length, html: row('red', over.length, 'reinspection'+(over.length===1?'':'s')+' overdue', 'MFD_RentalInspections.html', 'Open Rental Inspections', over.map(function(x){ return {h:x.h, href:x.href}; }))});
-      if(soonR.length) out.push({sev:'amber', n:soonR.length, html: row('amber', soonR.length, 'reinspection'+(soonR.length===1?'':'s')+' due within '+REINSPECT_SOON+' days', 'MFD_RentalInspections.html', 'Open Rental Inspections', soonR.map(function(x){ return {h:x.h, href:x.href}; }))});
+      if(over.length) out.push({sev:'red', n:over.length, html: row('red', over.length, 'reinspection'+(over.length===1?'':'s')+' overdue', 'MFD_RentalInspections.html', 'Open Inspections', over.map(function(x){ return {h:x.h, href:x.href}; }))});
+      if(soonR.length) out.push({sev:'amber', n:soonR.length, html: row('amber', soonR.length, 'reinspection'+(soonR.length===1?'':'s')+' due within '+REINSPECT_SOON+' days', 'MFD_RentalInspections.html', 'Open Inspections', soonR.map(function(x){ return {h:x.h, href:x.href}; }))});
     }catch(e){}
 
     // --- Vehicles: failed items, stale inspections, items missing from trucks ---

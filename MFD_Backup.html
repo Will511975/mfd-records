@@ -655,7 +655,7 @@ function handleRestoreFiles(fileList){
       // "checklist" and "result" field, the shape unique to this module)
       // rather than filename alone, so a renamed file still restores.
       if(Array.isArray(r.parsed) && (r.parsed.length === 0 ? /^MFD_RentalInspections-\d{6}\.json$/i.test(name) : (r.parsed[0] && typeof r.parsed[0] === 'object' && 'checklist' in r.parsed[0] && 'result' in r.parsed[0]))){
-        plan.push({ key:'mfd_rental_inspections_v1', value:r.parsed, label:'rental inspections' });
+        plan.push({ key:'mfd_rental_inspections_v1', value:r.parsed, label:'inspections' });
         return;
       }
       unrecognized.push(name);
