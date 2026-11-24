@@ -1305,7 +1305,7 @@ function openExpenseModal(id=null){
     document.getElementById('ef-notes').value     = e.notes||'';
     document.getElementById('ef-receipt').value   = e.receipt||'';
   } else {
-    document.getElementById('ef-date').value      = new Date().toISOString().slice(0,10);
+    document.getElementById('ef-date').value      = (function(){ var n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); })();
     document.getElementById('ef-category').value  = '';
     document.getElementById('ef-item').value      = '';
     document.getElementById('ef-vendor').value    = '';
