@@ -449,7 +449,7 @@ table.pd-t td.pd-empty{text-align:center;color:#777;}
           <button class="filter-btn" onclick="setResultFilter('fail',this)">❌ Not Passed</button>
           <button class="filter-btn" onclick="setResultFilter('reinspect',this)" title="Properties whose most recent inspection is due or overdue for a 1-year reinspection">🔔 Needs Reinspection</button>
         </div>
-        <input class="search-input" type="text" placeholder="Search address or owner…" id="insp-search" oninput="renderInspections()">
+        <input class="search-input" type="text" placeholder="Search address, owner, company, phone or email…" id="insp-search" oninput="renderInspections()">
         <div class="print-menu-wrap">
           <button class="btn btn-ghost btn-sm" onclick="togglePrintMenu('bulk-print-menu', event)" title="Print every logged inspection">🖨️ Print ▾</button>
           <div class="print-menu" id="bulk-print-menu">
@@ -511,9 +511,9 @@ table.pd-t td.pd-empty{text-align:center;color:#777;}
               <small id="nocust-hint">Press to hide the items that only apply to space open to the public. They are saved as N/A.</small></span>
           </button>
         </div>
-        <div class="form-group span2" id="fg-bizname" style="display:none;">
-          <label class="label" id="if-bizname-label">Business Name *</label>
-          <input class="input" id="if-bizname" placeholder="Business name">
+        <div class="form-group span2" id="fg-bizname">
+          <label class="label" id="if-bizname-label">Management Company (if any)</label>
+          <input class="input" id="if-bizname" placeholder="Company name">
         </div>
         <div class="form-group span2">
           <label class="label" id="if-owner-label">Owner of Rental *</label>
@@ -526,6 +526,10 @@ table.pd-t td.pd-empty{text-align:center;color:#777;}
         <div class="form-group">
           <label class="label">Phone Number</label>
           <input class="input" type="tel" id="if-phone" placeholder="(435) 555-0100" maxlength="14" oninput="onPhoneInput(this)">
+        </div>
+        <div class="form-group">
+          <label class="label" for="if-email">Email</label>
+          <input class="input" type="email" id="if-email" placeholder="name@example.com" autocomplete="off">
         </div>
         <div class="form-group" id="fg-bedrooms">
           <label class="label">Number of Bedrooms</label>
@@ -1077,7 +1081,7 @@ function renderInspections(){
       if(latestMap[normalizeAddr(i.address)] !== i.id) return false;
       if(!['overdue','soon'].includes(reinspectionStatus(i).state)) return false;
     }
-    if(q && !(String(i.address||'').toLowerCase().includes(q) || String(i.owner||'').toLowerCase().includes(q) || String(i.businessName||'').toLowerCase().includes(q))) return false;
+    if(q && !(String(i.address||'').toLowerCase().includes(q) || String(i.owner||'').toLowerCase().includes(q) || String(i.businessName||'').toLowerCase().includes(q) || String(i.company||'').toLowerCase().includes(q) || String(i.email||'').toLowerCase().includes(q) || String(i.phone||'').toLowerCase().includes(q))) return false;
     return true;
   });
   rows.sort((a,b)=>{
@@ -1209,8 +1213,7 @@ function readChecklistFromForm(){
 function applyInspectionTypeUI(type){
   const isBiz = isBizLike(type);
   const info = TYPE_INFO[type] || TYPE_INFO.rental;
-  document.getElementById('fg-bizname').style.display      = isBiz ? '' : 'none';
-  document.getElementById('fg-occupancy').style.display    = isBiz ? '' : 'none';
+    document.getElementById('fg-occupancy').style.display    = isBiz ? '' : 'none';
   document.getElementById('fg-occupantload').style.display = isBiz ? '' : 'none';
   document.getElementById('fg-bedrooms').style.display       = type === 'rental' ? '' : 'none';
   document.getElementById('fg-maxoccupancy').style.display   = type === 'rental' ? '' : 'none';
@@ -1219,7 +1222,8 @@ function applyInspectionTypeUI(type){
   occloadHint.style.display = isBiz ? '' : 'none';
   occloadHint.textContent = isBiz ? occLawNote(type) : '';
   document.getElementById('if-occupantload-label').title = isBiz ? occLawNote(type) : '';
-  document.getElementById('if-bizname-label').textContent = info.nameLabel + ' *';
+  document.getElementById('if-bizname-label').textContent = isBiz ? info.nameLabel + ' *' : 'Management Company (if any)';
+  document.getElementById('if-bizname').placeholder = isBiz ? (type==='preschool' ? 'Facility / company name' : 'Business / company name') : 'Company name (optional)';
   document.getElementById('if-owner-label').textContent   = info.ownerLabel + ' *';
   document.getElementById('if-address-label').textContent = info.addressLabel + ' *';
   document.getElementById('if-occupancy-label').textContent = info.occLabel;
@@ -1249,7 +1253,8 @@ function openInspectionModal(id=null, reinspectFromId=null){
   typeSelect.disabled = !!id || !!reinspectSourceId;
   typeSelect.title = (id || reinspectSourceId) ? 'Inspection type can\'t be changed here — delete and re-log if this was set wrong.' : '';
   document.getElementById('if-owner').value      = rec ? rec.owner : '';
-  document.getElementById('if-bizname').value    = rec ? (rec.businessName||'') : '';
+  document.getElementById('if-bizname').value    = rec ? ((type==='rental' ? rec.company : rec.businessName)||'') : '';
+  document.getElementById('if-email').value      = rec ? (rec.email||'') : '';
   document.getElementById('if-address').value    = rec ? rec.address : '';
   document.getElementById('if-phone').value      = rec ? formatPhone(rec.phone||'') : '';
   document.getElementById('if-bedrooms').value   = rec ? (rec.bedrooms!==undefined?rec.bedrooms:'') : '';
@@ -1295,12 +1300,16 @@ function saveInspection(){
   if(!owner || !address || !date || !result || (isBiz && !bizName)){
     toast('Please fill in required fields: '+(isBiz?info.nameLabel+', '+info.ownerReq:'Owner, ')+'Address, Date, and Result','error'); return;
   }
+  const email = document.getElementById('if-email').value.trim();
+  if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('That email address does not look right. Check it or leave it blank.','error'); return; }
   const existing = editingInspectionId ? inspections.find(x=>x.id===editingInspectionId) : null;
   const obj = {
     id: editingInspectionId || uid(),
     inspectionType: type,
     owner, address,
     businessName:  isBiz ? bizName : '',
+    company:       isBiz ? '' : bizName,
+    email,
     noCustomers:   (type === 'business' && noCustomersOn),
     occupancyType: (isBiz && !(type==='business' && noCustomersOn)) ? document.getElementById('if-occupancy').value.trim() : '',
     occupantLoad:  (isBiz && !(type==='business' && noCustomersOn)) ? document.getElementById('if-occupantload').value.trim() : '',
@@ -1398,7 +1407,9 @@ function openDetail(id){
       ${isBiz ? dRow(info.nameLabel, escHtml(rec.businessName||'—')) : ''}
       ${dRow(isBiz?info.ownerLabel:'Owner', escHtml(rec.owner))}
       ${dRow(isBiz?info.addressLabel:'Address', `<span style="font-weight:700;color:var(--slate-100);">${escHtml(rec.address)}</span>`)}
+      ${!isBiz ? dRow('Management Company', escHtml(rec.company||'—')) : ''}
       ${dRow('Phone', escHtml(rec.phone||'—'))}
+      ${dRow('Email', escHtml(rec.email||'—'))}
       ${!isBiz ? dRow('Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—')) : ''}
       ${!isBiz ? dRow('Max Occupancy (per Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—') + `<div class="ci-legal" style="margin-top:3px;">⚖️ ${escHtml(MAX_OCC_LAW_NOTE)}</div>`) : ''}
       ${dRow('Parking', escHtml(parkingSummary(rec)))}
@@ -1648,8 +1659,9 @@ function printRecord(id){
         <table style="width:100%;border-collapse:collapse;">
           ${isBiz
             ? formalInfoRow(info.nameLabel, escHtml(rec.businessName||'—'), info.ownerLabel, escHtml(rec.owner))
-            : formalInfoRow('Owner', escHtml(rec.owner), 'Phone', escHtml(rec.phone||'—'))}
-          ${isBiz ? formalInfoRow('Address', escHtml(rec.address), 'Phone', escHtml(rec.phone||'—')) : formalInfoRow('Address', escHtml(rec.address), 'Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—'))}
+            : formalInfoRow('Owner', escHtml(rec.owner), 'Management Company', escHtml(rec.company||'—'))}
+          ${formalInfoRow('Address', escHtml(rec.address), 'Phone', escHtml(rec.phone||'—'))}
+          ${isBiz ? formalInfoRow('Email', escHtml(rec.email||'—'), '', '') : formalInfoRow('Email', escHtml(rec.email||'—'), 'Bedrooms', escHtml(rec.bedrooms!==undefined && rec.bedrooms!=='' ? rec.bedrooms : '—'))}
           ${!isBiz ? formalInfoRow('Max Occupancy (Utah law)', escHtml(rec.maxOccupancy!==undefined && rec.maxOccupancy!=='' ? rec.maxOccupancy : '—'), '', '') : ''}
           ${isBiz ? formalInfoRow(info.occLabel, escHtml(rec.occupancyType||'—'), 'Occupant Load', escHtml(rec.occupantLoad!==undefined && rec.occupantLoad!=='' ? rec.occupantLoad : '—')) : ''}
           ${(function(){ const pk=parkingInfo(rec); return formalInfoRow('Parking Needed', pk.needed?'Yes':'No', 'Parking Spots', pk.needed && pk.spaces!=='' ? escHtml(pk.spaces) : '—') + formalInfoRow('Parking Location', pk.needed && pk.loc ? escHtml(pk.loc) : '—', '', '') + (type==='business' ? formalInfoRow('Customers Visit', rec.noCustomers ? 'No — public-use items N/A' : 'Yes', '', '') : ''); })()}
@@ -1765,8 +1777,9 @@ function blankFormHtml(type){
         <table style="width:100%;border-collapse:collapse;">
           ${isBiz
             ? formalBlankInfoRow(info.nameLabel, info.ownerLabel)
-            : formalBlankInfoRow('Owner', 'Phone')}
-          ${isBiz ? formalBlankInfoRow('Address', 'Phone') : formalBlankInfoRow('Address', 'Bedrooms')}
+            : formalBlankInfoRow('Owner', 'Management Company')}
+          ${formalBlankInfoRow('Address', 'Phone')}
+          ${isBiz ? formalBlankInfoRow('Email', '') : formalBlankInfoRow('Email', 'Bedrooms')}
           ${!isBiz ? formalBlankInfoRow('Max Occupancy (Utah law)', '') : ''}
           ${isBiz ? formalBlankInfoRow(info.occLabel, 'Occupant Load') : ''}
           <tr>
