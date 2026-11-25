@@ -286,8 +286,8 @@ html.dash-only .page:not(#page-dashboard) { display:none !important; }
 #pd-hint{display:none;padding:0 18px 8px;font-size:12px;color:#fca5a5;}
 #pd-print-root{display:none;}
 @media print{
-  body > *:not(#pd-print-root){display:none !important;}
-  #pd-print-root{display:block !important;}
+  body.pd-printing > *:not(#pd-print-root){display:none !important;}
+  body.pd-printing #pd-print-root{display:block !important;}
   html,body{background:#fff !important;height:auto !important;overflow:visible !important;}
 }
 .pd-wrap{font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;font-size:11px;line-height:1.35;}
@@ -2082,9 +2082,10 @@ function pdPrint(sel){
   pdMount(sel);
   var old=document.getElementById('pd-page-style'); if(old) old.parentNode.removeChild(old);
   var st=document.createElement('style'); st.id='pd-page-style'; st.textContent='@media print{ @page{ size:portrait; margin:0.5in; } }'; document.head.appendChild(st);
+  document.body.classList.add('pd-printing');
   setTimeout(function(){
     window.print();
-    setTimeout(function(){ var r=document.getElementById('pd-print-root'); if(r) r.innerHTML=''; },1500);
+    setTimeout(function(){ document.body.classList.remove('pd-printing'); var r=document.getElementById('pd-print-root'); if(r) r.innerHTML=''; },1500);
   },100);
 }
 </script>
